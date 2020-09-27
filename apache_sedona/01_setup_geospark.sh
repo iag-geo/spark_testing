@@ -33,10 +33,10 @@ echo " Start time : $(date)"
 # SETUP:
 #   - edit these if you know what versions go with what version!?
 #       - for the current version of Geospark (1.3.1) and Conda: only Python 3.7 and Spark 2.4.6 are a valid combination
-#
+
 PYTHON_VERSION="3.7"
 SPARK_VERSION="2.4.6"
-#
+
 # --------------------------------------------------------------------------------------------------------------------
 
 # get directory this script is running from
