@@ -113,6 +113,8 @@ python ${SCRIPT_DIR}/02_run_spatial_query.py
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
+cd ${HOME}
+
 duration=$SECONDS
 
 echo " End time : $(date)"
