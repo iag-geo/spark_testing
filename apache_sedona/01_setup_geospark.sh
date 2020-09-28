@@ -17,9 +17,8 @@ echo " Start time : $(date)"
 #   - Removes existing 'geospark_env' Conda environment
 #
 # PRE_REQUISITES:
-#   1. Run script off the VPN/corporate network to avoid proxy server issues
-#   2. Java SE SDK is installed and linked to /Library/Java/Home
-#        - Install Java 8 using Homebrew: brew cask install java8; OR
+#   1. Java SE SDK is installed and linked to /Library/Java/Home
+#        - Install Java 8 using Homebrew: brew cask install java8; or
 #        - Install Java 11: brew cask install java11
 #   2. Miniconda installed in default directory ($HOME/opt/miniconda3)
 #        - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
