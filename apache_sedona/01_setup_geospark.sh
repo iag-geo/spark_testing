@@ -17,9 +17,9 @@ echo " Start time : $(date)"
 #   - Removes existing 'geospark_env' Conda environment
 #
 # PRE_REQUISITES:
-#   1. Java SE SDK is installed and linked to /Library/Java/Home
-#        - Install Java 8 using Homebrew: brew cask install adoptopenjdk8; or
-#        - Install Java 11: brew cask install adoptopenjdk11
+#   1. Java 8 OpenJDK is installed
+#        - Install using Homebrew: ```brew cask install adoptopenjdk8```
+#
 #   2. Miniconda installed in default directory ($HOME/opt/miniconda3)
 #        - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
 #
@@ -83,7 +83,7 @@ conda config --env --add channels conda-forge
 conda config --env --set channel_priority strict
 
 # add environment variables
-conda env config vars set JAVA_HOME="/Library/Java/Home"
+conda env config vars set JAVA_HOME="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
 conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
 conda env config vars set PYSPARK_PYTHON="${HOME}/opt/miniconda3/envs/geospark_env/bin/python"
