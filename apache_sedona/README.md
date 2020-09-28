@@ -1,5 +1,5 @@
 # Apache Sedona Quick Start
-Scripts for setting up PySpark and running geospatial analysis using Apache Sedona (formerly Geospark) in a Jupyter notebook.
+Scripts for running geospatial analysis using Apache Sedona (formerly Geospark) on Pyspark locally in a Jupyter notebook.
 
 Scripts are currently for **macOS only**. Will work on Linux with some tweaking.
 
