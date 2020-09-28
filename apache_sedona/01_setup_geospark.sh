@@ -42,10 +42,10 @@ SPARK_VERSION="2.4.6"
 # get directory this script is running from
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-SPARK_HOME="${HOME}/spark-${SPARK_VERSION}-bin-hadoop2.7"
+SPARK_HOME_DIR="${HOME}/spark-${SPARK_VERSION}-bin-hadoop2.7"
 
 # WARNING - remove existing spark install
-rm -r ${SPARK_HOME}
+rm -r ${SPARK_HOME_DIR}
 
 echo "-------------------------------------------------------------------------"
 echo "Downloading and Installing Apache Spark"
@@ -59,7 +59,7 @@ tar -xzf spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
 rm spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
-cd ${SPARK_HOME}/jars
+cd ${SPARK_HOME_DIR}/jars
 wget https://jdbc.postgresql.org/download/postgresql-42.2.16.jar
 
 echo "-------------------------------------------------------------------------"
@@ -69,11 +69,11 @@ echo "-------------------------------------------------------------------------"
 # stop the Conda environment currently running
 conda deactivate
 
-# update Conda platform
-echo "y" | conda update conda
-
 # WARNING - remove existing environment
 conda env remove --name geospark_env
+
+# update Conda platform
+echo "y" | conda update conda
 
 # Create Conda environment
 echo "y" | conda create -n geospark_env python=${PYTHON_VERSION}
@@ -85,11 +85,11 @@ conda config --env --set channel_priority strict
 
 # add environment variables
 conda env config vars set JAVA_HOME="/Library/Java/Home"
-conda env config vars set SPARK_HOME="${SPARK_HOME}"
+conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
 conda env config vars set PYSPARK_PYTHON="${HOME}/opt/miniconda3/envs/geospark_env/bin/python"
 conda env config vars set PYSPARK_DRIVER_PYTHON="${HOME}/opt/miniconda3/envs/geospark_env/bin/python"
-conda env config vars set PYLIB="${SPARK_HOME}/python/lib"
+conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 
 # reactivate for env vars to take effect
 conda activate geospark_env
