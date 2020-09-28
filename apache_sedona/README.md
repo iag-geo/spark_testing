@@ -1,5 +1,5 @@
 # Apache Sedona Quick Start
-Scripts for setting up PySpark and running geospatial analysis on it using Apache Sedona (formerly Geospark) in a Jupyter notebook.
+Scripts for setting up PySpark and running geospatial analysis using Apache Sedona (formerly Geospark) in a Jupyter notebook.
 
 Scripts are currently for **macOS only**. Will work on Linux with some tweaking.
 
@@ -7,7 +7,7 @@ Scripts are currently for **macOS only**. Will work on Linux with some tweaking.
 
 Run *01_setup_geospark.sh* to download & install Spark 2.4.x and create a self-contained Python 3.7 Conda environment with PySpark and Sedona (Geospark) installed.
 
-The setup script will finish by running a test geospatial analysis script to confirm Sedona is working.
+The script will finish by running *02_run_spatial_query.py* to confirm Sedona is working.
 
 ## Pre-requisites
 
