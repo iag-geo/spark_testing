@@ -5,7 +5,7 @@ Scripts are currently for **macOS only**. Will work on Linux with some tweaking.
 
 ## Getting Started
 
-Run *01_setup_geospark.sh* to download & install Spark 2.4.x and create a self-contained Python 3.7 Conda environment with PySpark and Sedona (Geospark) installed.
+Open terminal and run *01_setup_geospark.sh* to download & install Spark 2.4.x and create a self-contained Python 3.7 Conda environment with PySpark and Sedona (Geospark) installed.
 
 The script will finish by running *02_run_spatial_query.py* to confirm Sedona is working.
 
@@ -19,13 +19,7 @@ The script will finish by running *02_run_spatial_query.py* to confirm Sedona is
 
 ## Running the Notebook
 
-1. Open Terminal
-2. Go to the folder you downloaded this repo to:
+Assuming you still have Terminal open & the Conda *geospark_env* environment active:
 
-   ```cd /<your_download_folder>/spark_testing/apache_sedona```
-
-3. Start the Jupyter server
-
-   ```jupyter notebook```
-
-4. Click on the *02_run_spatial_query* file
+1. Enter ```jupyter notebook``` to start the Jupyter Server.
+2. Click on *02_run_spatial_query.ipynb* to open it.
