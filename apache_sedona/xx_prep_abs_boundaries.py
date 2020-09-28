@@ -9,23 +9,19 @@ from datetime import datetime
 from multiprocessing import cpu_count
 from pyspark.sql import SparkSession
 
-from geospark.register import upload_jars, GeoSparkRegistrator
-from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
-
 # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 # set Conda environment vars for PySpark
-os.environ["JAVA_HOME"] = "/Library/Java/Home"
+os.environ["JAVA_HOME"] = "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
 os.environ["SPARK_HOME"] = "/Users/s57405/spark-2.4.6-bin-hadoop2.7"
 os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
 os.environ["PYSPARK_PYTHON"] = "/Users/s57405/opt/miniconda3/envs/geospark_env/bin/python"
 os.environ["PYSPARK_DRIVER_PYTHON"] = "/Users/s57405/opt/miniconda3/envs/geospark_env/bin/python"
 os.environ["PYLIB"] = os.environ["SPARK_HOME"] + "/python/lib"
-os.environ["PATH"] = "/Users/s57405/spark-2.4.6-bin-hadoop2.7/bin:" + os.environ["PATH"]
 
 
-# set postgres connection parameters
+# get postgres parameters from local text file
+# format per connection is:  server_name := HOST|hostname,DB|database,PORT|port_number,USER|username,PASS|password
 def get_password(connection_name):
-    # get credentials from local file
     passwords_file_path = os.path.join(os.environ["GIT_HOME"], "passwords.ini")
 
     if os.path.exists(passwords_file_path):
@@ -40,21 +36,17 @@ def get_password(connection_name):
         return dict(item.split("|") for item in params[connection_name].split(","))
 
 
-# get parameters for local Postgres server
 local_pg_settings = get_password("localhost_super")
 
-# create postgres JDBC url and properties
+# create postgres JDBC url
 jdbc_url = "jdbc:postgresql://{HOST}:{PORT}/{DB}".format(**local_pg_settings)
 
-# output path for gzipped CSV files
+# output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
 
 def main():
     start_time = datetime.now()
-
-    # upload Sedona (geospark) JARs
-    upload_jars()
 
     spark = SparkSession \
         .builder \
@@ -62,17 +54,13 @@ def main():
         .appName("query") \
         .config("spark.sql.session.timeZone", "UTC") \
         .config("spark.sql.debug.maxToStringFields", 100) \
-        .config("spark.serializer", KryoSerializer.getName) \
-        .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName) \
         .config("spark.sql.adaptive.enabled", "true") \
+        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
         .config("spark.executor.cores", 1) \
         .config("spark.cores.max", cpu_count() * 2) \
         .config("spark.driver.memory", "8g") \
         .config("spark.driver.maxResultSize", "1g") \
         .getOrCreate()
-
-    # Register Apache Sedona (geospark) UDTs and UDFs
-    GeoSparkRegistrator.registerAll(spark)
 
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
