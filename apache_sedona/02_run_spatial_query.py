@@ -14,13 +14,12 @@ from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
 
 # # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 # # set Conda environment vars for PySpark
-# os.environ["JAVA_HOME"] = "/Library/Java/Home"
+# os.environ["JAVA_HOME"] = "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
 # os.environ["SPARK_HOME"] = "/Users/s57405/spark-2.4.6-bin-hadoop2.7"
 # os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
 # os.environ["PYSPARK_PYTHON"] = "/Users/s57405/opt/miniconda3/envs/geospark_env/bin/python"
 # os.environ["PYSPARK_DRIVER_PYTHON"] = "/Users/s57405/opt/miniconda3/envs/geospark_env/bin/python"
 # os.environ["PYLIB"] = os.environ["SPARK_HOME"] + "/python/lib"
-# os.environ["PATH"] = "/Users/s57405/spark-2.4.6-bin-hadoop2.7/bin:" + os.environ["PATH"]
 
 # input path for parquet files
 input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
@@ -36,23 +35,30 @@ def main():
     # theoretically only need to do this once
     upload_jars()
 
-    spark = SparkSession \
-        .builder \
-        .master("local[*]") \
-        .appName("query") \
-        .config("spark.sql.session.timeZone", "UTC") \
-        .config("spark.sql.debug.maxToStringFields", 100) \
-        .config("spark.serializer", KryoSerializer.getName) \
-        .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName) \
-        .config("spark.sql.adaptive.enabled", "true") \
-        .config("spark.executor.cores", 1) \
-        .config("spark.cores.max", num_processors) \
-        .config("spark.driver.memory", "8g") \
-        .config("spark.driver.maxResultSize", "1g") \
-        .getOrCreate()
+    spark = (SparkSession
+             .builder
+             .master("local[*]")
+             .appName("query")
+             .config("spark.sql.session.timeZone", "UTC")
+             .config("spark.sql.debug.maxToStringFields", 100)
+             .config("spark.serializer", KryoSerializer.getName)
+             .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
+             .config("spark.sql.adaptive.enabled", "true")
+             .config("spark.executor.cores", 1)
+             .config("spark.cores.max", num_processors)
+             .config("spark.driver.memory", "8g")
+             .config("spark.driver.maxResultSize", "1g")
+             .getOrCreate()
+             )
 
     # Register Apache Sedona (geospark) UDTs and UDFs
     GeoSparkRegistrator.registerAll(spark)
+
+    # set Sedona spatial indexing and partioning config in Spark session
+    # (no effect on the "small" spatial join query in this script. Will improve bigger queries)
+    spark.conf.set("geospark.global.index", "true")
+    spark.conf.set("geospark.global.indextype", "kdbtree")
+    spark.conf.set("geospark.join.gridtype", "kdbtree")
 
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
@@ -68,6 +74,9 @@ def main():
     # create geometries from WKT strings into new DataFrame
     # new DF will be spatially indexed automatically
     bdy_df = spark.sql("select bdy_id, st_geomFromWKT(wkt_geom) as geometry from bdy_wkt")
+
+    # repartition and cache for performance (no effect on the "small" spatial join query here)
+    # bdy_df.repartition(spark.sparkContext.defaultParallelism).cache().count()
     # bdy_df.printSchema()
     # bdy_df.show(5)
 
@@ -92,6 +101,9 @@ def main():
                     st_point(cast(longitude as decimal(9, 6)), cast(latitude as decimal(8, 6))) as geometry
              from point_wkt"""
     point_df = spark.sql(sql)
+
+    # repartition and cache for performance (no effect on the "small" spatial join query here)
+    # point_df.repartition(spark.sparkContext.defaultParallelism).cache().count()
     # point_df.printSchema()
     # point_df.show(5)
 
@@ -103,13 +115,16 @@ def main():
     start_time = datetime.now()
 
     # run spatial join to boundary tag the points
-    # note: it's an inner join so point records could be lost
+    # notes:
+    #   - spatial partitions and indexes for join will be created automatically
+    #   - it's an inner join so point records could be lost
     sql = """SELECT pnt.point_id,
                     bdy.bdy_id, 
                     pnt.geometry
              FROM pnt
              INNER JOIN bdy ON ST_Intersects(pnt.geometry, bdy.geometry)"""
     join_df = spark.sql(sql)
+    # join_df.explain()
 
     # # output join DataFrame
     # join_df.write.option("compression", "gzip") \
