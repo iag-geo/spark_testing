@@ -13,6 +13,7 @@ The script will finish by running *02_run_spatial_query.py* to confirm Sedona is
 
 1. Java 8 OpenJDK is installed
    - Install using Homebrew: ```brew cask install adoptopenjdk8```
+   - You can check Java installs using ```/usr/libexec/java_home -V```
 2. Miniconda installed in default directory ($HOME/opt/miniconda3)
    - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
 

@@ -59,7 +59,7 @@ rm spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 cd ${SPARK_HOME_DIR}/jars
-wget https://jdbc.postgresql.org/download/postgresql-42.2.16.jar
+wget https://jdbc.postgresql.org/download/postgresql-42.2.17.jar
 
 echo "-------------------------------------------------------------------------"
 echo "Creating new Conda Environment 'geospark_env'"
