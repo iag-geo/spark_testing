@@ -25,7 +25,7 @@ def get_password(connection_name):
     passwords_file_path = os.path.join(os.environ["GIT_HOME"], "passwords.ini")
 
     if os.path.exists(passwords_file_path):
-        passwords_file = open(passwords_file_path,'r').read().splitlines()
+        passwords_file = open(passwords_file_path, 'r').read().splitlines()
         passwords_file = [i for i in passwords_file if len(i) != 0]  # remove empty lines
         passwords_file = [i for i in passwords_file if i[0] != "#"]  # remove comment lines
 
@@ -66,8 +66,8 @@ def main():
     start_time = datetime.now()
 
     # load ABS remoteness areas
-    sql = """select ra_code16 as bdy_id, st_astext(geom) as wkt_geom 
-             from census_2016_bdys.ra_2016_aust_analysis
+    sql = """select ra_code16 as bdy_id, st_astext(st_subdivide(geom, 512)) as wkt_geom 
+             from census_2016_bdys.ra_2016_aust
              where geom is not null"""
     ra_df = get_dataframe_from_postgres(spark, sql)
 
