@@ -15,10 +15,10 @@ from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
 # # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 # # set Conda environment vars for PySpark
 # os.environ["JAVA_HOME"] = "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
-# os.environ["SPARK_HOME"] = "/Users/s57405/spark-2.4.6-bin-hadoop2.7"
+# os.environ["SPARK_HOME"] = "/Users/hugh.saalmans/spark-2.4.6-bin-hadoop2.7"
 # os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
-# os.environ["PYSPARK_PYTHON"] = "/Users/s57405/opt/miniconda3/envs/geospark_env/bin/python"
-# os.environ["PYSPARK_DRIVER_PYTHON"] = "/Users/s57405/opt/miniconda3/envs/geospark_env/bin/python"
+# os.environ["PYSPARK_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
+# os.environ["PYSPARK_DRIVER_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
 # os.environ["PYLIB"] = os.environ["SPARK_HOME"] + "/python/lib"
 
 # input path for parquet files
