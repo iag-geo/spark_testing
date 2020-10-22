@@ -89,6 +89,7 @@ conda config --env --set channel_priority strict
 conda env config vars set JAVA_HOME="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
 conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
+conda env config vars set SPARK_LOCAL_DIRS="${HOME}/tmp/spark"
 conda env config vars set PYSPARK_PYTHON="${HOME}/opt/miniconda3/envs/geospark_env/bin/python"
 conda env config vars set PYSPARK_DRIVER_PYTHON="${HOME}/opt/miniconda3/envs/geospark_env/bin/python"
 conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
