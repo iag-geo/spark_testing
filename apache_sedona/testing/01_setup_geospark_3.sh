@@ -6,7 +6,7 @@ echo "-------------------------------------------------------------------------"
 echo " Start time : $(date)"
 
 # --------------------------------------------------------------------------------------------------------------------
-# Script installs Apache Sedona (formerly Geospark) locally on a Mac with Spark 3.0.1 in standalone mode
+# Script installs Apache Sedona (formerly Geospark) locally on a Mac with Spark in standalone mode
 # --------------------------------------------------------------------------------------------------------------------
 #
 # Author: Hugh Saalmans, IAG Strategy & Innovation
@@ -23,6 +23,10 @@ echo " Start time : $(date)"
 #   2. Miniconda installed in default directory ($HOME/opt/miniconda3)
 #        - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
 #
+#   3. (as at 22/10/2020) Download and build Apache Sedona 1.3.2 SNAPSHOT
+#        - Get the source code here: https://github.com/apache/incubator-sedona/releases/tag/1.3.2-spark-3.0
+#        - Build instructions are here: http://sedona.apache.org/download/compile/
+#
 # ISSUES:
 #   1. Conda environment variables aren't accessible in IntelliJ/Pycharm due to a missing feature
 #        - Geospark python scripts will fail in IntelliJ/Pycharm as Spark env vars aren't set (e.g. $SPARK_HOME)
@@ -30,7 +34,8 @@ echo " Start time : $(date)"
 # --------------------------------------------------------------------------------------------------------------------
 #
 # SETUP:
-#   - This script installs the Sedona 1.3.2 pre-release for Spark 3.0.1 - requires a local build & install of Sedona
+#   - edit these if its now the future and versions have changed
+#       - This script currently installs the Sedona 1.3.2 pre-release for Spark 3.0.1 - requires a local build & install of Sedona
 
 PYTHON_VERSION="3.8"
 SPARK_VERSION="3.0.1"
@@ -60,6 +65,9 @@ rm spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 cd ${SPARK_HOME_DIR}/jars || exit
 wget https://jdbc.postgresql.org/download/postgresql-42.2.17.jar
+
+# create folder for Spark temp files
+mkdir -p ${HOME}/tmp/spark
 
 cd ${HOME} || exit
 

@@ -61,6 +61,9 @@ rm spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
 cd ${SPARK_HOME_DIR}/jars
 wget https://jdbc.postgresql.org/download/postgresql-42.2.17.jar
 
+# create folder for Spark temp files
+mkdir -p ${HOME}/tmp/spark
+
 echo "-------------------------------------------------------------------------"
 echo "Creating new Conda Environment 'geospark_env'"
 echo "-------------------------------------------------------------------------"
