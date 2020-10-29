@@ -13,7 +13,7 @@ echo " Start time : $(date)"
 # Date: 2020-09-25
 #
 # WARNINGS:
-#   - Removes existing Spark install in $HOME/spark-$SPARK_VERSION-bin-hadoop2.7 folder
+#   - Removes existing Spark install in $HOME/spark-$SPARK_VERSION-bin-hadoop3.2 folder
 #   - Removes existing 'geospark_env' Conda environment
 #
 # PRE_REQUISITES:
@@ -41,7 +41,7 @@ SPARK_VERSION="2.4.6"
 # get directory this script is running from
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-SPARK_HOME_DIR="${HOME}/spark-${SPARK_VERSION}-bin-hadoop2.7"
+SPARK_HOME_DIR="${HOME}/spark-${SPARK_VERSION}-bin-hadoop3.2"
 
 # WARNING - remove existing spark install
 rm -r ${SPARK_HOME_DIR}
@@ -53,9 +53,9 @@ echo "-------------------------------------------------------------------------"
 cd ${HOME}
 
 # download and untar Spark files
-wget https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
-tar -xzf spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
-rm spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
+wget https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
+tar -xzf spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
+rm spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 cd ${SPARK_HOME_DIR}/jars

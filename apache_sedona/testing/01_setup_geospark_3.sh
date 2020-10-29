@@ -13,7 +13,7 @@ echo " Start time : $(date)"
 # Date: 2020-09-25
 #
 # WARNINGS:
-#   - Removes existing Spark install in $HOME/spark-$SPARK_VERSION-bin-hadoop2.7 folder
+#   - Removes existing Spark install in $HOME/spark-$SPARK_VERSION-bin-hadoop3.2 folder
 #   - Removes existing 'geospark3_env' Conda environment
 #
 # PRE_REQUISITES:
@@ -39,14 +39,14 @@ echo " Start time : $(date)"
 
 PYTHON_VERSION="3.8"
 SPARK_VERSION="3.0.1"
-GEOSPARK_INSTALL_DIR="/Users/s57405/incubator-sedona-1.3.2-spark-3.0"
+GEOSPARK_INSTALL_DIR="/Users/hugh.saalmans/incubator-sedona-1.3.2-spark-3.0"
 
 # --------------------------------------------------------------------------------------------------------------------
 
 # get directory this script is running from
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-SPARK_HOME_DIR="${HOME}/spark-${SPARK_VERSION}-bin-hadoop2.7"
+SPARK_HOME_DIR="${HOME}/spark-${SPARK_VERSION}-bin-hadoop3.2"
 
 # WARNING - remove existing spark install
 rm -r ${SPARK_HOME_DIR}
@@ -58,13 +58,13 @@ echo "-------------------------------------------------------------------------"
 cd ${HOME} || exit
 
 # download and untar Spark files
-wget https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
-tar -xzf spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
-rm spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
+wget https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
+tar -xzf spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
+rm spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 cd ${SPARK_HOME_DIR}/jars || exit
-wget https://jdbc.postgresql.org/download/postgresql-42.2.17.jar
+wget https://jdbc.postgresql.org/download/postgresql-42.2.18.jar
 
 # create folder for Spark temp files
 mkdir -p ${HOME}/tmp/spark
@@ -130,7 +130,7 @@ echo "-------------------------------------------------------------------------"
 echo "Run test Geospark script to prove everything is working"
 echo "-------------------------------------------------------------------------"
 
-python ${SCRIPT_DIR}/02_run_spatial_query.py
+python ${SCRIPT_DIR}/../02_run_spatial_query.py
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
