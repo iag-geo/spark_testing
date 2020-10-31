@@ -109,29 +109,34 @@ def main():
     start_time = datetime.now()
 
     # load gnaf points
-    df = spark.read.option("header", True).csv(input_file_name)
+    df = spark.read \
+        .option("header", True) \
+        .option("inferSchema", True) \
+        .csv(input_file_name)
     # df.printSchema()
     # df.show()
 
-    df2 = (df.withColumn("gid", df.gid.cast(t.IntegerType()))
-           .withColumn("confidence", df.confidence.cast(t.ShortType()))
-           .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
-           .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
-           .withColumn("reliability", df.reliability.cast(t.ShortType()))
-           .withColumn("longitude", df.longitude.cast(t.DoubleType()))
-           .withColumn("latitude", df.latitude.cast(t.DoubleType()))
-           )
-    # df2.printSchema()
-    # df2.show()
+    # # manually assign field types (not needed here as inferSchema works)
+    # df2 = (df.withColumn("gid", df.gid.cast(t.IntegerType()))
+    #        .withColumn("confidence", df.confidence.cast(t.ShortType()))
+    #        .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
+    #        .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
+    #        .withColumn("reliability", df.reliability.cast(t.ShortType()))
+    #        .withColumn("longitude", df.longitude.cast(t.DoubleType()))
+    #        .withColumn("latitude", df.latitude.cast(t.DoubleType()))
+    #        )
+    # # df2.printSchema()
+    # # df2.show()
 
-    gnaf_df = df2 \
+    # add point geometries and partition by longitude into 400-500k row partitions
+    gnaf_df = df \
         .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
         .repartitionByRange(32, "longitude")
 
     # check partition counts
     # gnaf_df.groupBy(f.spark_partition_id()).count().show()
 
-    # write remoteness areas to gzipped parquet
+    # write gnaf to gzipped parquet
     export_to_parquet(gnaf_df, "gnaf")
 
     # cleanup
