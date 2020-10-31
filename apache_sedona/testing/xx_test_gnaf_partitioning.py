@@ -59,31 +59,31 @@ input_file_name = os.path.join(output_path, "gnaf.csv")
 def main():
     start_time = datetime.now()
 
-    # # copy gnaf tables to CSV
-    # pg_conn = psycopg2.connect(local_pg_connect_string)
-    # pg_cur = pg_conn.cursor()
-    #
-    # sql = """COPY (
-    #              SELECT gid, gnaf_pid, street_locality_pid, locality_pid, alias_principal, primary_secondary, building_name,
-    #                     lot_number, flat_number, level_number, number_first, number_last, street_name, street_type,
-    #                     street_suffix, address, locality_name, postcode, state, locality_postcode, confidence,
-    #                     legal_parcel_id, mb_2011_code, mb_2016_code, latitude, longitude, geocode_type, reliability
-    #              FROM gnaf_202008.{}
-    #          ) TO STDOUT WITH CSV"""
-    #
-    # # address principals
-    # with open(os.path.join(output_path, "gnaf.csv"), 'w') as csv_file:
-    #     pg_cur.copy_expert(sql.format("address_principals") + " HEADER", csv_file)
-    #
-    # # address aliases
-    # with open(os.path.join(output_path, "gnaf.csv"), 'a') as csv_file:
-    #     pg_cur.copy_expert(sql.format("address_aliases"), csv_file)
-    #
-    # pg_cur.close()
-    # pg_conn.close()
-    #
-    # logger.info("\t - GNAF points exported to CSV: {}".format( datetime.now() - start_time))
-    # start_time = datetime.now()
+    # copy gnaf tables to CSV
+    pg_conn = psycopg2.connect(local_pg_connect_string)
+    pg_cur = pg_conn.cursor()
+
+    sql = """COPY (
+                 SELECT gnaf_pid, street_locality_pid, locality_pid, alias_principal, primary_secondary, building_name,
+                        lot_number, flat_number, level_number, number_first, number_last, street_name, street_type,
+                        street_suffix, address, locality_name, postcode, state, locality_postcode, confidence,
+                        legal_parcel_id, mb_2011_code, mb_2016_code, latitude, longitude, geocode_type, reliability
+                 FROM gnaf_202008.{}
+             ) TO STDOUT WITH CSV"""
+
+    # address principals
+    with open(os.path.join(output_path, "gnaf.csv"), 'w') as csv_file:
+        pg_cur.copy_expert(sql.format("address_principals") + " HEADER", csv_file)
+
+    # address aliases
+    with open(os.path.join(output_path, "gnaf.csv"), 'a') as csv_file:
+        pg_cur.copy_expert(sql.format("address_aliases"), csv_file)
+
+    pg_cur.close()
+    pg_conn.close()
+
+    logger.info("\t - GNAF points exported to CSV: {}".format( datetime.now() - start_time))
+    start_time = datetime.now()
 
     # upload Sedona (geospark) JARs
     upload_jars()
@@ -96,7 +96,7 @@ def main():
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
              .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
-             .config("spark.cores.max", cpu_count() * 2)
+             .config("spark.cores.max", cpu_count())
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.driver.memory", "8g")
              .getOrCreate()
@@ -117,7 +117,7 @@ def main():
     # df.show()
 
     # # manually assign field types (not needed here as inferSchema works)
-    # df2 = (df.withColumn("gid", df.gid.cast(t.IntegerType()))
+    # df2 = (df
     #        .withColumn("confidence", df.confidence.cast(t.ShortType()))
     #        .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
     #        .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
@@ -139,22 +139,37 @@ def main():
     # write gnaf to gzipped parquet
     export_to_parquet(gnaf_df, "gnaf")
 
+    # load boundaries
+    sql = """SELECT ce_pid, name, state, st_astext(geom) as wkt_geom 
+             FROM admin_bdys_202008.commonwealth_electorates_analysis"""
+    ce_df = get_dataframe_from_postgres(spark, sql)
+
+    # create view to enable SQL queries
+    ce_df.createOrReplaceTempView("bdy_wkt")
+
+    # create geometries from WKT strings into new DataFrame
+    # new DF will be spatially indexed automatically
+    ce_df2 = spark.sql("select ce_pid, name, state, st_geomFromWKT(wkt_geom) as geometry from bdy_wkt")
+
+    # write bdys to gzipped parquet
+    export_to_parquet(ce_df2, "commonwealth_electorates")
+
     # cleanup
     spark.stop()
 
-    logger.info("\t - GNAF exported to gzipped parquet files: {}"
+    logger.info("\t - GNAF and boundaries exported to gzipped parquet files: {}"
                 .format(datetime.now() - start_time))
 
 
-# def get_dataframe_from_postgres(spark, sql):
-#     df = spark.read.format("jdbc") \
-#         .option("url", jdbc_url) \
-#         .option("query", sql) \
-#         .option("properties", local_pg_settings["USER"]) \
-#         .option("password", local_pg_settings["PASS"]) \
-#         .option("driver", "org.postgresql.Driver") \
-#         .load()
-#     return df
+def get_dataframe_from_postgres(spark, sql):
+    df = spark.read.format("jdbc") \
+        .option("url", jdbc_url) \
+        .option("query", sql) \
+        .option("properties", local_pg_settings["USER"]) \
+        .option("password", local_pg_settings["PASS"]) \
+        .option("driver", "org.postgresql.Driver") \
+        .load()
+    return df
 # .option("numPartitions", 32) \
 # .option("partitionColumn", "gid") \
 
