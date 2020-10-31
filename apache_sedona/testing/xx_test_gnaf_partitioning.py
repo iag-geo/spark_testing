@@ -3,11 +3,12 @@
 
 import logging
 import os
+import psycopg2
 import sys
 
 from datetime import datetime
 from multiprocessing import cpu_count
-from pyspark.sql import functions as f
+from pyspark.sql import functions as f, types as t
 from pyspark.sql import SparkSession
 
 from geospark.register import upload_jars, GeoSparkRegistrator  # need to install geospark package
@@ -45,12 +46,44 @@ local_pg_settings = get_password("localhost_super")
 # create postgres JDBC url
 jdbc_url = "jdbc:postgresql://{HOST}:{PORT}/{DB}".format(**local_pg_settings)
 
+# get connect string for psycopg2
+local_pg_connect_string = "dbname={DB} host={HOST} port={PORT} user={USER} password={PASS}".format(**local_pg_settings)
+
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
+
+# gnaf csv file
+input_file_name = os.path.join(output_path, "gnaf.csv")
 
 
 def main():
     start_time = datetime.now()
+
+    # # copy gnaf tables to CSV
+    # pg_conn = psycopg2.connect(local_pg_connect_string)
+    # pg_cur = pg_conn.cursor()
+    #
+    # sql = """COPY (
+    #              SELECT gid, gnaf_pid, street_locality_pid, locality_pid, alias_principal, primary_secondary, building_name,
+    #                     lot_number, flat_number, level_number, number_first, number_last, street_name, street_type,
+    #                     street_suffix, address, locality_name, postcode, state, locality_postcode, confidence,
+    #                     legal_parcel_id, mb_2011_code, mb_2016_code, latitude, longitude, geocode_type, reliability
+    #              FROM gnaf_202008.{}
+    #          ) TO STDOUT WITH CSV"""
+    #
+    # # address principals
+    # with open(os.path.join(output_path, "gnaf.csv"), 'w') as csv_file:
+    #     pg_cur.copy_expert(sql.format("address_principals") + " HEADER", csv_file)
+    #
+    # # address aliases
+    # with open(os.path.join(output_path, "gnaf.csv"), 'a') as csv_file:
+    #     pg_cur.copy_expert(sql.format("address_aliases"), csv_file)
+    #
+    # pg_cur.close()
+    # pg_conn.close()
+    #
+    # logger.info("\t - GNAF points exported to CSV: {}".format( datetime.now() - start_time))
+    # start_time = datetime.now()
 
     # upload Sedona (geospark) JARs
     upload_jars()
@@ -76,15 +109,22 @@ def main():
     start_time = datetime.now()
 
     # load gnaf points
-    sql = """SELECT gid, gnaf_pid, street_locality_pid, locality_pid, alias_principal, primary_secondary, building_name,
-                    lot_number, flat_number, level_number, number_first, number_last, street_name, street_type, 
-                    street_suffix, address, locality_name, postcode, state, locality_postcode, confidence, 
-                    legal_parcel_id, mb_2011_code, mb_2016_code, latitude, longitude, geocode_type, reliability
-             FROM gnaf_202008.{}"""
-    df1 = get_dataframe_from_postgres(spark, sql.format("address_principals"))
-    df2 = get_dataframe_from_postgres(spark, sql.format("address_aliases"))
+    df = spark.read.option("header", True).csv(input_file_name)
+    # df.printSchema()
+    # df.show()
 
-    gnaf_df = df1.unionAll(df2) \
+    df2 = (df.withColumn("gid", df.gid.cast(t.IntegerType()))
+           .withColumn("confidence", df.confidence.cast(t.ShortType()))
+           .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
+           .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
+           .withColumn("reliability", df.reliability.cast(t.ShortType()))
+           .withColumn("longitude", df.longitude.cast(t.DoubleType()))
+           .withColumn("latitude", df.latitude.cast(t.DoubleType()))
+           )
+    # df2.printSchema()
+    # df2.show()
+
+    gnaf_df = df2 \
         .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
         .repartitionByRange(32, "longitude")
 
@@ -110,6 +150,9 @@ def get_dataframe_from_postgres(spark, sql):
         .option("driver", "org.postgresql.Driver") \
         .load()
     return df
+
+# .option("numPartitions", 32) \
+# .option("partitionColumn", "gid") \
 
 
 def export_to_parquet(df, name):
