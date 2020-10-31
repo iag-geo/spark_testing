@@ -1,5 +1,5 @@
 
-# script to load boundary & point data from Postgres and export it to parquet format for later use in a Spark script
+# script to load gnaf points from Postgres into CSV and Parquet
 
 import logging
 import os
@@ -96,7 +96,7 @@ def main():
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
              .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
-             .config("spark.cores.max", cpu_count())
+             .config("spark.cores.max", cpu_count() * 2)
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.driver.memory", "8g")
              .getOrCreate()
@@ -146,16 +146,15 @@ def main():
                 .format(datetime.now() - start_time))
 
 
-def get_dataframe_from_postgres(spark, sql):
-    df = spark.read.format("jdbc") \
-        .option("url", jdbc_url) \
-        .option("query", sql) \
-        .option("properties", local_pg_settings["USER"]) \
-        .option("password", local_pg_settings["PASS"]) \
-        .option("driver", "org.postgresql.Driver") \
-        .load()
-    return df
-
+# def get_dataframe_from_postgres(spark, sql):
+#     df = spark.read.format("jdbc") \
+#         .option("url", jdbc_url) \
+#         .option("query", sql) \
+#         .option("properties", local_pg_settings["USER"]) \
+#         .option("password", local_pg_settings["PASS"]) \
+#         .option("driver", "org.postgresql.Driver") \
+#         .load()
+#     return df
 # .option("numPartitions", 32) \
 # .option("partitionColumn", "gid") \
 
