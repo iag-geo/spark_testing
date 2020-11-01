@@ -72,7 +72,7 @@ def main():
              .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
              .config("spark.cores.max", cpu_count() * 2)
              .config("spark.sql.adaptive.enabled", "true")
-             .config("spark.driver.memory", "10g")
+             .config("spark.driver.memory", "8g")
              .getOrCreate()
              )
 

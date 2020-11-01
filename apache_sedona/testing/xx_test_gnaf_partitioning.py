@@ -149,8 +149,8 @@ def main():
 
     # create geometries from WKT strings into new DataFrame
     # new DF will be spatially indexed automatically
-    ce_df2 = spark.sql("select ce_pid, name, state, st_geomFromWKT(wkt_geom) as geom from bdy_wkt")\
-        .repartitionByRange(32, f.expr("st_x(st_centroid(geom))"))
+    ce_df2 = spark.sql("select ce_pid, name, state, st_geomFromWKT(wkt_geom) as geom from bdy_wkt")
+        # .repartitionByRange(32, f.expr("st_x(st_centroid(geom))"))
 
     # write bdys to gzipped parquet
     export_to_parquet(ce_df2, "commonwealth_electorates")
