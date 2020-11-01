@@ -82,12 +82,14 @@ def main():
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
 
-    # load gnaf points
-    point_df = spark.read.parquet(os.path.join(output_path, "gnaf")).cache()
+    # load gnaf points and create geoms
+    point_df = spark.read.parquet(os.path.join(output_path, "gnaf"))\
+        .withColumn("geom", f.expr("ST_Point(longitude, latitude)"))
     point_df.createOrReplaceTempView("pnt")
 
-    # load boundaries
-    bdy_df = spark.read.parquet(os.path.join(output_path, "commonwealth_electorates")).cache()
+    # load boundaries and create geoms
+    bdy_df = spark.read.parquet(os.path.join(output_path, "commonwealth_electorates")) \
+        .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)"))
     bdy_df.createOrReplaceTempView("bdy")
 
     logger.info("\t - Loaded {:,} GNAF points and {:,} boundaries: {}"
@@ -104,17 +106,17 @@ def main():
                     bdy.ce_pid, 
                     pnt.geom
              FROM pnt
-             INNER JOIN bdy ON ST_Within(pnt.geom, bdy.geom)"""
-    join_df = spark.sql(sql).cache()
+             INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)"""
+    join_df = spark.sql(sql)
     # join_df.explain()
 
-    # output join DataFrame
-    export_to_parquet(join_df, "join")
+    # # output join DataFrame
+    # export_to_parquet(join_df, "join")
 
     num_joined_points = join_df.count()
 
-    # join_df.printSchema()
-    # join_df.show(5)
+    join_df.printSchema()
+    join_df.show(5)
 
     logger.info("\t - {:,} points were boundary tagged: {}"
                 .format(num_joined_points, datetime.now() - start_time))

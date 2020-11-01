@@ -108,52 +108,52 @@ def main():
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
 
-    # # load gnaf points
-    # df = spark.read \
-    #     .option("header", True) \
-    #     .option("inferSchema", True) \
-    #     .csv(input_file_name)
-    # # df.printSchema()
-    # # df.show()
-    #
-    # # # manually assign field types (not needed here as inferSchema works)
-    # # df2 = (df
-    # #        .withColumn("confidence", df.confidence.cast(t.ShortType()))
-    # #        .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
-    # #        .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
-    # #        .withColumn("reliability", df.reliability.cast(t.ShortType()))
-    # #        .withColumn("longitude", df.longitude.cast(t.DoubleType()))
-    # #        .withColumn("latitude", df.latitude.cast(t.DoubleType()))
-    # #        )
-    # # # df2.printSchema()
-    # # # df2.show()
-    #
-    # # add point geometries and partition by longitude into 400-500k row partitions
-    # gnaf_df = df \
-    #     .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
-    #     .repartitionByRange(32, "longitude")
-    #
-    # # check partition counts
-    # # gnaf_df.groupBy(f.spark_partition_id()).count().show()
-    #
-    # # write gnaf to gzipped parquet
-    # export_to_parquet(gnaf_df, "gnaf")
+    # load gnaf points
+    df = spark.read \
+        .option("header", True) \
+        .option("inferSchema", True) \
+        .csv(input_file_name)
+    # df.printSchema()
+    # df.show()
+
+    # # manually assign field types (not needed here as inferSchema works)
+    # df2 = (df
+    #        .withColumn("confidence", df.confidence.cast(t.ShortType()))
+    #        .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
+    #        .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
+    #        .withColumn("reliability", df.reliability.cast(t.ShortType()))
+    #        .withColumn("longitude", df.longitude.cast(t.DoubleType()))
+    #        .withColumn("latitude", df.latitude.cast(t.DoubleType()))
+    #        )
+    # # df2.printSchema()
+    # # df2.show()
+
+    # add point geometries and partition by longitude into 400-500k row partitions
+    gnaf_df = df \
+        .repartitionByRange(32, "longitude")
+    #         .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
+
+    # check partition counts
+    gnaf_df.groupBy(f.spark_partition_id()).count().show()
+
+    # write gnaf to gzipped parquet
+    export_to_parquet(gnaf_df, "gnaf")
 
     # load boundaries
     sql = """SELECT ce_pid, name, state, st_astext(geom) as wkt_geom 
              FROM testing2.commonwealth_electorates_partitioned"""
     ce_df = get_dataframe_from_postgres(spark, sql)
 
-    # create view to enable SQL queries
-    ce_df.createOrReplaceTempView("bdy_wkt")
-
-    # create geometries from WKT strings into new DataFrame
-    # new DF will be spatially indexed automatically
-    ce_df2 = spark.sql("select ce_pid, name, state, st_geomFromWKT(wkt_geom) as geom from bdy_wkt") \
-        .repartitionByRange(32, f.expr("st_x(st_centroid(geom))"))
+    # # create view to enable SQL queries
+    # ce_df.createOrReplaceTempView("bdy_wkt")
+    #
+    # # create geometries from WKT strings into new DataFrame
+    # # new DF will be spatially indexed automatically
+    # ce_df2 = spark.sql("select ce_pid, name, state, st_geomFromWKT(wkt_geom) as geom from bdy_wkt") \
+    #     .repartitionByRange(32, f.expr("st_x(st_centroid(geom))"))
 
     # write bdys to gzipped parquet
-    export_to_parquet(ce_df2, "commonwealth_electorates")
+    export_to_parquet(ce_df, "commonwealth_electorates")
 
     # cleanup
     spark.stop()
