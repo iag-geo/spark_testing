@@ -84,7 +84,7 @@ def main():
 
     # load gnaf points
     point_df = spark.read.parquet(os.path.join(output_path, "gnaf"))
-    point_df.createOrReplaceTempView("point")
+    point_df.createOrReplaceTempView("pnt")
 
     # load boundaries
     bdy_df = spark.read.parquet(os.path.join(output_path, "commonwealth_electorates"))
@@ -100,9 +100,9 @@ def main():
     #   - it's an inner join so point records could be lost
     sql = """SELECT pnt.gnaf_pid,
                     bdy.ce_pid, 
-                    pnt.geometry
+                    pnt.geom
              FROM pnt
-             INNER JOIN bdy ON ST_Intersects(pnt.geometry, bdy.geometry)"""
+             INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)"""
     join_df = spark.sql(sql)
     # join_df.explain()
 
