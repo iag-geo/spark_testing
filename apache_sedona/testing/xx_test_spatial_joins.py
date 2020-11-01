@@ -70,7 +70,7 @@ def main():
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
              .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
-             .config("spark.cores.max", cpu_count())
+             .config("spark.cores.max", cpu_count() * 2)
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.driver.memory", "10g")
              .getOrCreate()
@@ -90,17 +90,19 @@ def main():
     bdy_df = spark.read.parquet(os.path.join(output_path, "commonwealth_electorates"))
     bdy_df.createOrReplaceTempView("bdy")
 
-    logger.info("\t - Loaded GNAF and {:,} boundaries: {}"
-                .format(bdy_df.count(), datetime.now() - start_time))
+    logger.info("\t - Loaded {:,} GNAF points and {:,} boundaries: {}"
+                .format(point_df.count(), bdy_df.count(), datetime.now() - start_time))
     start_time = datetime.now()
 
     # run spatial join to boundary tag the points
     # notes:
     #   - spatial partitions and indexes for join will be created automatically
     #   - it's an inner join so point records could be lost
-    sql = """SELECT pnt.gnaf_pid,
-                    bdy.ce_pid, 
-                    pnt.geom
+    #   - force broadcast of unpartitioned boundaries (under 25Mb compressed)
+
+    sql = """SELECT /*+ BROADCAST(bdy) */ pnt.gnaf_pid,
+                                            bdy.ce_pid, 
+                                            pnt.geom
              FROM pnt
              INNER JOIN bdy ON ST_Within(pnt.geom, bdy.geom)"""
     join_df = spark.sql(sql)
