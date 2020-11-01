@@ -130,8 +130,8 @@ def main():
 
     # add point geometries and partition by longitude into 400-500k row partitions
     gnaf_df = df \
+        .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
         .repartitionByRange(32, "longitude")
-    #         .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
 
     # check partition counts
     gnaf_df.groupBy(f.spark_partition_id()).count().show()
@@ -144,16 +144,16 @@ def main():
              FROM testing2.commonwealth_electorates_partitioned"""
     ce_df = get_dataframe_from_postgres(spark, sql)
 
-    # # create view to enable SQL queries
-    # ce_df.createOrReplaceTempView("bdy_wkt")
-    #
+    # create view to enable SQL queries
+    ce_df.createOrReplaceTempView("bdy_wkt")
+
     # # create geometries from WKT strings into new DataFrame
     # # new DF will be spatially indexed automatically
-    # ce_df2 = spark.sql("select ce_pid, name, state, st_geomFromWKT(wkt_geom) as geom from bdy_wkt") \
+    ce_df2 = spark.sql("select ce_pid, name, state, st_geomFromWKT(wkt_geom) as geom from bdy_wkt")
     #     .repartitionByRange(32, f.expr("st_x(st_centroid(geom))"))
 
     # write bdys to gzipped parquet
-    export_to_parquet(ce_df, "commonwealth_electorates")
+    export_to_parquet(ce_df2, "commonwealth_electorates")
 
     # cleanup
     spark.stop()

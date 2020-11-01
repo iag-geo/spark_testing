@@ -83,13 +83,13 @@ def main():
     start_time = datetime.now()
 
     # load gnaf points and create geoms
-    point_df = spark.read.parquet(os.path.join(output_path, "gnaf"))\
-        .withColumn("geom", f.expr("ST_Point(longitude, latitude)"))
+    point_df = spark.read.parquet(os.path.join(output_path, "gnaf"))
+        # .withColumn("geom", f.expr("ST_Point(longitude, latitude)"))
     point_df.createOrReplaceTempView("pnt")
 
     # load boundaries and create geoms
-    bdy_df = spark.read.parquet(os.path.join(output_path, "commonwealth_electorates")) \
-        .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)"))
+    bdy_df = spark.read.parquet(os.path.join(output_path, "commonwealth_electorates"))
+        # .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)"))
     bdy_df.createOrReplaceTempView("bdy")
 
     logger.info("\t - Loaded {:,} GNAF points and {:,} boundaries: {}"
@@ -107,16 +107,16 @@ def main():
                     pnt.geom
              FROM pnt
              INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)"""
-    join_df = spark.sql(sql)
+    join_df = spark.sql(sql).cache()
     # join_df.explain()
-
-    # output join DataFrame
-    export_to_parquet(join_df, "join")
 
     num_joined_points = join_df.count()
 
-    join_df.printSchema()
-    join_df.show(5)
+    # join_df.printSchema()
+    # join_df.show(5)
+
+    # output join DataFrame
+    export_to_parquet(join_df, "join")
 
     logger.info("\t - {:,} points were boundary tagged: {}"
                 .format(num_joined_points, datetime.now() - start_time))
