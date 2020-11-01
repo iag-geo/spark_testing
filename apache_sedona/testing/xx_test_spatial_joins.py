@@ -102,7 +102,7 @@ def main():
                     bdy.ce_pid, 
                     pnt.geom
              FROM pnt
-             INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)"""
+             INNER JOIN bdy ON ST_Within(pnt.geom, bdy.geom)"""
     join_df = spark.sql(sql)
     # join_df.explain()
 
