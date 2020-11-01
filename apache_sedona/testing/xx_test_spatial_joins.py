@@ -101,8 +101,8 @@ def main():
     #   - spatial partitions and indexes for join will be created automatically
     #   - it's an inner join so point records could be lost
     #   - force broadcast of unpartitioned boundaries (under 25Mb compressed)
-    # / *+ BROADCAST(bdy) * /
-    sql = """SELECT pnt.gnaf_pid,
+    # /*+ BROADCAST(bdy) */
+    sql = """SELECT /*+ BROADCAST(bdy) */ pnt.gnaf_pid,
                     bdy.ce_pid, 
                     pnt.geom
              FROM pnt
@@ -110,8 +110,8 @@ def main():
     join_df = spark.sql(sql)
     # join_df.explain()
 
-    # # output join DataFrame
-    # export_to_parquet(join_df, "join")
+    # output join DataFrame
+    export_to_parquet(join_df, "join")
 
     num_joined_points = join_df.count()
 
