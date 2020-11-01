@@ -70,7 +70,7 @@ def main():
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
              .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
-             .config("spark.cores.max", cpu_count() * 2)
+             .config("spark.cores.max", cpu_count())
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.driver.memory", "8g")
              .getOrCreate()
@@ -83,11 +83,11 @@ def main():
     start_time = datetime.now()
 
     # load gnaf points
-    point_df = spark.read.parquet(os.path.join(output_path, "gnaf"))
+    point_df = spark.read.parquet(os.path.join(output_path, "gnaf")).cache()
     point_df.createOrReplaceTempView("pnt")
 
     # load boundaries
-    bdy_df = spark.read.parquet(os.path.join(output_path, "commonwealth_electorates"))
+    bdy_df = spark.read.parquet(os.path.join(output_path, "commonwealth_electorates")).cache()
     bdy_df.createOrReplaceTempView("bdy")
 
     logger.info("\t - Loaded {:,} GNAF points and {:,} boundaries: {}"
@@ -99,22 +99,22 @@ def main():
     #   - spatial partitions and indexes for join will be created automatically
     #   - it's an inner join so point records could be lost
     #   - force broadcast of unpartitioned boundaries (under 25Mb compressed)
-
-    sql = """SELECT /*+ BROADCAST(bdy) */ pnt.gnaf_pid,
-                                            bdy.ce_pid, 
-                                            pnt.geom
+    # / *+ BROADCAST(bdy) * /
+    sql = """SELECT pnt.gnaf_pid,
+                    bdy.ce_pid, 
+                    pnt.geom
              FROM pnt
              INNER JOIN bdy ON ST_Within(pnt.geom, bdy.geom)"""
-    join_df = spark.sql(sql)
+    join_df = spark.sql(sql).cache()
     # join_df.explain()
 
-    # # output join DataFrame
-    # export_to_parquet(join_df, "join")
+    # output join DataFrame
+    export_to_parquet(join_df, "join")
 
     num_joined_points = join_df.count()
 
-    join_df.printSchema()
-    join_df.show(5)
+    # join_df.printSchema()
+    # join_df.show(5)
 
     logger.info("\t - {:,} points were boundary tagged: {}"
                 .format(num_joined_points, datetime.now() - start_time))
