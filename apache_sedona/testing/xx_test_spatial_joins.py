@@ -70,9 +70,9 @@ def main():
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
              .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
-             .config("spark.cores.max", cpu_count() * 2)
+             .config("spark.cores.max", cpu_count())
              .config("spark.sql.adaptive.enabled", "true")
-             .config("spark.driver.memory", "8g")
+             .config("spark.driver.memory", "10g")
              .getOrCreate()
              )
 
@@ -120,8 +120,8 @@ def main():
     # cleanup
     spark.stop()
 
-    logger.info("\t - GNAF and boundaries exported to gzipped parquet files: {}"
-                .format(datetime.now() - start_time))
+    # logger.info("\t - GNAF and boundaries exported to gzipped parquet files: {}"
+    #             .format(datetime.now() - start_time))
 
 
 # def get_dataframe_from_postgres(spark, sql):

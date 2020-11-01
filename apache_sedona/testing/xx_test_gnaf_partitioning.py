@@ -141,7 +141,7 @@ def main():
 
     # load boundaries
     sql = """SELECT ce_pid, name, state, st_astext(geom) as wkt_geom 
-             FROM admin_bdys_202008.commonwealth_electorates_analysis"""
+             FROM testing2.commonwealth_electorates_partitioned"""
     ce_df = get_dataframe_from_postgres(spark, sql)
 
     # create view to enable SQL queries
@@ -149,7 +149,8 @@ def main():
 
     # create geometries from WKT strings into new DataFrame
     # new DF will be spatially indexed automatically
-    ce_df2 = spark.sql("select ce_pid, name, state, st_geomFromWKT(wkt_geom) as geom from bdy_wkt")
+    ce_df2 = spark.sql("select ce_pid, name, state, st_geomFromWKT(wkt_geom) as geom from bdy_wkt") \
+        .repartitionByRange(32, f.expr("st_x(st_centroid(geom))"))
 
     # write bdys to gzipped parquet
     export_to_parquet(ce_df2, "commonwealth_electorates")
