@@ -39,7 +39,7 @@ echo " Start time : $(date)"
 
 PYTHON_VERSION="3.8"
 SPARK_VERSION="3.0.1"
-GEOSPARK_INSTALL_DIR="/Users/hugh.saalmans/incubator-sedona-1.3.2-spark-3.0"
+GEOSPARK_INSTALL_DIR="${HOME}/incubator-sedona-1.3.2-spark-3.0"
 
 # --------------------------------------------------------------------------------------------------------------------
 
