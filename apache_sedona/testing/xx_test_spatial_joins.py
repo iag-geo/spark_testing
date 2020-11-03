@@ -137,9 +137,7 @@ def bdy_tag(spark, bdy_name, bdy_id):
     #   - force broadcast of unpartitioned boundaries to speed up query)
     # / *+ BROADCAST(bdy) * /
     sql = """SELECT pnt.gnaf_pid,
-                    bdy.{},
-                    pnt.state,
-                    concat('SRID=4326;POINT (', pnt.longitude, ' ', pnt.latitude, ')') as geom
+                    bdy.{}
              FROM pnt
              INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
     # sql = """SELECT /*+ BROADCAST(bdy) */ pnt.gnaf_pid,
@@ -148,7 +146,17 @@ def bdy_tag(spark, bdy_name, bdy_id):
     #          FROM pnt
     #          INNER JOIN bdy ON pnt.partition_id = bdy.partition_id AND ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
     join_df = spark.sql(sql)
+    join_df.createOrReplaceTempView("bdy_join")
     # join_df.explain()
+
+    # get missing gnaf records due to no left join with a spatial join (above)
+    sql = """SELECT pnt.gnaf_pid,
+                    bdy_join.{},
+                    pnt.state,
+                    concat('SRID=4326;POINT (', pnt.longitude, ' ', pnt.latitude, ')') as geom
+             FROM pnt
+             LEFT OUTER JOIN bdy_join ON pnt.gnaf_pid = bdy_join.gnaf_pid""".format(bdy_id)
+    join_df2 = spark.sql(sql)
 
     # num_joined_points = join_df.count()
 
@@ -160,7 +168,7 @@ def bdy_tag(spark, bdy_name, bdy_id):
 
     # output to postgres, via CSV
     table_name = "gnaf_with_{}".format(bdy_name)
-    export_to_postgres(join_df, "testing2.{}".format(table_name), bdy_id, os.path.join(output_path, table_name))
+    export_to_postgres(join_df2, "testing2.{}".format(table_name), bdy_id, os.path.join(output_path, table_name))
 
     join_df.unpersist()
     bdy_df.unpersist()
@@ -195,14 +203,14 @@ def export_to_postgres(df, table_name, bdy_id, csv_folder, partition_column=None
 
     # logger.info("exported dataframe to {:,} CSV files : {}"
     #     .format(num_partitions, datetime.now() - start_time))
-    logger.info("\t - exported DataFrame to CSV files : {}".format(datetime.now() - start_time))
+    logger.info("\t\t - exported DataFrame to CSV files : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
     # create table (todo: not a prod grade way to treat your hard drive...)
     sql = """DROP TABLE IF EXISTS {0} CASCADE;
              CREATE TABLE {0} (
                  gnaf_pid text NOT NULL,
-                 {1} text NOT NULL,
+                 {1} text,
                  state text,
                  geom geometry(Point, 4326, 2) NOT NULL
              ) WITH (OIDS=FALSE);
@@ -232,7 +240,7 @@ def export_to_postgres(df, table_name, bdy_id, csv_folder, partition_column=None
 
     # logger.info("copied {:,} CSV files to {} : {}"
     #             .format(num_partitions, table_name, datetime.now() - start_time))
-    logger.info("\t - imported CSV files to {} : {}"
+    logger.info("\t\t - imported CSV files to {} : {}"
                 .format(table_name, datetime.now() - start_time))
 
 
