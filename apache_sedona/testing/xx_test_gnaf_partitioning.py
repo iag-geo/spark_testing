@@ -144,10 +144,10 @@ def main():
 
     # export PG boundary tables to parquet
     export_bdys(spark, "commonwealth_electorates", "ce_pid")
-    # export_bdys(spark, "local_government_areas", "lga_pid")
-    # export_bdys(spark, "local_government_wards", "ward_pid")
-    # export_bdys(spark, "state_lower_house_electorates", "se_lower_pid")
-    # export_bdys(spark, "state_upper_house_electorates", "se_upper_pid")
+    export_bdys(spark, "local_government_areas", "lga_pid")
+    export_bdys(spark, "local_government_wards", "ward_pid")
+    export_bdys(spark, "state_lower_house_electorates", "se_lower_pid")
+    export_bdys(spark, "state_upper_house_electorates", "se_upper_pid")
 
     # cleanup
     spark.stop()
@@ -158,10 +158,10 @@ def main():
 
 def export_bdys(spark, bdy_name, bdy_id):
     # load boundaries
-    sql = """SELECT partition_id, {}, name, state, st_astext(geom) as wkt_geom 
-             FROM testing2.{}_partitioned""".format(bdy_id, bdy_name)
-    # sql = """SELECT {}, name, state, st_astext(geom) as wkt_geom
-    #          FROM admin_bdys_202008.{}_analysis""".format(bdy_id, bdy_name)
+    # sql = """SELECT partition_id, {}, name, state, st_astext(geom) as wkt_geom
+    #          FROM testing2.{}_partitioned""".format(bdy_id, bdy_name)
+    sql = """SELECT {}, name, state, st_astext(geom) as wkt_geom
+             FROM admin_bdys_202008.{}_analysis""".format(bdy_id, bdy_name)
     bdy_df = get_dataframe_from_postgres(spark, sql)
 
     # # create view to enable SQL queries

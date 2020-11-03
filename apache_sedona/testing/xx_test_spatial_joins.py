@@ -102,7 +102,8 @@ def main():
     #     .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
     #     .cache()
 
-    point_df = spark.read.parquet(os.path.join(output_path, "gnaf")).cache()
+    gnaf_df = spark.read.parquet(os.path.join(output_path, "gnaf"))
+    point_df = gnaf_df.select("gnaf_pid, state, geom")
 
     logger.info("\t - Loaded {:,} GNAF points: {}"
                 .format(point_df.count(), datetime.now() - start_time))
@@ -143,8 +144,8 @@ def bdy_tag(spark, point_df, bdy_name, bdy_id):
 
     # load boundaries and create geoms
     bdy_df = spark.read.parquet(os.path.join(output_path, bdy_name)) \
-        .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)")) \
-        .repartitionByRange(100, "partition_id")
+        .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)"))
+        # .repartitionByRange(100, "partition_id")
     bdy_df.createOrReplaceTempView("bdy")
 
     #         .withColumn("partition_id", f.percent_rank().over(Window.partitionBy().orderBy(f.expr("st_x(st_centroid(geom))"))) * f.lit(100.0)) \
@@ -153,9 +154,8 @@ def bdy_tag(spark, point_df, bdy_name, bdy_id):
     # notes:
     #   - spatial partitions and indexes for join will be created automatically
     #   - it's an inner join so point records could be lost (left joins not yet supported by Geospark)
-    #   - force broadcast of unpartitioned boundaries to speed up query)
-    # / *+ BROADCAST(bdy) * /
-    sql = """SELECT pnt.*
+    #   - force broadcast of unpartitioned boundaries (to speed up query) using /*+ BROADCAST(bdy) */
+    sql = """SELECT /*+ BROADCAST(bdy) */ pnt.gnaf_pid,
                     bdy.{}
              FROM pnt
              INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
