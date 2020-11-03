@@ -1,9 +1,9 @@
 
-# script to test spatial joins between gnaf and psma admin bdys
+# script to test spatial joins between gnaf and select psma admin bdys - ~45 mins
 
 import logging
 import os
-import psycopg2
+# import psycopg2
 import sys
 
 from datetime import datetime
@@ -82,16 +82,17 @@ def main():
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
 
+    # load gnaf points and create geoms
     df = spark.read \
         .option("header", True) \
         .option("inferSchema", True) \
         .csv(input_file_name)
 
     point_df = df \
-        .withColumn("geom", f.expr("ST_Point(longitude, latitude)"))
+        .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
+        .cache()
         # .repartitionByRange(32, "longitude")
 
-    # # load gnaf points and create geoms
     # point_df = spark.read.parquet(os.path.join(output_path, "gnaf"))
     #     # .withColumn("geom", f.expr("ST_Point(longitude, latitude)"))
     point_df.createOrReplaceTempView("pnt")
@@ -128,7 +129,7 @@ def bdy_tag(spark, bdy_name, bdy_id):
                     pnt.geom
              FROM pnt
              INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
-    join_df = spark.sql(sql).cache()
+    join_df = spark.sql(sql)
     # join_df.explain()
 
     # num_joined_points = join_df.count()
@@ -142,7 +143,7 @@ def bdy_tag(spark, bdy_name, bdy_id):
     join_df.unpersist()
     bdy_df.unpersist()
 
-    logger.info("\t - GNAF boundary tagged with : {}"
+    logger.info("\t - GNAF boundary tagged with {} : {}"
                 .format(bdy_name, datetime.now() - start_time))
 
 
