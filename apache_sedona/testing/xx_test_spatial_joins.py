@@ -10,6 +10,8 @@ import sys
 from datetime import datetime
 from itertools import repeat
 from multiprocessing import cpu_count, Pool
+from psycopg2 import pool
+
 from pyspark.sql import functions as f, types as t
 from pyspark.sql import SparkSession
 from pyspark.sql.window import Window
@@ -136,7 +138,7 @@ def bdy_tag(spark, bdy_name, bdy_id):
     # / *+ BROADCAST(bdy) * /
     sql = """SELECT pnt.gnaf_pid,
                     bdy.{},
-                    pnt.state
+                    pnt.state,
                     concat('SRID=4326;POINT (', pnt.longitude, ' ', pnt.latitude, ')') as geom
              FROM pnt
              INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
