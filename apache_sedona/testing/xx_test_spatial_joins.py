@@ -204,7 +204,7 @@ def export_to_postgres(df, table_name, bdy_id, csv_folder, partition_column=None
                  gnaf_pid text NOT NULL,
                  {1} text NOT NULL,
                  state text,
-                 geom geometry(Point, 4283, 2) NOT NULL
+                 geom geometry(Point, 4326, 2) NOT NULL
              ) WITH (OIDS=FALSE);
              ALTER TABLE {0} OWNER TO postgres""".format(table_name, bdy_id)
     pg_cur.execute(sql)
