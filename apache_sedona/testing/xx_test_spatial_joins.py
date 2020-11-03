@@ -103,19 +103,18 @@ def main():
     #     .cache()
 
     gnaf_df = spark.read.parquet(os.path.join(output_path, "gnaf"))
-    point_df = gnaf_df.select("gnaf_pid, state, geom")
+    point_df = gnaf_df.select("gnaf_pid", "state", "geom")\
+        .repartitionByRange(100, "longitude")
 
     logger.info("\t - Loaded {:,} GNAF points: {}"
                 .format(point_df.count(), datetime.now() - start_time))
 
     # boundary tag gnaf point
     tag_df = bdy_tag(spark, point_df, "commonwealth_electorates", "ce_pid")
-    tag_df.printSchema()
-    tag_df.show(5)
+    # tag_df.printSchema()
 
     tag_df2 = bdy_tag(spark, tag_df, "local_government_areas", "lga_pid")
-    tag_df2.printSchema()
-    tag_df2.show(5)
+    # tag_df2.printSchema()
 
     # bdy_tag(spark, "local_government_wards", "ward_pid")
     # bdy_tag(spark, "state_lower_house_electorates", "se_lower_pid")
@@ -125,9 +124,7 @@ def main():
 
     final_df = tag_df2.withColumn("wkt_geom", f.expr("concat('SRID=4326;POINT (', st_x(geom), ' ', st_y(geom), ')')"))\
         .drop("geom")
-
-    final_df.printSchema()
-    final_df.show(5)
+    # final_df.printSchema()
 
     # output to postgres, via CSV
     table_name = "gnaf_with_bdy_tags"
