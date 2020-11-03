@@ -1,13 +1,15 @@
 
 # script to test spatial joins between gnaf and select psma admin bdys - ~40 mins
 
+import glob
 import logging
 import os
-# import psycopg2
+import psycopg2
 import sys
 
 from datetime import datetime
-from multiprocessing import cpu_count
+from itertools import repeat
+from multiprocessing import cpu_count, Pool
 from pyspark.sql import functions as f, types as t
 from pyspark.sql import SparkSession
 from pyspark.sql.window import Window
@@ -23,6 +25,8 @@ from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
 # os.environ["PYSPARK_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
 # os.environ["PYSPARK_DRIVER_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
 # os.environ["PYLIB"] = os.environ["SPARK_HOME"] + "/python/lib"
+
+num_processors = cpu_count() * 2
 
 
 # get postgres parameters from local text file
@@ -50,6 +54,9 @@ local_pg_settings = get_password("localhost_super")
 # get connect string for psycopg2
 local_pg_connect_string = "dbname={DB} host={HOST} port={PORT} user={USER} password={PASS}".format(**local_pg_settings)
 
+# create Postgres connection pool
+pg_pool = psycopg2.pool.SimpleConnectionPool(1, num_processors, local_pg_connect_string)
+
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
@@ -71,7 +78,7 @@ def main():
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
              .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
-             .config("spark.cores.max", cpu_count() * 2)
+             .config("spark.cores.max", num_processors)
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.driver.memory", "8g")
              .getOrCreate()
@@ -93,9 +100,7 @@ def main():
     #     .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
     #     .cache()
 
-    point_df = spark.read.parquet(os.path.join(output_path, "gnaf")) \
-        .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
-        .cache()
+    point_df = spark.read.parquet(os.path.join(output_path, "gnaf")).cache()
     point_df.createOrReplaceTempView("pnt")
 
     logger.info("\t - Loaded {:,} GNAF points: {}"
@@ -128,11 +133,18 @@ def bdy_tag(spark, bdy_name, bdy_id):
     #   - spatial partitions and indexes for join will be created automatically
     #   - it's an inner join so point records could be lost (left joins not yet supported by Geospark)
     #   - force broadcast of unpartitioned boundaries to speed up query)
-    sql = """SELECT /*+ BROADCAST(bdy) */ pnt.gnaf_pid,
-                    bdy.{}, 
-                    pnt.geom
+    # / *+ BROADCAST(bdy) * /
+    sql = """SELECT pnt.gnaf_pid,
+                    bdy.{},
+                    pnt.state
+                    concat('SRID=4326;POINT (', pnt.longitude, ' ', pnt.latitude, ')') as geom
              FROM pnt
-             INNER JOIN bdy ON pnt.partition_id = bdy.partition_id AND ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
+             INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
+    # sql = """SELECT /*+ BROADCAST(bdy) */ pnt.gnaf_pid,
+    #                 bdy.{},
+    #                 pnt.geom
+    #          FROM pnt
+    #          INNER JOIN bdy ON pnt.partition_id = bdy.partition_id AND ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
     join_df = spark.sql(sql)
     # join_df.explain()
 
@@ -142,7 +154,11 @@ def bdy_tag(spark, bdy_name, bdy_id):
     # join_df.show(5)
 
     # output join DataFrame
-    export_to_parquet(join_df, "gnaf_with_{}".format(bdy_name))
+    # export_to_parquet(join_df, "gnaf_with_{}".format(bdy_name))
+
+    # output to postgres, via CSV
+    table_name = "gnaf_with_{}".format(bdy_name)
+    export_to_postgres(join_df, "testing2.{}".format(table_name), bdy_id, os.path.join(output_path, table_name))
 
     join_df.unpersist()
     bdy_df.unpersist()
@@ -155,6 +171,83 @@ def export_to_parquet(df, name):
     df.write.option("compression", "gzip") \
         .mode("overwrite") \
         .parquet(os.path.join(output_path, name))
+
+
+def export_to_postgres(df, table_name, bdy_id, csv_folder, partition_column=None):
+    start_time = datetime.now()
+
+    # get Postgres connection & cursor
+    pg_conn = pg_pool.getconn()
+    pg_conn.autocommit = True
+    pg_cur = pg_conn.cursor()
+
+    # # potentially expensive way to get number of DataFrame partitions!
+    # num_partitions = df.rdd.getNumPartitions()
+
+    # write to csv files - one gets written per partition
+    # quotes are automatically put around strings with commas - i.e. csv is a safe export format
+    if partition_column is not None:
+        df.write.partitionBy(partition_column).csv(csv_folder, mode="overwrite", header=False, emptyValue="")
+    else:
+        df.write.csv(csv_folder, mode="overwrite", header=False, emptyValue="")
+
+    # logger.info("exported dataframe to {:,} CSV files : {}"
+    #     .format(num_partitions, datetime.now() - start_time))
+    logger.info("\t - exported DataFrame to CSV files : {}".format(datetime.now() - start_time))
+    start_time = datetime.now()
+
+    # create table (todo: not a prod grade way to treat your hard drive...)
+    sql = """DROP TABLE IF EXISTS {0} CASCADE;
+             CREATE TABLE {0} (
+                 gnaf_pid text NOT NULL,
+                 {1} text NOT NULL,
+                 state text,
+                 geom geometry(Point, 4283, 2) NOT NULL
+             ) WITH (OIDS=FALSE);
+             ALTER TABLE {0} OWNER TO postgres""".format(table_name, bdy_id)
+    pg_cur.execute(sql)
+
+    # pg_cur.execute("TRUNCATE TABLE {}".format(table_name))
+
+    # get all CSV file paths and copy CSV files to Postgres using multiprocessing
+    file_list = list()
+
+    if partition_column is not None:
+        search_path = "{}/*/*/*.csv".format(csv_folder)
+    else:
+        search_path = "{}/*.csv".format(csv_folder)
+
+    for file_name in glob.glob(search_path):
+        file_list.append(file_name)
+
+    with Pool(num_processors) as p:
+        p.starmap(execute_copy, zip(file_list, repeat(table_name)))
+
+    pg_cur.execute("ANALYSE {}".format(table_name))
+
+    pg_cur.close()
+    pg_pool.putconn(pg_conn)
+
+    # logger.info("copied {:,} CSV files to {} : {}"
+    #             .format(num_partitions, table_name, datetime.now() - start_time))
+    logger.info("\t - imported CSV files to {} : {}"
+                .format(table_name, datetime.now() - start_time))
+
+
+def execute_copy(file_name, table_name):
+    # get postgres connection from pool
+    pg_conn = pg_pool.getconn()
+    pg_conn.autocommit = True
+    pg_cur = pg_conn.cursor()
+
+    # Use a SQL statement. The Psycopg2 copy_from function has issues with quotes in CSV files
+    sql = """COPY {}
+             FROM '{}'
+             WITH (DELIMITER ',', FORMAT CSV, NULL '')""". format(table_name, file_name)
+    pg_cur.execute(sql)
+
+    pg_cur.close()
+    pg_pool.putconn(pg_conn)
 
 
 if __name__ == "__main__":
