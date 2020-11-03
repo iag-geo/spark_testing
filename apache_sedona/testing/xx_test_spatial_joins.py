@@ -103,24 +103,35 @@ def main():
     #     .cache()
 
     point_df = spark.read.parquet(os.path.join(output_path, "gnaf")).cache()
-    point_df.createOrReplaceTempView("pnt")
 
     logger.info("\t - Loaded {:,} GNAF points: {}"
                 .format(point_df.count(), datetime.now() - start_time))
 
     # boundary tag gnaf point
-    bdy_tag(spark, "commonwealth_electorates", "ce_pid")
-    # bdy_tag(spark, "local_government_areas", "lga_pid")
+    tag_df = bdy_tag(spark, point_df, "commonwealth_electorates", "ce_pid")
+    tag_df2 = bdy_tag(spark, tag_df, "local_government_areas", "lga_pid")
+
     # bdy_tag(spark, "local_government_wards", "ward_pid")
     # bdy_tag(spark, "state_lower_house_electorates", "se_lower_pid")
     # bdy_tag(spark, "state_upper_house_electorates", "se_upper_pid")
+
+
+
+
+
+    # output to postgres, via CSV
+    table_name = "gnaf_with_bdy_tags"
+    export_to_postgres(tag_df2, "testing2.{}".format(table_name), bdy_id, os.path.join(output_path, table_name))
+
 
     # cleanup
     spark.stop()
 
 
-def bdy_tag(spark, bdy_name, bdy_id):
+def bdy_tag(spark, point_df, bdy_name, bdy_id):
     start_time = datetime.now()
+
+    point_df.createOrReplaceTempView("pnt")
 
     # load boundaries and create geoms
     bdy_df = spark.read.parquet(os.path.join(output_path, bdy_name)) \
@@ -166,15 +177,13 @@ def bdy_tag(spark, bdy_name, bdy_id):
     # output join DataFrame
     # export_to_parquet(join_df, "gnaf_with_{}".format(bdy_name))
 
-    # output to postgres, via CSV
-    table_name = "gnaf_with_{}".format(bdy_name)
-    export_to_postgres(join_df2, "testing2.{}".format(table_name), bdy_id, os.path.join(output_path, table_name))
-
     join_df.unpersist()
     bdy_df.unpersist()
 
     logger.info("\t - GNAF boundary tagged with {} : {}"
                 .format(bdy_name, datetime.now() - start_time))
+
+    return join_df2
 
 
 def export_to_parquet(df, name):
