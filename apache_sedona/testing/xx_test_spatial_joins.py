@@ -101,6 +101,10 @@ def main():
 
     # boundary tag gnaf point
     bdy_tag(spark, "commonwealth_electorates", "ce_pid")
+    bdy_tag(spark, "local_government_areas", "lga_pid")
+    bdy_tag(spark, "local_government_wards", "ward_pid")
+    bdy_tag(spark, "state_lower_house_electorates", "se_lower_pid")
+    bdy_tag(spark, "state_upper_house_electorates", "se_upper_pid")
 
     # cleanup
     spark.stop()
@@ -133,12 +137,12 @@ def bdy_tag(spark, bdy_name, bdy_id):
     # join_df.show(5)
 
     # output join DataFrame
-    export_to_parquet(join_df, "{}_join".format(bdy_name))
+    export_to_parquet(join_df, "gnaf_with_{}".format(bdy_name))
 
     join_df.unpersist()
     bdy_df.unpersist()
 
-    logger.info("\t - GNAF points were boundary tagged with : {}"
+    logger.info("\t - GNAF boundary tagged with : {}"
                 .format(bdy_name, datetime.now() - start_time))
 
 
