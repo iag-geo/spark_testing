@@ -82,63 +82,64 @@ def main():
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
 
-    # load gnaf points and create geoms
-    point_df = spark.read.parquet(os.path.join(output_path, "gnaf"))
-        # .withColumn("geom", f.expr("ST_Point(longitude, latitude)"))
+    df = spark.read \
+        .option("header", True) \
+        .option("inferSchema", True) \
+        .csv(input_file_name)
+
+    point_df = df \
+        .withColumn("geom", f.expr("ST_Point(longitude, latitude)"))
+        # .repartitionByRange(32, "longitude")
+
+    # # load gnaf points and create geoms
+    # point_df = spark.read.parquet(os.path.join(output_path, "gnaf"))
+    #     # .withColumn("geom", f.expr("ST_Point(longitude, latitude)"))
     point_df.createOrReplaceTempView("pnt")
 
-    # load boundaries and create geoms
-    bdy_df = spark.read.parquet(os.path.join(output_path, "commonwealth_electorates"))
-        # .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)"))
-    bdy_df.createOrReplaceTempView("bdy")
+    logger.info("\t - Loaded {:,} GNAF points: {}"
+                .format(point_df.count(), datetime.now() - start_time))
 
-    logger.info("\t - Loaded {:,} GNAF points and {:,} boundaries: {}"
-                .format(point_df.count(), bdy_df.count(), datetime.now() - start_time))
+    # boundary tag gnaf point
+    bdy_tag(spark, "commonwealth_electorates", "ce_pid")
+
+    # cleanup
+    spark.stop()
+
+
+def bdy_tag(spark, bdy_name, bdy_id):
     start_time = datetime.now()
+
+    # load boundaries and create geoms
+    bdy_df = spark.read.parquet(os.path.join(output_path, bdy_name)) \
+        .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)"))
+    bdy_df.createOrReplaceTempView("bdy")
 
     # run spatial join to boundary tag the points
     # notes:
     #   - spatial partitions and indexes for join will be created automatically
-    #   - it's an inner join so point records could be lost
-    #   - force broadcast of unpartitioned boundaries (under 25Mb compressed)
-    # /*+ BROADCAST(bdy) */
+    #   - it's an inner join so point records could be lost (left joins not yet supported by Geospark)
+    #   - force broadcast of unpartitioned boundaries to speed up query)
     sql = """SELECT /*+ BROADCAST(bdy) */ pnt.gnaf_pid,
-                    bdy.ce_pid, 
+                    bdy.{}, 
                     pnt.geom
              FROM pnt
-             INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)"""
+             INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
     join_df = spark.sql(sql).cache()
     # join_df.explain()
 
-    num_joined_points = join_df.count()
+    # num_joined_points = join_df.count()
 
     # join_df.printSchema()
     # join_df.show(5)
 
     # output join DataFrame
-    export_to_parquet(join_df, "join")
+    export_to_parquet(join_df, "{}_join".format(bdy_name))
 
-    logger.info("\t - {:,} points were boundary tagged: {}"
-                .format(num_joined_points, datetime.now() - start_time))
+    join_df.unpersist()
+    bdy_df.unpersist()
 
-    # cleanup
-    spark.stop()
-
-    # logger.info("\t - GNAF and boundaries exported to gzipped parquet files: {}"
-    #             .format(datetime.now() - start_time))
-
-
-# def get_dataframe_from_postgres(spark, sql):
-#     df = spark.read.format("jdbc") \
-#         .option("url", jdbc_url) \
-#         .option("query", sql) \
-#         .option("properties", local_pg_settings["USER"]) \
-#         .option("password", local_pg_settings["PASS"]) \
-#         .option("driver", "org.postgresql.Driver") \
-#         .load()
-#     return df
-# # .option("numPartitions", 32) \
-# # .option("partitionColumn", "gid") \
+    logger.info("\t - GNAF points were boundary tagged with : {}"
+                .format(bdy_name, datetime.now() - start_time))
 
 
 def export_to_parquet(df, name):
