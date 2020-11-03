@@ -10,6 +10,7 @@ from datetime import datetime
 from multiprocessing import cpu_count
 from pyspark.sql import functions as f, types as t
 from pyspark.sql import SparkSession
+from pyspark.sql.window import Window
 
 from geospark.register import upload_jars, GeoSparkRegistrator  # need to install geospark package
 from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
@@ -108,43 +109,45 @@ def main():
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
 
-    # # load gnaf points
-    # df = spark.read \
-    #     .option("header", True) \
-    #     .option("inferSchema", True) \
-    #     .csv(input_file_name)
-    # # df.printSchema()
-    # # df.show()
-    #
-    # # # manually assign field types (not needed here as inferSchema works)
-    # # df2 = (df
-    # #        .withColumn("confidence", df.confidence.cast(t.ShortType()))
-    # #        .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
-    # #        .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
-    # #        .withColumn("reliability", df.reliability.cast(t.ShortType()))
-    # #        .withColumn("longitude", df.longitude.cast(t.DoubleType()))
-    # #        .withColumn("latitude", df.latitude.cast(t.DoubleType()))
-    # #        )
-    # # # df2.printSchema()
-    # # # df2.show()
-    #
-    # # add point geometries and partition by longitude into 400-500k row partitions
-    # gnaf_df = df \
-    #     .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
-    #     .repartitionByRange(32, "longitude")
-    #
-    # # check partition counts
-    # gnaf_df.groupBy(f.spark_partition_id()).count().show()
-    #
-    # # write gnaf to gzipped parquet
-    # export_to_parquet(gnaf_df, "gnaf")
+    # load gnaf points
+    df = spark.read \
+        .option("header", True) \
+        .option("inferSchema", True) \
+        .csv(input_file_name)
+    # df.printSchema()
+    # df.show()
+
+    # # manually assign field types (not needed here as inferSchema works)
+    # df2 = (df
+    #        .withColumn("confidence", df.confidence.cast(t.ShortType()))
+    #        .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
+    #        .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
+    #        .withColumn("reliability", df.reliability.cast(t.ShortType()))
+    #        .withColumn("longitude", df.longitude.cast(t.DoubleType()))
+    #        .withColumn("latitude", df.latitude.cast(t.DoubleType()))
+    #        )
+    # # df2.printSchema()
+    # # df2.show()
+
+    # add point geometries and partition by longitude into 400-500k row partitions
+    gnaf_df = df \
+        .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
+        .withColumn("partition_id", (f.percent_rank().over(Window.partitionBy().orderBy("longitude")) * f.lit(100.0))
+                    .cast(t.ShortType())) \
+        .repartitionByRange(100, "partition_id") \
+
+    # check partition counts
+    gnaf_df.groupBy(f.spark_partition_id()).count().show()
+
+    # write gnaf to gzipped parquet
+    export_to_parquet(gnaf_df, "gnaf")
 
     # export PG boundary tables to parquet
     export_bdys(spark, "commonwealth_electorates", "ce_pid")
-    export_bdys(spark, "local_government_areas", "lga_pid")
-    export_bdys(spark, "local_government_wards", "ward_pid")
-    export_bdys(spark, "state_lower_house_electorates", "se_lower_pid")
-    export_bdys(spark, "state_upper_house_electorates", "se_upper_pid")
+    # export_bdys(spark, "local_government_areas", "lga_pid")
+    # export_bdys(spark, "local_government_wards", "ward_pid")
+    # export_bdys(spark, "state_lower_house_electorates", "se_lower_pid")
+    # export_bdys(spark, "state_upper_house_electorates", "se_upper_pid")
 
     # cleanup
     spark.stop()
@@ -155,8 +158,10 @@ def main():
 
 def export_bdys(spark, bdy_name, bdy_id):
     # load boundaries
-    sql = """SELECT {}, name, state, st_astext(geom) as wkt_geom 
-             FROM admin_bdys_202008.{}_analysis""".format(bdy_id, bdy_name)
+    sql = """SELECT partition_id, {}, name, state, st_astext(geom) as wkt_geom 
+             FROM testing2.{}_partitioned""".format(bdy_id, bdy_name)
+    # sql = """SELECT {}, name, state, st_astext(geom) as wkt_geom
+    #          FROM admin_bdys_202008.{}_analysis""".format(bdy_id, bdy_name)
     bdy_df = get_dataframe_from_postgres(spark, sql)
 
     # # create view to enable SQL queries

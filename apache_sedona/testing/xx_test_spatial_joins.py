@@ -1,5 +1,5 @@
 
-# script to test spatial joins between gnaf and select psma admin bdys - ~45 mins
+# script to test spatial joins between gnaf and select psma admin bdys - ~40 mins
 
 import logging
 import os
@@ -10,6 +10,7 @@ from datetime import datetime
 from multiprocessing import cpu_count
 from pyspark.sql import functions as f, types as t
 from pyspark.sql import SparkSession
+from pyspark.sql.window import Window
 
 from geospark.register import upload_jars, GeoSparkRegistrator  # need to install geospark package
 from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
@@ -83,18 +84,18 @@ def main():
     start_time = datetime.now()
 
     # load gnaf points and create geoms
-    df = spark.read \
-        .option("header", True) \
-        .option("inferSchema", True) \
-        .csv(input_file_name)
+    # df = spark.read \
+    #     .option("header", True) \
+    #     .option("inferSchema", True) \
+    #     .csv(input_file_name)
+    #
+    # point_df = df \
+    #     .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
+    #     .cache()
 
-    point_df = df \
+    point_df = spark.read.parquet(os.path.join(output_path, "gnaf")) \
         .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
         .cache()
-        # .repartitionByRange(32, "longitude")
-
-    # point_df = spark.read.parquet(os.path.join(output_path, "gnaf"))
-    #     # .withColumn("geom", f.expr("ST_Point(longitude, latitude)"))
     point_df.createOrReplaceTempView("pnt")
 
     logger.info("\t - Loaded {:,} GNAF points: {}"
@@ -102,10 +103,10 @@ def main():
 
     # boundary tag gnaf point
     bdy_tag(spark, "commonwealth_electorates", "ce_pid")
-    bdy_tag(spark, "local_government_areas", "lga_pid")
-    bdy_tag(spark, "local_government_wards", "ward_pid")
-    bdy_tag(spark, "state_lower_house_electorates", "se_lower_pid")
-    bdy_tag(spark, "state_upper_house_electorates", "se_upper_pid")
+    # bdy_tag(spark, "local_government_areas", "lga_pid")
+    # bdy_tag(spark, "local_government_wards", "ward_pid")
+    # bdy_tag(spark, "state_lower_house_electorates", "se_lower_pid")
+    # bdy_tag(spark, "state_upper_house_electorates", "se_upper_pid")
 
     # cleanup
     spark.stop()
@@ -116,8 +117,11 @@ def bdy_tag(spark, bdy_name, bdy_id):
 
     # load boundaries and create geoms
     bdy_df = spark.read.parquet(os.path.join(output_path, bdy_name)) \
-        .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)"))
+        .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)")) \
+        .repartitionByRange(100, "partition_id")
     bdy_df.createOrReplaceTempView("bdy")
+
+    #         .withColumn("partition_id", f.percent_rank().over(Window.partitionBy().orderBy(f.expr("st_x(st_centroid(geom))"))) * f.lit(100.0)) \
 
     # run spatial join to boundary tag the points
     # notes:
@@ -128,7 +132,7 @@ def bdy_tag(spark, bdy_name, bdy_id):
                     bdy.{}, 
                     pnt.geom
              FROM pnt
-             INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
+             INNER JOIN bdy ON pnt.partition_id = bdy.partition_id AND ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
     join_df = spark.sql(sql)
     # join_df.explain()
 
