@@ -109,20 +109,28 @@ def main():
 
     # boundary tag gnaf point
     tag_df = bdy_tag(spark, point_df, "commonwealth_electorates", "ce_pid")
+    tag_df.printSchema()
+    tag_df.show(5)
+
     tag_df2 = bdy_tag(spark, tag_df, "local_government_areas", "lga_pid")
+    tag_df2.printSchema()
+    tag_df2.show(5)
 
     # bdy_tag(spark, "local_government_wards", "ward_pid")
     # bdy_tag(spark, "state_lower_house_electorates", "se_lower_pid")
     # bdy_tag(spark, "state_upper_house_electorates", "se_upper_pid")
 
+    bdy_ids = "ce_pid text, lga_pid text"
 
+    final_df = tag_df2.withColumn("wkt_geom", f.expr("concat('SRID=4326;POINT (', st_x(geom), ' ', st_y(geom), ')')"))\
+        .drop("geom")
 
-
+    final_df.printSchema()
+    final_df.show(5)
 
     # output to postgres, via CSV
     table_name = "gnaf_with_bdy_tags"
-    export_to_postgres(tag_df2, "testing2.{}".format(table_name), bdy_id, os.path.join(output_path, table_name))
-
+    export_to_postgres(final_df, "testing2.{}".format(table_name), bdy_ids, os.path.join(output_path, table_name))
 
     # cleanup
     spark.stop()
@@ -147,7 +155,7 @@ def bdy_tag(spark, point_df, bdy_name, bdy_id):
     #   - it's an inner join so point records could be lost (left joins not yet supported by Geospark)
     #   - force broadcast of unpartitioned boundaries to speed up query)
     # / *+ BROADCAST(bdy) * /
-    sql = """SELECT pnt.gnaf_pid,
+    sql = """SELECT pnt.*
                     bdy.{}
              FROM pnt
              INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
@@ -161,10 +169,8 @@ def bdy_tag(spark, point_df, bdy_name, bdy_id):
     # join_df.explain()
 
     # get missing gnaf records due to no left join with a spatial join (above)
-    sql = """SELECT pnt.gnaf_pid,
-                    bdy_join.{},
-                    pnt.state,
-                    concat('SRID=4326;POINT (', pnt.longitude, ' ', pnt.latitude, ')') as geom
+    sql = """SELECT pnt.*,
+                    bdy_join.{}
              FROM pnt
              LEFT OUTER JOIN bdy_join ON pnt.gnaf_pid = bdy_join.gnaf_pid""".format(bdy_id)
     join_df2 = spark.sql(sql)
@@ -219,8 +225,8 @@ def export_to_postgres(df, table_name, bdy_id, csv_folder, partition_column=None
     sql = """DROP TABLE IF EXISTS {0} CASCADE;
              CREATE TABLE {0} (
                  gnaf_pid text NOT NULL,
-                 {1} text,
                  state text,
+                 {1},
                  geom geometry(Point, 4326, 2) NOT NULL
              ) WITH (OIDS=FALSE);
              ALTER TABLE {0} OWNER TO postgres""".format(table_name, bdy_id)
