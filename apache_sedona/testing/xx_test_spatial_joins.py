@@ -102,19 +102,33 @@ def main():
     #     .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
     #     .cache()
 
-    gnaf_df = spark.read.parquet(os.path.join(output_path, "gnaf"))
-    point_df = gnaf_df.select("gnaf_pid", "state", "geom")\
-        .repartitionByRange(100, "longitude")
+    point_df = spark.read.parquet(os.path.join(output_path, "gnaf")).select("gnaf_pid", "state", "geom")
+    # point_df = gnaf_df.select("gnaf_pid", "state", "geom")
+    # point_df = gnaf_df.select("gnaf_pid", "state", "longitude", "latitude", "geom")\
+    #     .repartitionByRange(100, "longitude")
+
+    point_df.createOrReplaceTempView("pnt")
 
     logger.info("\t - Loaded {:,} GNAF points: {}"
                 .format(point_df.count(), datetime.now() - start_time))
 
-    # boundary tag gnaf point
-    tag_df = bdy_tag(spark, point_df, "commonwealth_electorates", "ce_pid")
+    # boundary tag gnaf points
+    bdy_tag(spark, "commonwealth_electorates", "ce_pid")
+
+    point_df.unpersist()
+
     # tag_df.printSchema()
 
-    tag_df2 = bdy_tag(spark, tag_df, "local_government_areas", "lga_pid")
+    point_df = spark.read.parquet(os.path.join(output_path, "gnaf_with_{}".format("commonwealth_electorates")))
+    point_df.createOrReplaceTempView("pnt")
+
+    bdy_tag(spark, "local_government_areas", "lga_pid")
     # tag_df2.printSchema()
+
+    point_df.unpersist()
+
+    point_df = spark.read.parquet(os.path.join(output_path, "gnaf_with_{}".format("local_government_areas")))
+    # point_df.createOrReplaceTempView("pnt")
 
     # bdy_tag(spark, "local_government_wards", "ward_pid")
     # bdy_tag(spark, "state_lower_house_electorates", "se_lower_pid")
@@ -122,7 +136,7 @@ def main():
 
     bdy_ids = "ce_pid text, lga_pid text"
 
-    final_df = tag_df2.withColumn("wkt_geom", f.expr("concat('SRID=4326;POINT (', st_x(geom), ' ', st_y(geom), ')')"))\
+    final_df = point_df.withColumn("wkt_geom", f.expr("concat('SRID=4326;POINT (', st_x(geom), ' ', st_y(geom), ')')"))\
         .drop("geom")
     # final_df.printSchema()
 
@@ -134,10 +148,8 @@ def main():
     spark.stop()
 
 
-def bdy_tag(spark, point_df, bdy_name, bdy_id):
+def bdy_tag(spark, bdy_name, bdy_id):
     start_time = datetime.now()
-
-    point_df.createOrReplaceTempView("pnt")
 
     # load boundaries and create geoms
     bdy_df = spark.read.parquet(os.path.join(output_path, bdy_name)) \
@@ -145,7 +157,8 @@ def bdy_tag(spark, point_df, bdy_name, bdy_id):
         # .repartitionByRange(100, "partition_id")
     bdy_df.createOrReplaceTempView("bdy")
 
-    #         .withColumn("partition_id", f.percent_rank().over(Window.partitionBy().orderBy(f.expr("st_x(st_centroid(geom))"))) * f.lit(100.0)) \
+    #         .withColumn("partition_id", f.percent_rank()
+    #             .over(Window.partitionBy().orderBy(f.expr("st_x(st_centroid(geom))"))) * f.lit(100.0)) \
 
     # run spatial join to boundary tag the points
     # notes:
@@ -160,7 +173,8 @@ def bdy_tag(spark, point_df, bdy_name, bdy_id):
     #                 bdy.{},
     #                 pnt.geom
     #          FROM pnt
-    #          INNER JOIN bdy ON pnt.partition_id = bdy.partition_id AND ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
+    #          INNER JOIN bdy ON pnt.partition_id = bdy.partition_id
+    #          AND ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
     join_df = spark.sql(sql)
     join_df.createOrReplaceTempView("bdy_join")
     # join_df.explain()
@@ -178,8 +192,9 @@ def bdy_tag(spark, point_df, bdy_name, bdy_id):
     # join_df.show(5)
 
     # output join DataFrame
-    # export_to_parquet(join_df, "gnaf_with_{}".format(bdy_name))
+    export_to_parquet(join_df2, "gnaf_with_{}".format(bdy_name))
 
+    join_df2.unpersist()
     join_df.unpersist()
     bdy_df.unpersist()
 
