@@ -164,14 +164,14 @@ def main():
         .select("gnaf_pid", "state", "geom")
 
     # convert df to rdd and export to disk
-    export_rdd(gnaf_df, "gnaf_rdd")
+    gnaf_partitioner = export_rdd(gnaf_df, "gnaf_rdd")
 
     # export PG boundary tables to parquet
-    export_bdys(spark, "commonwealth_electorates", "ce_pid")
-    export_bdys(spark, "local_government_areas", "lga_pid")
-    export_bdys(spark, "local_government_wards", "ward_pid")
-    export_bdys(spark, "state_lower_house_electorates", "se_lower_pid")
-    export_bdys(spark, "state_upper_house_electorates", "se_upper_pid")
+    export_bdys(spark, "commonwealth_electorates", "ce_pid", gnaf_partitioner)
+    export_bdys(spark, "local_government_areas", "lga_pid", gnaf_partitioner)
+    export_bdys(spark, "local_government_wards", "ward_pid", gnaf_partitioner)
+    export_bdys(spark, "state_lower_house_electorates", "se_lower_pid", gnaf_partitioner)
+    export_bdys(spark, "state_upper_house_electorates", "se_upper_pid", gnaf_partitioner)
 
     # cleanup
     spark.stop()
@@ -180,12 +180,20 @@ def main():
                 .format(datetime.now() - start_time))
 
 
-def export_rdd(df, path_name):
+def export_rdd(df, path_name, partitioner=None):
+
+    output_partitioner = None
+
     output_rdd = Adapter.toSpatialRdd(df, "geom")
     output_rdd.analyze()
 
     # add partitioning and indexing to each partition
-    output_rdd.spatialPartitioning(GridType.KDBTREE)
+    if partitioner is None:
+        output_rdd.spatialPartitioning(GridType.KDBTREE)
+        output_partitioner = output_rdd.getPartitioner()
+    else:
+        output_rdd.spatialPartitioning(partitioner)
+
     output_rdd.buildIndex(IndexType.RTREE, False)
 
     # delete existing directory and export RDD to disk
@@ -195,8 +203,10 @@ def export_rdd(df, path_name):
     output_rdd.indexedRawRDD.saveAsObjectFile(output_rdd_path)
     # output_rdd.rawSpatialRDD.saveAsTextFile(output_rdd_path)
 
+    return output_partitioner
 
-def export_bdys(spark, bdy_name, bdy_id):
+
+def export_bdys(spark, bdy_name, bdy_id, partitioner=None):
     # load boundaries
     sql = """SELECT {}, name, state, st_astext(geom) as wkt_geom
              FROM admin_bdys_202008.{}_analysis""".format(bdy_id, bdy_name)
@@ -208,7 +218,7 @@ def export_bdys(spark, bdy_name, bdy_id):
         .drop("wkt_geom")
 
     # write bdys to gzipped parquet
-    export_rdd(bdy_df2, bdy_name + "_rdd")
+    export_rdd(bdy_df2, bdy_name + "_rdd", partitioner)
 
 
 def get_dataframe_from_postgres(spark, sql):
