@@ -105,7 +105,7 @@ conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 conda activate geospark3_env
 
 # install conda packages for geospark
-echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} psycopg2 jupyter
+echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} psycopg2 jupyter matplotlib
 
 echo "-------------------------------------------------------------------------"
 echo "Install Geospark Python API"

@@ -114,46 +114,53 @@ def main():
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
 
-    # load gnaf points
-    df = spark.read \
-        .option("header", True) \
-        .option("inferSchema", True) \
-        .csv(input_file_name)
-    # df.printSchema()
-    # df.show()
+    from geospark.utils.adapter import Adapter
+    from geospark.core.enums import GridType, IndexType
 
-    # manually assign field types (not needed here as inferSchema works)
-    df2 = (df
-           .withColumn("confidence", df.confidence.cast(t.ShortType()))
-           .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
-           .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
-           .withColumn("reliability", df.reliability.cast(t.ShortType()))
-           .withColumn("longitude", df.longitude.cast(t.DoubleType()))
-           .withColumn("latitude", df.latitude.cast(t.DoubleType()))
-           )
-    # df2.printSchema()
-    # df2.show()
+    from pyspark import StorageLevel
+    from geospark.core.SpatialRDD import PointRDD
+    from geospark.core.enums import FileDataSplitter
 
-    # add point geometries and partition by longitude into 400-500k row partitions
-    gnaf_df = df.withColumn("geom", f.expr("ST_Point(longitude, latitude)"))
-    # .withColumnRenamed("gnaf_pid", "id")
-    # .withColumn("partition_id", (f.percent_rank().over(Window.partitionBy().orderBy("longitude")) * f.lit(100.0))
-    #             .cast(t.ShortType())) \
-    # .repartitionByRange(100, "partition_id") \
-    # gnaf_df.printSchema()
+    offset = 0  # The point long/lat starts from Column 0
+    splitter = FileDataSplitter.CSV  # FileDataSplitter enumeration
+    carry_other_attributes = True  # Carry Column 2 (hotel, gas, bar...)
+    level = StorageLevel.MEMORY_ONLY  # Storage level from pyspark
 
-    # check partition counts
-    gnaf_df.groupBy(f.spark_partition_id()).count().show()
+    spatial_rdd = PointRDD(
+        sparkContext=spark.sparkContext,
+        InputLocation=os.path.join(output_path, "gnaf_light.csv"),
+        Offset=offset,
+        splitter=splitter,
+        carryInputData=carry_other_attributes
+    )
 
-    # write gnaf to gzipped parquet
-    export_to_parquet(gnaf_df, "gnaf")
+    # spatial_rdd = Adapter.toSpatialRdd(gnaf_df, "geom")
+    spatial_rdd.analyze()
 
-    # export PG boundary tables to parquet
-    export_bdys(spark, "commonwealth_electorates", "ce_pid")
-    export_bdys(spark, "local_government_areas", "lga_pid")
-    export_bdys(spark, "local_government_wards", "ward_pid")
-    export_bdys(spark, "state_lower_house_electorates", "se_lower_pid")
-    export_bdys(spark, "state_upper_house_electorates", "se_upper_pid")
+    # rdd_with_other_attributes = spatial_rdd.rawSpatialRDD.map(lambda x: x.getUserData())
+
+    spatial_rdd.spatialPartitioning(GridType.KDBTREE)
+    # spatial_rdd.buildIndex(IndexType.QUADTREE, True)
+
+    # print(spatial_rdd.boundaryEnvelope)
+
+    # rdd_with_other_attributes.indexedRawRDD.saveAsObjectFile("hdfs://localhost/gnaf_rdd")
+
+    # spatial_rdd.indexedRawRDD.saveAsObjectFile(os.path.join(output_path, "gnaf_rdd"))
+    spatial_rdd.rawSpatialRDD.saveAsTextFile(os.path.join(output_path, "gnaf_rdd"))
+
+    # # check partition counts
+    # gnaf_df.groupBy(f.spark_partition_id()).count().show()
+    #
+    # # write gnaf to gzipped parquet
+    # export_to_parquet(gnaf_df, "gnaf")
+    #
+    # # export PG boundary tables to parquet
+    # export_bdys(spark, "commonwealth_electorates", "ce_pid")
+    # export_bdys(spark, "local_government_areas", "lga_pid")
+    # export_bdys(spark, "local_government_wards", "ward_pid")
+    # export_bdys(spark, "state_lower_house_electorates", "se_lower_pid")
+    # export_bdys(spark, "state_upper_house_electorates", "se_upper_pid")
 
     # cleanup
     spark.stop()
