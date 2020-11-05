@@ -20,8 +20,9 @@ from geospark.register import upload_jars, GeoSparkRegistrator  # need to instal
 from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
 
 from geospark.core.enums import GridType, IndexType
-from geospark.core.formatMapper.disc_utils import load_spatial_rdd_from_disc, GeoType
+from geospark.core.formatMapper.disc_utils import load_spatial_rdd_from_disc, load_spatial_index_rdd_from_disc, GeoType
 from geospark.core.spatialOperator import JoinQuery
+from geospark.core.SpatialRDD import PointRDD, PolygonRDD, SpatialRDD
 
 # # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 # # set Conda environment vars for PySpark
@@ -99,14 +100,20 @@ def main():
     sc = spark.sparkContext
 
     # load GNAF points from disk
-    point_rdd = load_spatial_rdd_from_disc(sc, os.path.join(output_path, "gnaf_rdd"), GeoType.POINT)
+    point_rdd = SpatialRDD()
+    point_rdd.indexedRawRDD = load_spatial_index_rdd_from_disc(sc, os.path.join(output_path, "gnaf_rdd"))
+    # point_rdd = load_spatial_rdd_from_disc(sc, os.path.join(output_path, "gnaf_rdd"), GeoType.POINT)
+    point_rdd.analyze()
 
     # load boundries
-    bdy_rdd = load_spatial_rdd_from_disc(sc, os.path.join(output_path, "commonwealth_electorates_rdd"), GeoType.POLYGON)
+    bdy_rdd = SpatialRDD()
+    bdy_rdd.indexedRawRDD = load_spatial_index_rdd_from_disc(sc, os.path.join(output_path, "commonwealth_electorates_rdd"))
+    # bdy_rdd = load_spatial_rdd_from_disc(sc, os.path.join(output_path, "commonwealth_electorates_rdd"), GeoType.POLYGON)
+    bdy_rdd.analyze()
 
     # partition and index boundaries
     bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
-    bdy_rdd.buildIndex(IndexType.RTREE, True)  # Set to TRUE only if run join query
+    # bdy_rdd.buildIndex(IndexType.RTREE, True)  # Set to TRUE only if run join query
 
     # run join
     result_pair_rdd = JoinQuery.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
