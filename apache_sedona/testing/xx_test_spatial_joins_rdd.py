@@ -103,7 +103,15 @@ def main():
     point_rdd = SpatialRDD()
     point_rdd.indexedRawRDD = load_spatial_index_rdd_from_disc(sc, os.path.join(output_path, "gnaf_rdd"))
     # point_rdd = load_spatial_rdd_from_disc(sc, os.path.join(output_path, "gnaf_rdd"), GeoType.POINT)
-    point_rdd.analyze()
+    # point_rdd.analyze()
+
+    rdd_with_other_attributes = point_rdd.rawSpatialRDD.map(lambda x: x.getUserData())
+
+    fred = rdd_with_other_attributes.take(10)
+
+    for row in fred:
+        print(row)
+
 
     # load boundries
     bdy_rdd = SpatialRDD()

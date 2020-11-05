@@ -163,6 +163,10 @@ def main():
     gnaf_df = df2.withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
         .select("gnaf_pid", "state", "geom")
 
+
+
+
+
     # convert df to rdd and export to disk
     gnaf_partitioner = export_rdd(gnaf_df, "gnaf_rdd")
 
@@ -182,26 +186,26 @@ def main():
 
 def export_rdd(df, path_name, partitioner=None):
 
+    # delete existing directory
+    output_rdd_path = os.path.join(output_path, path_name)
+    shutil.rmtree(output_rdd_path, True)
+
     output_partitioner = None
 
     output_rdd = Adapter.toSpatialRdd(df, "geom")
     output_rdd.analyze()
 
-    # add partitioning and indexing to each partition
+    # add partitioning and indexing to each partition and export RDD to disk
     if partitioner is None:
         output_rdd.spatialPartitioning(GridType.KDBTREE)
         output_partitioner = output_rdd.getPartitioner()
+
+        output_rdd.buildIndex(IndexType.RTREE, False)
+
+        output_rdd.indexedRawRDD.saveAsObjectFile(output_rdd_path)
     else:
         output_rdd.spatialPartitioning(partitioner)
-
-    output_rdd.buildIndex(IndexType.RTREE, False)
-
-    # delete existing directory and export RDD to disk
-    output_rdd_path = os.path.join(output_path, path_name)
-
-    shutil.rmtree(output_rdd_path, True)
-    output_rdd.indexedRawRDD.saveAsObjectFile(output_rdd_path)
-    # output_rdd.rawSpatialRDD.saveAsTextFile(output_rdd_path)
+        output_rdd.rawSpatialRDD.saveAsTextFile(output_rdd_path)
 
     return output_partitioner
 
