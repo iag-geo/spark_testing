@@ -128,7 +128,7 @@ def main():
     # carry_other_attributes = True  # Carry Column 2 (hotel, gas, bar...)
     # level = StorageLevel.MEMORY_ONLY  # Storage level from pyspark
     #
-    # # gnaf_rdd = PointRDD(
+    # # output_rdd = PointRDD(
     # #     sparkContext=spark.sparkContext,
     # #     InputLocation=os.path.join(output_path, "gnaf_light.csv"),
     # #     Offset=offset,
@@ -136,7 +136,7 @@ def main():
     # #     carryInputData=carry_other_attributes
     # # )
     #
-    # gnaf_rdd = PointRDD(spark.sparkContext, os.path.join(output_path, "gnaf_light.csv"),
+    # output_rdd = PointRDD(spark.sparkContext, os.path.join(output_path, "gnaf_light.csv"),
     #                        offset, splitter, carry_other_attributes, level)
 
     # load gnaf points
@@ -163,25 +163,15 @@ def main():
     gnaf_df = df2.withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
         .select("gnaf_pid", "state", "geom")
 
-    gnaf_rdd = Adapter.toSpatialRdd(gnaf_df, "geom")
-    gnaf_rdd.analyze()
+    # convert df to rdd and export to disk
+    export_rdd(gnaf_df, "gnaf_rdd")
 
-    gnaf_rdd.spatialPartitioning(GridType.KDBTREE)
-    gnaf_rdd.buildIndex(IndexType.RTREE, False)
-
-    output_rdd_path = os.path.join(output_path, "gnaf_rdd")
-
-    # delete existing directory and export RDD to disk
-    shutil.rmtree(output_rdd_path, True)
-    gnaf_rdd.indexedRawRDD.saveAsObjectFile(output_rdd_path)
-    # gnaf_rdd.rawSpatialRDD.saveAsTextFile(output_rdd_path)
-
-    # # export PG boundary tables to parquet
-    # export_bdys(spark, "commonwealth_electorates", "ce_pid")
-    # export_bdys(spark, "local_government_areas", "lga_pid")
-    # export_bdys(spark, "local_government_wards", "ward_pid")
-    # export_bdys(spark, "state_lower_house_electorates", "se_lower_pid")
-    # export_bdys(spark, "state_upper_house_electorates", "se_upper_pid")
+    # export PG boundary tables to parquet
+    export_bdys(spark, "commonwealth_electorates", "ce_pid")
+    export_bdys(spark, "local_government_areas", "lga_pid")
+    export_bdys(spark, "local_government_wards", "ward_pid")
+    export_bdys(spark, "state_lower_house_electorates", "se_lower_pid")
+    export_bdys(spark, "state_upper_house_electorates", "se_upper_pid")
 
     # cleanup
     spark.stop()
@@ -190,24 +180,35 @@ def main():
                 .format(datetime.now() - start_time))
 
 
+def export_rdd(df, path_name):
+    output_rdd = Adapter.toSpatialRdd(df, "geom")
+    output_rdd.analyze()
+
+    # add partitioning and indexing to each partition
+    output_rdd.spatialPartitioning(GridType.KDBTREE)
+    output_rdd.buildIndex(IndexType.RTREE, False)
+
+    # delete existing directory and export RDD to disk
+    output_rdd_path = os.path.join(output_path, path_name)
+
+    shutil.rmtree(output_rdd_path, True)
+    output_rdd.indexedRawRDD.saveAsObjectFile(output_rdd_path)
+    # output_rdd.rawSpatialRDD.saveAsTextFile(output_rdd_path)
+
+
 def export_bdys(spark, bdy_name, bdy_id):
     # load boundaries
-    # sql = """SELECT partition_id, {}, name, state, st_astext(geom) as wkt_geom
-    #          FROM testing2.{}_partitioned""".format(bdy_id, bdy_name)
     sql = """SELECT {}, name, state, st_astext(geom) as wkt_geom
              FROM admin_bdys_202008.{}_analysis""".format(bdy_id, bdy_name)
     bdy_df = get_dataframe_from_postgres(spark, sql)
 
-    # # create view to enable SQL queries
-    # bdy_df.createOrReplaceTempView("bdy_wkt")
-    #
-    # # create geometries from WKT strings into new DataFrame
-    # # new DF will be spatially indexed automatically
-    # bdy_df2 = spark.sql("select ce_pid, name, state, st_geomFromWKT(wkt_geom) as geom from bdy_wkt")
-    #     .repartitionByRange(32, f.expr("st_x(st_centroid(geom))"))
+    # create geometries from WKT strings into new DataFrame
+    bdy_df2 = bdy_df\
+        .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)")) \
+        .drop("wkt_geom")
 
     # write bdys to gzipped parquet
-    export_to_parquet(bdy_df, bdy_name)
+    export_rdd(bdy_df2, bdy_name + "_rdd")
 
 
 def get_dataframe_from_postgres(spark, sql):
@@ -223,10 +224,10 @@ def get_dataframe_from_postgres(spark, sql):
 # .option("partitionColumn", "gid") \
 
 
-def export_to_parquet(df, name):
-    df.write.option("compression", "gzip") \
-        .mode("overwrite") \
-        .parquet(os.path.join(output_path, name))
+# def export_to_parquet(df, name):
+#     df.write.option("compression", "gzip") \
+#         .mode("overwrite") \
+#         .parquet(os.path.join(output_path, name))
 
 
 if __name__ == "__main__":
