@@ -19,10 +19,10 @@ from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
 from geospark.utils.adapter import Adapter
 from geospark.core.enums import GridType, IndexType
 
-# from pyspark import StorageLevel
-# from geospark.core.SpatialRDD import PointRDD
-# from geospark.core.enums import FileDataSplitter
-
+from pyspark import StorageLevel
+from geospark.core.SpatialRDD import PointRDD
+from geospark.core.enums import FileDataSplitter
+from geospark.core.spatialOperator import JoinQuery
 
 # # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 # # set Conda environment vars for PySpark
@@ -117,64 +117,98 @@ def main():
              .getOrCreate()
              )
 
+    # .config("spark.kryoserializer.buffer.max", "2g")
+
     # Register Apache Sedona (geospark) UDTs and UDFs
     GeoSparkRegistrator.registerAll(spark)
 
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
 
-    # offset = 0  # The point long/lat starts from Column 0
-    # splitter = FileDataSplitter.CSV  # FileDataSplitter enumeration
-    # carry_other_attributes = True  # Carry Column 2 (hotel, gas, bar...)
-    # level = StorageLevel.MEMORY_ONLY  # Storage level from pyspark
+    offset = 0  # The point long/lat starts from Column 0
+    splitter = FileDataSplitter.CSV  # FileDataSplitter enumeration
+    carry_other_attributes = True  # Carry Column 2 (hotel, gas, bar...)
+    level = StorageLevel.MEMORY_ONLY  # Storage level from pyspark
+
+    point_rdd = PointRDD(spark.sparkContext, os.path.join(output_path, "gnaf_light.csv"),
+                          offset, splitter, carry_other_attributes, level)
+
+    point_rdd.analyze()
+
+    point_rdd.spatialPartitioning(GridType.KDBTREE)
+    point_rdd.buildIndex(IndexType.RTREE, True)
+
+    # point_rdd_path = os.path.join(output_path, "gnaf_rdd")
+    # shutil.rmtree(point_rdd_path, True)
+    # point_rdd.rawSpatialRDD.saveAsTextFile(point_rdd_path)
+
+
+    # # load gnaf points
+    # df = spark.read \
+    #     .option("header", True) \
+    #     .option("inferSchema", True) \
+    #     .csv(input_file_name)
+    # # df.printSchema()
+    # # df.show()
     #
-    # # output_rdd = PointRDD(
-    # #     sparkContext=spark.sparkContext,
-    # #     InputLocation=os.path.join(output_path, "gnaf_light.csv"),
-    # #     Offset=offset,
-    # #     splitter=splitter,
-    # #     carryInputData=carry_other_attributes
-    # # )
+    # # manually assign field types (not needed here as inferSchema works)
+    # df2 = (df
+    #        .withColumn("confidence", df.confidence.cast(t.ShortType()))
+    #        .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
+    #        .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
+    #        .withColumn("reliability", df.reliability.cast(t.ShortType()))
+    #        .withColumn("longitude", df.longitude.cast(t.DoubleType()))
+    #        .withColumn("latitude", df.latitude.cast(t.DoubleType()))
+    #        )
+    # # df2.printSchema()
+    # # df2.show()
     #
-    # output_rdd = PointRDD(spark.sparkContext, os.path.join(output_path, "gnaf_light.csv"),
-    #                        offset, splitter, carry_other_attributes, level)
-
-    # load gnaf points
-    df = spark.read \
-        .option("header", True) \
-        .option("inferSchema", True) \
-        .csv(input_file_name)
-    # df.printSchema()
-    # df.show()
-
-    # manually assign field types (not needed here as inferSchema works)
-    df2 = (df
-           .withColumn("confidence", df.confidence.cast(t.ShortType()))
-           .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
-           .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
-           .withColumn("reliability", df.reliability.cast(t.ShortType()))
-           .withColumn("longitude", df.longitude.cast(t.DoubleType()))
-           .withColumn("latitude", df.latitude.cast(t.DoubleType()))
-           )
-    # df2.printSchema()
-    # df2.show()
-
-    # add point geometries and only keep a few columns
-    gnaf_df = df2.withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
-        .select("gnaf_pid", "state", "geom")
-
-    # convert df to rdd and export to disk
-    export_rdd(gnaf_df, "gnaf_rdd", True)
-
-
-
+    # # add point geometries and only keep a few columns
+    # gnaf_df = df2.withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
+    #     .select("gnaf_pid", "state", "geom")
+    #
+    # # convert df to rdd and export to disk
+    # export_rdd(gnaf_df, "gnaf_rdd", True)
 
     # # export PG boundary tables to parquet
-    # export_bdys(spark, "commonwealth_electorates", "ce_pid")
+    bdy_rdd = export_bdys(spark, "commonwealth_electorates", "ce_pid")
     # export_bdys(spark, "local_government_areas", "lga_pid")
     # export_bdys(spark, "local_government_wards", "ward_pid")
     # export_bdys(spark, "state_lower_house_electorates", "se_lower_pid")
     # export_bdys(spark, "state_upper_house_electorates", "se_upper_pid")
+
+    bdy_rdd.analyze()
+
+    bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
+    bdy_rdd.buildIndex(IndexType.RTREE, True)  # required?
+
+    # run the join
+    result_pair_rdd = JoinQuery.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
+
+    print(result_pair_rdd)
+
+    # [Geometry: Polygon userData: WA32       TANGNEY WA, Geometry: Point userData: GAWA_146792426	WA]
+
+
+    # rdd_with_other_attributes = result_pair_rdd.map(lambda x: x.getUserData())
+
+    # fred = result_pair_rdd.keys().take(10)
+    # for row in fred:
+    #     print(row)
+
+    # jim = result_pair_rdd.values().take(10)
+    # for row in jim:
+    #     print(row)
+
+    # test output of join
+
+    key_rdd_path = os.path.join(output_path, "test_key_rdd")
+    shutil.rmtree(key_rdd_path, True)
+    result_pair_rdd.keys().rawSpatialRDD.saveAsTextFile(key_rdd_path)
+
+    value_rdd_path = os.path.join(output_path, "test_value_rdd")
+    shutil.rmtree(value_rdd_path, True)
+    result_pair_rdd.values().rawSpatialRDD.saveAsTextFile(value_rdd_path)
 
     # cleanup
     spark.stop()
@@ -195,16 +229,19 @@ def export_rdd(df, path_name, partition_and_index=None):
     # add partitioning and indexing to each partition and export RDD to disk
     if partition_and_index:
         output_rdd.spatialPartitioning(GridType.KDBTREE)
-        output_rdd.buildIndex(IndexType.RTREE, False)
+        output_rdd.buildIndex(IndexType.RTREE, True)  # needs to be set to False when writing to disk
 
         # rdd_with_other_attributes = output_rdd.rawSpatialRDD.map(lambda x: x.getUserData())
         # fred = rdd_with_other_attributes.take(10)
         # for row in fred:
         #     print(row)
 
-        output_rdd.indexedRawRDD.saveAsObjectFile(output_rdd_path)
-    else:
-        output_rdd.rawSpatialRDD.saveAsTextFile(output_rdd_path)
+        # output_rdd.indexedRawRDD.saveAsObjectFile(output_rdd_path)
+    # else:
+
+    # output_rdd.rawSpatialRDD.saveAsTextFile(output_rdd_path)
+
+    return output_rdd
 
 
 def export_bdys(spark, bdy_name, bdy_id, partition_and_index=None):
@@ -219,7 +256,7 @@ def export_bdys(spark, bdy_name, bdy_id, partition_and_index=None):
         .drop("wkt_geom")
 
     # write bdys to gzipped parquet
-    export_rdd(bdy_df2, bdy_name + "_rdd", partition_and_index)
+    return export_rdd(bdy_df2, bdy_name + "_rdd", partition_and_index)
 
 
 def get_dataframe_from_postgres(spark, sql):
