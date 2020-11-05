@@ -19,9 +19,9 @@ from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
 from geospark.utils.adapter import Adapter
 from geospark.core.enums import GridType, IndexType
 
-from pyspark import StorageLevel
-from geospark.core.SpatialRDD import PointRDD
-from geospark.core.enums import FileDataSplitter
+# from pyspark import StorageLevel
+# from geospark.core.SpatialRDD import PointRDD
+# from geospark.core.enums import FileDataSplitter
 
 
 # # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
