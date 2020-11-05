@@ -166,12 +166,15 @@ def main():
     # convert df to rdd and export to disk
     export_rdd(gnaf_df, "gnaf_rdd", True)
 
-    # export PG boundary tables to parquet
-    export_bdys(spark, "commonwealth_electorates", "ce_pid")
-    export_bdys(spark, "local_government_areas", "lga_pid")
-    export_bdys(spark, "local_government_wards", "ward_pid")
-    export_bdys(spark, "state_lower_house_electorates", "se_lower_pid")
-    export_bdys(spark, "state_upper_house_electorates", "se_upper_pid")
+
+
+
+    # # export PG boundary tables to parquet
+    # export_bdys(spark, "commonwealth_electorates", "ce_pid")
+    # export_bdys(spark, "local_government_areas", "lga_pid")
+    # export_bdys(spark, "local_government_wards", "ward_pid")
+    # export_bdys(spark, "state_lower_house_electorates", "se_lower_pid")
+    # export_bdys(spark, "state_upper_house_electorates", "se_upper_pid")
 
     # cleanup
     spark.stop()
@@ -193,6 +196,12 @@ def export_rdd(df, path_name, partition_and_index=None):
     if partition_and_index:
         output_rdd.spatialPartitioning(GridType.KDBTREE)
         output_rdd.buildIndex(IndexType.RTREE, False)
+
+        # rdd_with_other_attributes = output_rdd.rawSpatialRDD.map(lambda x: x.getUserData())
+        # fred = rdd_with_other_attributes.take(10)
+        # for row in fred:
+        #     print(row)
+
         output_rdd.indexedRawRDD.saveAsObjectFile(output_rdd_path)
     else:
         output_rdd.rawSpatialRDD.saveAsTextFile(output_rdd_path)

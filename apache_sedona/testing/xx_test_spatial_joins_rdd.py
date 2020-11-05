@@ -101,9 +101,12 @@ def main():
 
     # load GNAF points from disk
     point_rdd = SpatialRDD()
-    point_rdd.indexedRawRDD = load_spatial_index_rdd_from_disc(sc, os.path.join(output_path, "gnaf_rdd"))
+    point_rdd.indexedRawRDD = load_spatial_index_rdd_from_disc(sc, "/Users/hugh.saalmans/git/iag_geo/spark_testing/apache_sedona/testing/data/gnaf_rdd")
+
+    print(point_rdd)
+
     # point_rdd = load_spatial_rdd_from_disc(sc, os.path.join(output_path, "gnaf_rdd"), GeoType.POINT)
-    # point_rdd.analyze()
+    point_rdd.analyze()
 
     rdd_with_other_attributes = point_rdd.rawSpatialRDD.map(lambda x: x.getUserData())
 
@@ -113,23 +116,23 @@ def main():
         print(row)
 
 
-    # load boundries
-    bdy_rdd = SpatialRDD()
-    bdy_rdd.indexedRawRDD = load_spatial_index_rdd_from_disc(sc, os.path.join(output_path, "commonwealth_electorates_rdd"))
-    # bdy_rdd = load_spatial_rdd_from_disc(sc, os.path.join(output_path, "commonwealth_electorates_rdd"), GeoType.POLYGON)
-    bdy_rdd.analyze()
-
-    # partition and index boundaries
-    bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
-    # bdy_rdd.buildIndex(IndexType.RTREE, True)  # Set to TRUE only if run join query
-
-    # run join
-    result_pair_rdd = JoinQuery.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
-
-    fred = result_pair_rdd.take(10)
-
-    for row in fred:
-        print(row)
+    # # load boundries
+    # bdy_rdd = SpatialRDD()
+    # bdy_rdd.indexedRawRDD = load_spatial_index_rdd_from_disc(sc, os.path.join(output_path, "commonwealth_electorates_rdd"))
+    # # bdy_rdd = load_spatial_rdd_from_disc(sc, os.path.join(output_path, "commonwealth_electorates_rdd"), GeoType.POLYGON)
+    # bdy_rdd.analyze()
+    #
+    # # partition and index boundaries
+    # bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
+    # # bdy_rdd.buildIndex(IndexType.RTREE, True)  # Set to TRUE only if run join query
+    #
+    # # run join
+    # result_pair_rdd = JoinQuery.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
+    #
+    # fred = result_pair_rdd.take(10)
+    #
+    # for row in fred:
+    #     print(row)
 
     # cleanup
     spark.stop()
