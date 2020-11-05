@@ -21,7 +21,7 @@ from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
 
 from geospark.core.enums import GridType, IndexType
 from geospark.core.formatMapper.disc_utils import load_spatial_rdd_from_disc, GeoType
-
+from geospark.core.spatialOperator import JoinQuery
 
 # # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 # # set Conda environment vars for PySpark
@@ -104,48 +104,17 @@ def main():
     # load boundries
     bdy_rdd = load_spatial_rdd_from_disc(sc, os.path.join(output_path, "commonwealth_electorates_rdd"), GeoType.POLYGON)
 
+    # partition and index boundaries
+    bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
+    bdy_rdd.buildIndex(IndexType.RTREE, True)  # Set to TRUE only if run join query
 
+    # run join
+    result_pair_rdd = JoinQuery.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
 
+    fred = result_pair_rdd.take(10)
 
-
-
-
-    point_df.createOrReplaceTempView("pnt")
-
-    logger.info("\t - Loaded {:,} GNAF points: {}"
-                .format(point_df.count(), datetime.now() - start_time))
-
-    # boundary tag gnaf points
-    bdy_tag(spark, "commonwealth_electorates", "ce_pid")
-
-    point_df.unpersist()
-
-    # tag_df.printSchema()
-
-    point_df = spark.read.parquet(os.path.join(output_path, "gnaf_with_{}".format("commonwealth_electorates")))
-    point_df.createOrReplaceTempView("pnt")
-
-    bdy_tag(spark, "local_government_areas", "lga_pid")
-    # tag_df2.printSchema()
-
-    point_df.unpersist()
-
-    point_df = spark.read.parquet(os.path.join(output_path, "gnaf_with_{}".format("local_government_areas")))
-    # point_df.createOrReplaceTempView("pnt")
-
-    # bdy_tag(spark, "local_government_wards", "ward_pid")
-    # bdy_tag(spark, "state_lower_house_electorates", "se_lower_pid")
-    # bdy_tag(spark, "state_upper_house_electorates", "se_upper_pid")
-
-    bdy_ids = "ce_pid text, lga_pid text"
-
-    final_df = point_df.withColumn("wkt_geom", f.expr("concat('SRID=4326;POINT (', st_x(geom), ' ', st_y(geom), ')')"))\
-        .drop("geom")
-    # final_df.printSchema()
-
-    # output to postgres, via CSV
-    table_name = "gnaf_with_bdy_tags"
-    export_to_postgres(final_df, "testing2.{}".format(table_name), bdy_ids, os.path.join(output_path, table_name))
+    for row in fred:
+        print(row)
 
     # cleanup
     spark.stop()
