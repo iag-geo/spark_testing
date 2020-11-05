@@ -135,7 +135,7 @@ def main():
     # df2.show()
 
     # add point geometries and partition by longitude into 400-500k row partitions
-    gnaf_df = df.withColumn("geom", f.expr("ST_Point(longitude, latitude)"))
+    gnaf_df = df2.withColumn("geom", f.expr("ST_Point(longitude, latitude)"))
     # .withColumnRenamed("gnaf_pid", "id")
     # .withColumn("partition_id", (f.percent_rank().over(Window.partitionBy().orderBy("longitude")) * f.lit(100.0))
     #             .cast(t.ShortType())) \

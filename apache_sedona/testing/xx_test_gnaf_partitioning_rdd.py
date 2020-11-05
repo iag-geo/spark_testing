@@ -4,6 +4,7 @@
 import logging
 import os
 import psycopg2
+import shutil
 import sys
 
 from datetime import datetime
@@ -14,6 +15,14 @@ from pyspark.sql.window import Window
 
 from geospark.register import upload_jars, GeoSparkRegistrator  # need to install geospark package
 from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
+
+from geospark.utils.adapter import Adapter
+from geospark.core.enums import GridType, IndexType
+
+from pyspark import StorageLevel
+from geospark.core.SpatialRDD import PointRDD
+from geospark.core.enums import FileDataSplitter
+
 
 # # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 # # set Conda environment vars for PySpark
@@ -60,36 +69,36 @@ input_file_name = os.path.join(output_path, "gnaf.csv")
 def main():
     start_time = datetime.now()
 
-    # copy gnaf tables to CSV
-    pg_conn = psycopg2.connect(local_pg_connect_string)
-    pg_cur = pg_conn.cursor()
-
-    sql = """COPY (
-                 SELECT longitude, latitude, gnaf_pid, state
-                 FROM gnaf_202008.{}
-             ) TO STDOUT WITH CSV"""
+    # # copy gnaf tables to CSV
+    # pg_conn = psycopg2.connect(local_pg_connect_string)
+    # pg_cur = pg_conn.cursor()
+    #
     # sql = """COPY (
-    #              SELECT gnaf_pid, street_locality_pid, locality_pid, alias_principal, primary_secondary, building_name,
-    #                     lot_number, flat_number, level_number, number_first, number_last, street_name, street_type,
-    #                     street_suffix, address, locality_name, postcode, state, locality_postcode, confidence,
-    #                     legal_parcel_id, mb_2011_code, mb_2016_code, latitude, longitude, geocode_type, reliability
+    #              SELECT longitude, latitude, gnaf_pid, state
     #              FROM gnaf_202008.{}
     #          ) TO STDOUT WITH CSV"""
-
-    # address principals
-    with open(os.path.join(output_path, "gnaf_light.csv"), 'w') as csv_file:
-        pg_cur.copy_expert(sql.format("address_principals"), csv_file)
-        # pg_cur.copy_expert(sql.format("address_principals") + " HEADER", csv_file)
-
-    # address aliases
-    with open(os.path.join(output_path, "gnaf_light.csv"), 'a') as csv_file:
-        pg_cur.copy_expert(sql.format("address_aliases"), csv_file)
-
-    pg_cur.close()
-    pg_conn.close()
-
-    logger.info("\t - GNAF points exported to CSV: {}".format( datetime.now() - start_time))
-    start_time = datetime.now()
+    # # sql = """COPY (
+    # #              SELECT gnaf_pid, street_locality_pid, locality_pid, alias_principal, primary_secondary, building_name,
+    # #                     lot_number, flat_number, level_number, number_first, number_last, street_name, street_type,
+    # #                     street_suffix, address, locality_name, postcode, state, locality_postcode, confidence,
+    # #                     legal_parcel_id, mb_2011_code, mb_2016_code, latitude, longitude, geocode_type, reliability
+    # #              FROM gnaf_202008.{}
+    # #          ) TO STDOUT WITH CSV"""
+    #
+    # # address principals
+    # with open(os.path.join(output_path, "gnaf_light.csv"), 'w') as csv_file:
+    #     pg_cur.copy_expert(sql.format("address_principals"), csv_file)
+    #     # pg_cur.copy_expert(sql.format("address_principals") + " HEADER", csv_file)
+    #
+    # # address aliases
+    # with open(os.path.join(output_path, "gnaf_light.csv"), 'a') as csv_file:
+    #     pg_cur.copy_expert(sql.format("address_aliases"), csv_file)
+    #
+    # pg_cur.close()
+    # pg_conn.close()
+    #
+    # logger.info("\t - GNAF points exported to CSV: {}".format( datetime.now() - start_time))
+    # start_time = datetime.now()
 
     # upload Sedona (geospark) JARs
     upload_jars()
@@ -114,47 +123,59 @@ def main():
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
 
-    from geospark.utils.adapter import Adapter
-    from geospark.core.enums import GridType, IndexType
-
-    from pyspark import StorageLevel
-    from geospark.core.SpatialRDD import PointRDD
-    from geospark.core.enums import FileDataSplitter
-
-    offset = 0  # The point long/lat starts from Column 0
-    splitter = FileDataSplitter.CSV  # FileDataSplitter enumeration
-    carry_other_attributes = True  # Carry Column 2 (hotel, gas, bar...)
-    level = StorageLevel.MEMORY_ONLY  # Storage level from pyspark
-
-    spatial_rdd = PointRDD(
-        sparkContext=spark.sparkContext,
-        InputLocation=os.path.join(output_path, "gnaf_light.csv"),
-        Offset=offset,
-        splitter=splitter,
-        carryInputData=carry_other_attributes
-    )
-
-    # spatial_rdd = Adapter.toSpatialRdd(gnaf_df, "geom")
-    spatial_rdd.analyze()
-
-    # rdd_with_other_attributes = spatial_rdd.rawSpatialRDD.map(lambda x: x.getUserData())
-
-    spatial_rdd.spatialPartitioning(GridType.KDBTREE)
-    # spatial_rdd.buildIndex(IndexType.QUADTREE, True)
-
-    # print(spatial_rdd.boundaryEnvelope)
-
-    # rdd_with_other_attributes.indexedRawRDD.saveAsObjectFile("hdfs://localhost/gnaf_rdd")
-
-    # spatial_rdd.indexedRawRDD.saveAsObjectFile(os.path.join(output_path, "gnaf_rdd"))
-    spatial_rdd.rawSpatialRDD.saveAsTextFile(os.path.join(output_path, "gnaf_rdd"))
-
-    # # check partition counts
-    # gnaf_df.groupBy(f.spark_partition_id()).count().show()
+    # offset = 0  # The point long/lat starts from Column 0
+    # splitter = FileDataSplitter.CSV  # FileDataSplitter enumeration
+    # carry_other_attributes = True  # Carry Column 2 (hotel, gas, bar...)
+    # level = StorageLevel.MEMORY_ONLY  # Storage level from pyspark
     #
-    # # write gnaf to gzipped parquet
-    # export_to_parquet(gnaf_df, "gnaf")
+    # # gnaf_rdd = PointRDD(
+    # #     sparkContext=spark.sparkContext,
+    # #     InputLocation=os.path.join(output_path, "gnaf_light.csv"),
+    # #     Offset=offset,
+    # #     splitter=splitter,
+    # #     carryInputData=carry_other_attributes
+    # # )
     #
+    # gnaf_rdd = PointRDD(spark.sparkContext, os.path.join(output_path, "gnaf_light.csv"),
+    #                        offset, splitter, carry_other_attributes, level)
+
+    # load gnaf points
+    df = spark.read \
+        .option("header", True) \
+        .option("inferSchema", True) \
+        .csv(input_file_name)
+    # df.printSchema()
+    # df.show()
+
+    # manually assign field types (not needed here as inferSchema works)
+    df2 = (df
+           .withColumn("confidence", df.confidence.cast(t.ShortType()))
+           .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
+           .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
+           .withColumn("reliability", df.reliability.cast(t.ShortType()))
+           .withColumn("longitude", df.longitude.cast(t.DoubleType()))
+           .withColumn("latitude", df.latitude.cast(t.DoubleType()))
+           )
+    # df2.printSchema()
+    # df2.show()
+
+    # add point geometries and only keep a few columns
+    gnaf_df = df2.withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
+        .select("gnaf_pid", "state", "geom")
+
+    gnaf_rdd = Adapter.toSpatialRdd(gnaf_df, "geom")
+    gnaf_rdd.analyze()
+
+    gnaf_rdd.spatialPartitioning(GridType.KDBTREE)
+    gnaf_rdd.buildIndex(IndexType.RTREE, False)
+
+    output_rdd_path = os.path.join(output_path, "gnaf_rdd")
+
+    # delete existing directory and export RDD to disk
+    shutil.rmtree(output_rdd_path, True)
+    gnaf_rdd.indexedRawRDD.saveAsObjectFile(output_rdd_path)
+    # gnaf_rdd.rawSpatialRDD.saveAsTextFile(output_rdd_path)
+
     # # export PG boundary tables to parquet
     # export_bdys(spark, "commonwealth_electorates", "ce_pid")
     # export_bdys(spark, "local_government_areas", "lga_pid")
