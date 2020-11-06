@@ -158,8 +158,13 @@ def main():
     point_rdd = export_rdd(gnaf_df, "gnaf_rdd", True)
     point_rdd.analyze()
 
+    bdy_name = "commonwealth_electorates"
+    bdy_id = "ce_pid"
+
+
+
     # # export PG boundary tables to parquet
-    bdy_rdd = export_bdys(spark, "commonwealth_electorates", "ce_pid")
+    bdy_rdd = export_bdys(spark, bdy_name, bdy_id)
     bdy_rdd.analyze()
 
     # export_bdys(spark, "local_government_areas", "lga_pid")
@@ -208,9 +213,9 @@ def main():
     # for row in jim:
     #     print(row)
 
-    schema = t.StructType([t.StructField('gnaf_pid', t.StringType(), True),
-                           t.StructField('state', t.StringType(), True),
-                           t.StructField('ce_pid', t.StringType(), True)])
+    schema = t.StructType([t.StructField("gnaf_pid", t.StringType(), True),
+                           t.StructField("state", t.StringType(), True),
+                           t.StructField(bdy_id, t.StringType(), True)])
                            # t.StructField('geom', GeometryType(), True)])
 
     join_df = spark.createDataFrame(mapped_rdd, schema)
@@ -226,7 +231,7 @@ def main():
     sql = """SELECT pnt.*,
                     bdy_join.{}
              FROM pnt
-             LEFT OUTER JOIN bdy_join ON pnt.gnaf_pid = bdy_join.gnaf_pid""".format("cd_pid")
+             LEFT OUTER JOIN bdy_join ON pnt.gnaf_pid = bdy_join.gnaf_pid""".format(bdy_id)
     join_df2 = spark.sql(sql)
 
     num_joined_points = join_df.count()
@@ -235,7 +240,7 @@ def main():
     # join2_df.show(5)
 
     # output join DataFrame
-    export_to_parquet(join_df2, "gnaf_with_{}_rdd_with_index".format("commonwealth_electorates"))
+    export_to_parquet(join_df2, "gnaf_with_{}_rdd_with_index".format(bdy_name))
 
     join_df2.unpersist()
     join_df.unpersist()
