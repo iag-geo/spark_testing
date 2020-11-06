@@ -140,7 +140,7 @@ def main():
     carry_other_attributes = True  # Carry Column 2 (hotel, gas, bar...)
     # level = StorageLevel.MEMORY_ONLY  # Storage level from pyspark
 
-    point_rdd = PointRDD(sc, os.path.join(output_path, "gnaf_light_10000.csv"),
+    point_rdd = PointRDD(sc, os.path.join(output_path, "gnaf_light.csv"),
                           offset, splitter, carry_other_attributes)
 
     point_rdd.analyze()
@@ -217,8 +217,8 @@ def main():
     mapped_rdd = flat_mapped_rdd.map(
         lambda x: [x[1].getUserData().split("\t")[0],
                    x[1].getUserData().split("\t")[1],
-                   x[0].getUserData().split("\t")[0],
-                   x[1].geom]
+                   x[0].getUserData().split("\t")[0]]
+                   # x[1].geom]
     )
     # mapped_rdd = flat_mapped_rdd.map(
     #     lambda x: {"gnaf_pid": x[1].getUserData().split("\t")[0],
@@ -231,15 +231,15 @@ def main():
     #     print(row)
 
     schema = t.StructType([t.StructField('gnaf_pid', t.StringType(), True),
-                         t.StructField('state', t.StringType(), True),
-                         t.StructField('ce_pid', t.StringType(), True),
-                         t.StructField('geom', GeometryType(), True)])
+                           t.StructField('state', t.StringType(), True),
+                           t.StructField('ce_pid', t.StringType(), True)])
+                           # t.StructField('geom', GeometryType(), True)])
 
     df = spark.createDataFrame(mapped_rdd, schema)
-    df.printSchema()
-    df.show(10, False)
+    # df.printSchema()
+    # df.show(10, False)
 
-    print(mapped_rdd.count())
+    print(df.count())
 
     # cleanup
     spark.stop()
