@@ -71,7 +71,7 @@ local_pg_connect_string = "dbname={DB} host={HOST} port={PORT} user={USER} passw
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
 # gnaf csv file
-input_file_name = os.path.join(output_path, "gnaf.csv")
+input_file_name = os.path.join(output_path, "gnaf_light_10000.csv")
 
 
 def main():
@@ -135,45 +135,42 @@ def main():
     logger.info("\t - PySpark {} session initiated: {}".format(sc.version, datetime.now() - start_time))
     start_time = datetime.now()
 
-    # offset = 0  # The point long/lat starts from Column 0
-    # splitter = FileDataSplitter.CSV  # FileDataSplitter enumeration
-    # carry_other_attributes = True  # Carry Column 2 (hotel, gas, bar...)
-    # # level = StorageLevel.MEMORY_ONLY  # Storage level from pyspark
-    #
-    # point_rdd = PointRDD(sc, os.path.join(output_path, "gnaf_light.csv"),
-    #                       offset, splitter, carry_other_attributes)
-    #
-    # point_rdd.analyze()
+    offset = 0  # The point long/lat starts from Column 0
+    carry_other_attributes = True  # include non-geo columns
+
+    point_rdd = PointRDD(sc, os.path.join(output_path, input_file_name),
+                         offset, FileDataSplitter.CSV, carry_other_attributes)
+
+    point_rdd.analyze()
 
     # point_rdd_path = os.path.join(output_path, "gnaf_rdd")
     # shutil.rmtree(point_rdd_path, True)
     # point_rdd.rawSpatialRDD.saveAsTextFile(point_rdd_path)
 
-    # load gnaf points
-    gnaf_df = spark.read.parquet(os.path.join(output_path, "gnaf")) \
-        .select("gnaf_pid", "state", "geom") \
-        .cache()
-
-    gnaf_df.createOrReplaceTempView("pnt")
-
-    # convert df to rdd and export to disk
-    point_rdd = export_rdd(gnaf_df, "gnaf_rdd", True)
-    point_rdd.analyze()
+    # # load gnaf points
+    # gnaf_df = spark.read.parquet(os.path.join(output_path, "gnaf")) \
+    #     .select("gnaf_pid", "state", "geom") \
+    #     .cache()
+    #
+    # gnaf_df.createOrReplaceTempView("pnt")
+    #
+    # # convert df to rdd and export to disk
+    # point_rdd = export_rdd(gnaf_df, "gnaf_rdd", True)
+    # point_rdd.analyze()
 
     # add partitioning and indexing to RDDs
     point_rdd.spatialPartitioning(GridType.KDBTREE)
     point_rdd.buildIndex(IndexType.RTREE, True)
     point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
 
-    logger.info("\t - {} GNAF points loaded: {}".format(gnaf_df.count(), datetime.now() - start_time))
+    logger.info("\t - GNAF points loaded: {}".format(datetime.now() - start_time))
+    # logger.info("\t - {} GNAF points loaded: {}".format(gnaf_df.count(), datetime.now() - start_time))
 
     bdy_tag(spark, point_rdd, "commonwealth_electorates", "ce_pid")
     bdy_tag(spark, point_rdd, "local_government_areas", "lga_pid")
     bdy_tag(spark, point_rdd, "local_government_wards", "ward_pid")
     bdy_tag(spark, point_rdd, "state_lower_house_electorates", "se_lower_pid")
     bdy_tag(spark, point_rdd, "state_upper_house_electorates", "se_upper_pid")
-
-    gnaf_df.unpersist()
 
     # cleanup
     spark.stop()
@@ -204,51 +201,54 @@ def bdy_tag(spark, point_rdd, bdy_name, bdy_id):
     mapped_rdd = flat_mapped_rdd.map(
         lambda x: [x[1].getUserData().split("\t")[0],
                    x[1].getUserData().split("\t")[1],
-                   x[0].getUserData().split("\t")[0]]
+                   x[0].getUserData().split("\t")[0],
+                   x[0].getUserData().split("\t")[2]]
         # x[1].geom]
     )
-    # mapped_rdd = flat_mapped_rdd.map(
-    #     lambda x: {"gnaf_pid": x[1].getUserData().split("\t")[0],
-    #                "state": x[1].getUserData().split("\t")[1],
-    #                "ce_pid": x[0].getUserData().split("\t")[0],
-    #                "geom": x[1].geom}
-    # )
     # jim = mapped_rdd.take(10)
     # for row in jim:
     #     print(row)
 
     schema = t.StructType([t.StructField("gnaf_pid", t.StringType(), True),
                            t.StructField("state", t.StringType(), True),
-                           t.StructField(bdy_id, t.StringType(), True)])
+                           t.StructField(bdy_id, t.StringType(), True),
+                           t.StructField(bdy_id + "_state", t.StringType(), True)])
     # t.StructField('geom', GeometryType(), True)])
 
     join_df = spark.createDataFrame(mapped_rdd, schema)
     # df.printSchema()
     # df.show(10, False)
 
-    num_joined_points = join_df.count()
+    export_to_parquet(join_df, "gnaf_with_{}_rdd_with_index".format(bdy_name))
 
-    join_df.createOrReplaceTempView("bdy_join")
+    # num_joined_points = join_df.count()
 
-    # join_df.explain()
+    # join_df.createOrReplaceTempView("bdy_join")
+    #
+    # # join_df.explain()
+    #
+    # # get missing gnaf records due to no left join with a spatial join (above)
+    # sql = """SELECT pnt.*,
+    #                     bdy_join.{}
+    #              FROM pnt
+    #              LEFT OUTER JOIN bdy_join ON pnt.gnaf_pid = bdy_join.gnaf_pid""".format(bdy_id)
+    # join_df2 = spark.sql(sql)
+    # # join2_df.printSchema()
+    # # join2_df.show(5)
+    #
+    # # output join DataFrame
+    # export_to_parquet(join_df2, "gnaf_with_{}_rdd_with_index".format(bdy_name))
+    #
+    # join_df2.unpersist()
 
-    # get missing gnaf records due to no left join with a spatial join (above)
-    sql = """SELECT pnt.*,
-                        bdy_join.{}
-                 FROM pnt
-                 LEFT OUTER JOIN bdy_join ON pnt.gnaf_pid = bdy_join.gnaf_pid""".format(bdy_id)
-    join_df2 = spark.sql(sql)
-    # join2_df.printSchema()
-    # join2_df.show(5)
-
-    # output join DataFrame
-    export_to_parquet(join_df2, "gnaf_with_{}_rdd_with_index".format(bdy_name))
-
-    join_df2.unpersist()
     join_df.unpersist()
+    mapped_rdd.unpersist()
+    flat_mapped_rdd.unpersist()
+    result_pair_rdd.unpersist()
+    # bdy_rdd.unpersist()  # no method for SpatialRDD
 
-    logger.info("\t - {} GNAF points boundary tagged with {}: {}"
-                .format(num_joined_points, bdy_name, datetime.now() - start_time))
+    logger.info("\t - GNAF points boundary tagged with {}: {}"
+                .format(bdy_name, datetime.now() - start_time))
 
 
 def export_rdd(df, path_name, partition_and_index=None):
@@ -332,10 +332,10 @@ if __name__ == "__main__":
     # define a Handler which writes INFO messages or higher to the sys.stderr
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
-    # set a format which is simpler for console use
-    formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
-    # tell the handler to use this format
-    console.setFormatter(formatter)
+    # # set a format which is simpler for console use
+    # formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
+    # # tell the handler to use this format
+    # console.setFormatter(formatter)
     # add the handler to the root logger
     logging.getLogger("").addHandler(console)
 
