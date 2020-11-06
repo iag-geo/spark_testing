@@ -111,7 +111,7 @@ def main():
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
              .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
-             .config("spark.cores.max", cpu_count())
+             .config("spark.cores.max", cpu_count() * 2)
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.driver.memory", "8g")
              .getOrCreate()
@@ -126,7 +126,7 @@ def main():
     start_time = datetime.now()
 
     offset = 0  # The point long/lat starts from Column 0
-    splitter = FileDataSplitter  # FileDataSplitter enumeration
+    splitter = FileDataSplitter.CSV  # FileDataSplitter enumeration
     carry_other_attributes = True  # Carry Column 2 (hotel, gas, bar...)
     level = StorageLevel.MEMORY_ONLY  # Storage level from pyspark
 
@@ -136,7 +136,7 @@ def main():
     point_rdd.analyze()
 
     # point_rdd.spatialPartitioning(GridType.KDBTREE)
-    point_rdd.buildIndex(IndexType.RTREE, True)
+
 
     # point_rdd_path = os.path.join(output_path, "gnaf_rdd")
     # shutil.rmtree(point_rdd_path, True)
@@ -183,7 +183,7 @@ def main():
     point_rdd.spatialPartitioning(GridType.KDBTREE)
     bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
 
-    # point_rdd.buildIndex(IndexType.QUADTREE, True)
+    point_rdd.buildIndex(IndexType.RTREE, True)
     # bdy_rdd.buildIndex(IndexType.QUADTREE, True)
 
     point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
