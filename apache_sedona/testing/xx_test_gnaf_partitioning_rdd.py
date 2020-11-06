@@ -71,7 +71,7 @@ local_pg_connect_string = "dbname={DB} host={HOST} port={PORT} user={USER} passw
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
 # gnaf csv file
-input_file_name = os.path.join(output_path, "gnaf_light_10000.csv")
+input_file_name = os.path.join(output_path, "gnaf_light.csv")
 
 
 def main():
@@ -332,10 +332,10 @@ if __name__ == "__main__":
     # define a Handler which writes INFO messages or higher to the sys.stderr
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
-    # # set a format which is simpler for console use
-    # formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
-    # # tell the handler to use this format
-    # console.setFormatter(formatter)
+    # set a format which is simpler for console use
+    formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
+    # tell the handler to use this format
+    console.setFormatter(formatter)
     # add the handler to the root logger
     logging.getLogger("").addHandler(console)
 
