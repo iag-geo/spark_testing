@@ -126,7 +126,7 @@ def main():
     start_time = datetime.now()
 
     offset = 0  # The point long/lat starts from Column 0
-    splitter = FileDataSplitter.CSV  # FileDataSplitter enumeration
+    splitter = FileDataSplitter  # FileDataSplitter enumeration
     carry_other_attributes = True  # Carry Column 2 (hotel, gas, bar...)
     level = StorageLevel.MEMORY_ONLY  # Storage level from pyspark
 
@@ -135,7 +135,7 @@ def main():
 
     point_rdd.analyze()
 
-    point_rdd.spatialPartitioning(GridType.KDBTREE)
+    # point_rdd.spatialPartitioning(GridType.KDBTREE)
     point_rdd.buildIndex(IndexType.RTREE, True)
 
     # point_rdd_path = os.path.join(output_path, "gnaf_rdd")
@@ -179,20 +179,38 @@ def main():
 
     bdy_rdd.analyze()
 
+    # add partitioning and indexing to RDDs
+    point_rdd.spatialPartitioning(GridType.KDBTREE)
     bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
-    bdy_rdd.buildIndex(IndexType.RTREE, True)  # required?
+
+    # point_rdd.buildIndex(IndexType.QUADTREE, True)
+    # bdy_rdd.buildIndex(IndexType.QUADTREE, True)
+
+    point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
+    bdy_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)
+
+    logger.info("\t - GNAF and boundary data loaded: {}".format(datetime.now() - start_time))
+    start_time = datetime.now()
 
     # run the join
-    result_pair_rdd = JoinQuery.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
+    result_pair_rdd = JoinQuery.SpatialJoinQuery(point_rdd, bdy_rdd, True, True)
 
-    print(result_pair_rdd)
+    # keys_rdd = result_pair_rdd.flatMapValues(lambda x: [(k, x[k]) for k in x.keys()])
+    #
+    # fred = result_pair_rdd.take(10)
+    # for row in fred:
+    #     print(row)
+
+    print(result_pair_rdd.count())
 
     # [Geometry: Polygon userData: WA32       TANGNEY WA, Geometry: Point userData: GAWA_146792426	WA]
 
 
     # rdd_with_other_attributes = result_pair_rdd.map(lambda x: x.getUserData())
 
-    # fred = result_pair_rdd.keys().take(10)
+    # keys_rdd = result_pair_rdd.flatMapValues(lambda x: [(k, x[k]) for k in x.keys()])
+    #
+    # fred = keys_rdd.take(10)
     # for row in fred:
     #     print(row)
 
@@ -200,15 +218,22 @@ def main():
     # for row in jim:
     #     print(row)
 
+
+
+
+
     # test output of join
 
-    key_rdd_path = os.path.join(output_path, "test_key_rdd")
-    shutil.rmtree(key_rdd_path, True)
-    result_pair_rdd.keys().rawSpatialRDD.saveAsTextFile(key_rdd_path)
+    # key_rdd_path = os.path.join(output_path, "test_key_rdd")
+    # shutil.rmtree(key_rdd_path, True)
+    # result_pair_rdd.keys().rawSpatialRDD.saveAsTextFile(key_rdd_path)
+    #
+    # value_rdd_path = os.path.join(output_path, "test_value_rdd")
+    # shutil.rmtree(value_rdd_path, True)
+    # result_pair_rdd.values().rawSpatialRDD.saveAsTextFile(value_rdd_path)
 
-    value_rdd_path = os.path.join(output_path, "test_value_rdd")
-    shutil.rmtree(value_rdd_path, True)
-    result_pair_rdd.values().rawSpatialRDD.saveAsTextFile(value_rdd_path)
+
+
 
     # cleanup
     spark.stop()
