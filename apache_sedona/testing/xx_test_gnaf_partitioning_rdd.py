@@ -124,7 +124,9 @@ def main():
     # Register Apache Sedona (geospark) UDTs and UDFs
     GeoSparkRegistrator.registerAll(spark)
 
-    logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
+    sc = spark.sparkContext
+
+    logger.info("\t - PySpark {} session initiated: {}".format(sc.version, datetime.now() - start_time))
     start_time = datetime.now()
 
     offset = 0  # The point long/lat starts from Column 0
@@ -132,7 +134,7 @@ def main():
     carry_other_attributes = True  # Carry Column 2 (hotel, gas, bar...)
     # level = StorageLevel.MEMORY_ONLY  # Storage level from pyspark
 
-    point_rdd = PointRDD(spark.sparkContext, os.path.join(output_path, "gnaf_light_10000.csv"),
+    point_rdd = PointRDD(sc, os.path.join(output_path, "gnaf_light_10000.csv"),
                           offset, splitter, carry_other_attributes)
 
     point_rdd.analyze()
@@ -195,53 +197,38 @@ def main():
     start_time = datetime.now()
 
     # run the join
+    # returns [Geometry: Polygon userData: WA32       TANGNEY WA, [Geometry: Point userData: GAWA_146792426	WA, ...]]
     result_pair_rdd = JoinQuery.SpatialJoinQuery(point_rdd, bdy_rdd, True, True)
     # print(result_pair_rdd.take(1))
 
+    # flat map values to have one point to bdy match
     flat_mapped_rdd = result_pair_rdd.flatMapValues(lambda x: x)
     # fred = flat_mapped_rdd.take(10)
     # for row in fred:
     #     print(row)
 
-    mapped_rdd = flat_mapped_rdd.map(lambda x: {"gnaf_pid": x[1].getUserData().split("\t")[0], "state": x[1].getUserData().split("\t")[1], "ce_pid": x[0].getUserData().split("\t")[0], "geom": x[1].geom})
-    # mapped_rdd = result_pair_rdd.map(lambda x: Row((y.getUserData().split("\t")[0], y.getUserData().split("\t")[1], x[0].getUserData().split("\t")[0], y.geom) for y in x[1]))
+    # map values to create RDD row of point data and bdy ID
+    mapped_rdd = flat_mapped_rdd.map(
+        lambda x: [x[1].getUserData().split("\t")[0],
+                   x[1].getUserData().split("\t")[1],
+                   x[0].getUserData().split("\t")[0],
+                   x[1].geom]
+    )
+    # mapped_rdd = flat_mapped_rdd.map(
+    #     lambda x: {"gnaf_pid": x[1].getUserData().split("\t")[0],
+    #                "state": x[1].getUserData().split("\t")[1],
+    #                "ce_pid": x[0].getUserData().split("\t")[0],
+    #                "geom": x[1].geom}
+    # )
     # jim = mapped_rdd.take(10)
     # for row in jim:
     #     print(row)
 
+    df = spark.createDataFrame(mapped_rdd)
+    df.printSchema()
+    df.show()
+
     print(mapped_rdd.count())
-
-    # [Geometry: Polygon userData: WA32       TANGNEY WA, Geometry: Point userData: GAWA_146792426	WA]
-
-
-    # rdd_with_other_attributes = result_pair_rdd.map(lambda x: x.getUserData())
-
-    # keys_rdd = result_pair_rdd.flatMapValues(lambda x: [(k, x[k]) for k in x.keys()])
-    #
-    # fred = keys_rdd.take(10)
-    # for row in fred:
-    #     print(row)
-
-    # jim = result_pair_rdd.values().take(10)
-    # for row in jim:
-    #     print(row)
-
-
-
-
-
-    # test output of join
-
-    # key_rdd_path = os.path.join(output_path, "test_key_rdd")
-    # shutil.rmtree(key_rdd_path, True)
-    # result_pair_rdd.keys().rawSpatialRDD.saveAsTextFile(key_rdd_path)
-    #
-    # value_rdd_path = os.path.join(output_path, "test_value_rdd")
-    # shutil.rmtree(value_rdd_path, True)
-    # result_pair_rdd.values().rawSpatialRDD.saveAsTextFile(value_rdd_path)
-
-
-
 
     # cleanup
     spark.stop()
