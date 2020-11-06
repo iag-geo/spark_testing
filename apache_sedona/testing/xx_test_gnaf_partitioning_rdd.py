@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 from multiprocessing import cpu_count
 from pyspark.sql import functions as f, types as t
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, Row
 from pyspark.sql.window import Window
 
 from geospark.register import upload_jars, GeoSparkRegistrator  # need to install geospark package
@@ -196,14 +196,21 @@ def main():
 
     # run the join
     result_pair_rdd = JoinQuery.SpatialJoinQuery(point_rdd, bdy_rdd, True, True)
+    # print(result_pair_rdd.take(1))
 
-    print(result_pair_rdd.take(1))
+    flat_mapped_rdd = result_pair_rdd.flatMapValues(lambda x: x)
 
-    mapped_rdd = result_pair_rdd.map(lambda x: [{"gnaf_pid": y.getUserData().split("\t")[0], "state": y.getUserData().split("\t")[1], "ce_pid": x[0].getUserData().split("\t")[0], "geom": y.geom} for y in x[1]])
-
-    fred = mapped_rdd.take(10)
+    fred = flat_mapped_rdd.take(10)
 
     for row in fred:
+        print(row)
+
+    mapped_rdd = flat_mapped_rdd.map(lambda x: {"gnaf_pid": x[1].getUserData().split("\t")[0], "state": x[1].getUserData().split("\t")[1], "ce_pid": x[0].getUserData().split("\t")[0], "geom": x[1].geom})
+    # mapped_rdd = result_pair_rdd.map(lambda x: Row((y.getUserData().split("\t")[0], y.getUserData().split("\t")[1], x[0].getUserData().split("\t")[0], y.geom) for y in x[1]))
+
+    jim = mapped_rdd.take(10)
+
+    for row in jim:
         print(row)
 
     # print(result_pair_rdd.count())
