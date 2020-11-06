@@ -192,7 +192,7 @@ def bdy_tag(spark, bdy_name, bdy_id):
     # join_df.show(5)
 
     # output join DataFrame
-    export_to_parquet(join_df2, "gnaf_with_{}".format(bdy_name))
+    export_to_parquet(join_df2, "gnaf_with_{}_rdd".format(bdy_name))
 
     join_df2.unpersist()
     join_df.unpersist()

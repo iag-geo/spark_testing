@@ -177,12 +177,12 @@ def main():
     point_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)
     bdy_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)
 
-    logger.info("\t - loaded {} GNAF points and {} boundary rows: {}".format(gnaf_df.count(), bdy_rdd.count(), datetime.now() - start_time))
+    logger.info("\t - {} GNAF points and boundaries loaded: {}".format(gnaf_df.count(), datetime.now() - start_time))
     start_time = datetime.now()
 
-    # run the join
+    # run the join -- 14927161 out of 14927911 matched
     # returns [Geometry: Polygon userData: WA32       TANGNEY WA, [Geometry: Point userData: GAWA_146792426	WA, ...]]
-    result_pair_rdd = JoinQuery.SpatialJoinQuery(point_rdd, bdy_rdd, True, True)
+    result_pair_rdd = JoinQuery.SpatialJoinQuery(point_rdd, bdy_rdd, False, False)
     # print(result_pair_rdd.take(1))
 
     # flat map values to have one point to bdy match
@@ -213,17 +213,38 @@ def main():
                            t.StructField('ce_pid', t.StringType(), True)])
                            # t.StructField('geom', GeometryType(), True)])
 
-    df = spark.createDataFrame(mapped_rdd, schema)
+    join_df = spark.createDataFrame(mapped_rdd, schema)
     # df.printSchema()
     # df.show(10, False)
 
-    print(df.count())
+    join_df.createOrReplaceTempView("bdy_join")
+    gnaf_df.createOrReplaceTempView("pnt")
+
+    # join_df.explain()
+
+    # get missing gnaf records due to no left join with a spatial join (above)
+    sql = """SELECT pnt.*,
+                    bdy_join.{}
+             FROM pnt
+             LEFT OUTER JOIN bdy_join ON pnt.gnaf_pid = bdy_join.gnaf_pid""".format("cd_pid")
+    join_df2 = spark.sql(sql)
+
+    num_joined_points = join_df.count()
+
+    # join2_df.printSchema()
+    # join2_df.show(5)
+
+    # output join DataFrame
+    export_to_parquet(join_df2, "gnaf_with_{}_rdd".format("commonwealth_electorates"))
+
+    join_df2.unpersist()
+    join_df.unpersist()
+    gnaf_df.unpersist()
 
     # cleanup
     spark.stop()
 
-    logger.info("\t - GNAF boundary tagged: {}"
-                .format(datetime.now() - start_time))
+    logger.info("\t - {} GNAF points boundary tagged: {}".format(num_joined_points, datetime.now() - start_time))
 
 
 def export_rdd(df, path_name, partition_and_index=None):
@@ -281,10 +302,10 @@ def get_dataframe_from_postgres(spark, sql):
 # .option("partitionColumn", "gid") \
 
 
-# def export_to_parquet(df, name):
-#     df.write.option("compression", "gzip") \
-#         .mode("overwrite") \
-#         .parquet(os.path.join(output_path, name))
+def export_to_parquet(df, name):
+    df.write.option("compression", "gzip") \
+        .mode("overwrite") \
+        .parquet(os.path.join(output_path, name))
 
 
 if __name__ == "__main__":
