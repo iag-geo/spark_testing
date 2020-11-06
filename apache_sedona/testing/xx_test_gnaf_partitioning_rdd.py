@@ -154,38 +154,42 @@ def main():
         .select("gnaf_pid", "state", "geom") \
         .cache()
 
+    gnaf_df.createOrReplaceTempView("pnt")
+
     # convert df to rdd and export to disk
     point_rdd = export_rdd(gnaf_df, "gnaf_rdd", True)
     point_rdd.analyze()
 
-    bdy_name = "commonwealth_electorates"
-    bdy_id = "ce_pid"
+    # add partitioning and indexing to RDDs
+    point_rdd.spatialPartitioning(GridType.KDBTREE)
+    point_rdd.buildIndex(IndexType.RTREE, True)
+    point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
+
+    logger.info("\t - {} GNAF points loaded: {}".format(gnaf_df.count(), datetime.now() - start_time))
+
+    bdy_tag(spark, point_rdd, "commonwealth_electorates", "ce_pid")
+    bdy_tag(spark, point_rdd, "local_government_areas", "lga_pid")
+    bdy_tag(spark, point_rdd, "local_government_wards", "ward_pid")
+    bdy_tag(spark, point_rdd, "state_lower_house_electorates", "se_lower_pid")
+    bdy_tag(spark, point_rdd, "state_upper_house_electorates", "se_upper_pid")
+
+    gnaf_df.unpersist()
+
+    # cleanup
+    spark.stop()
 
 
+def bdy_tag(spark, point_rdd, bdy_name, bdy_id):
+    start_time = datetime.now()
 
-    # # export PG boundary tables to parquet
+    # load boundaries
     bdy_rdd = export_bdys(spark, bdy_name, bdy_id)
     bdy_rdd.analyze()
 
-    # export_bdys(spark, "local_government_areas", "lga_pid")
-    # export_bdys(spark, "local_government_wards", "ward_pid")
-    # export_bdys(spark, "state_lower_house_electorates", "se_lower_pid")
-    # export_bdys(spark, "state_upper_house_electorates", "se_upper_pid")
-
-    # add partitioning and indexing to RDDs
-    point_rdd.spatialPartitioning(GridType.KDBTREE)
     bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
-
-    point_rdd.buildIndex(IndexType.RTREE, True)
-
-    point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
-    # point_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)
     bdy_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)
 
-    logger.info("\t - {} GNAF points and boundaries loaded: {}".format(gnaf_df.count(), datetime.now() - start_time))
-    start_time = datetime.now()
-
-    # run the join -- 14927161 out of 14927911 matched
+    # run the join
     # returns [Geometry: Polygon userData: WA32       TANGNEY WA, [Geometry: Point userData: GAWA_146792426	WA, ...]]
     result_pair_rdd = JoinQuery.SpatialJoinQuery(point_rdd, bdy_rdd, True, True)
     # print(result_pair_rdd.take(1))
@@ -201,7 +205,7 @@ def main():
         lambda x: [x[1].getUserData().split("\t")[0],
                    x[1].getUserData().split("\t")[1],
                    x[0].getUserData().split("\t")[0]]
-                   # x[1].geom]
+        # x[1].geom]
     )
     # mapped_rdd = flat_mapped_rdd.map(
     #     lambda x: {"gnaf_pid": x[1].getUserData().split("\t")[0],
@@ -216,26 +220,24 @@ def main():
     schema = t.StructType([t.StructField("gnaf_pid", t.StringType(), True),
                            t.StructField("state", t.StringType(), True),
                            t.StructField(bdy_id, t.StringType(), True)])
-                           # t.StructField('geom', GeometryType(), True)])
+    # t.StructField('geom', GeometryType(), True)])
 
     join_df = spark.createDataFrame(mapped_rdd, schema)
     # df.printSchema()
     # df.show(10, False)
 
+    num_joined_points = join_df.count()
+
     join_df.createOrReplaceTempView("bdy_join")
-    gnaf_df.createOrReplaceTempView("pnt")
 
     # join_df.explain()
 
     # get missing gnaf records due to no left join with a spatial join (above)
     sql = """SELECT pnt.*,
-                    bdy_join.{}
-             FROM pnt
-             LEFT OUTER JOIN bdy_join ON pnt.gnaf_pid = bdy_join.gnaf_pid""".format(bdy_id)
+                        bdy_join.{}
+                 FROM pnt
+                 LEFT OUTER JOIN bdy_join ON pnt.gnaf_pid = bdy_join.gnaf_pid""".format(bdy_id)
     join_df2 = spark.sql(sql)
-
-    num_joined_points = join_df.count()
-
     # join2_df.printSchema()
     # join2_df.show(5)
 
@@ -244,12 +246,9 @@ def main():
 
     join_df2.unpersist()
     join_df.unpersist()
-    gnaf_df.unpersist()
 
-    # cleanup
-    spark.stop()
-
-    logger.info("\t - {} GNAF points boundary tagged: {}".format(num_joined_points, datetime.now() - start_time))
+    logger.info("\t - {} GNAF points boundary tagged with {}: {}"
+                .format(num_joined_points, bdy_name, datetime.now() - start_time))
 
 
 def export_rdd(df, path_name, partition_and_index=None):
