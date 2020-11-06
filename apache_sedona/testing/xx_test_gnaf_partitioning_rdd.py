@@ -4,13 +4,17 @@
 import logging
 import os
 import psycopg2
+# import shapely
 import shutil
 import sys
 
 from datetime import datetime
 from multiprocessing import cpu_count
+
+from geospark.sql.types import GeometryType
+from pyspark import StorageLevel
 from pyspark.sql import functions as f, types as t
-from pyspark.sql import SparkSession, Row
+from pyspark.sql import SparkSession
 from pyspark.sql.window import Window
 
 from geospark.register import upload_jars, GeoSparkRegistrator  # need to install geospark package
@@ -19,10 +23,12 @@ from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
 from geospark.utils.adapter import Adapter
 from geospark.core.enums import GridType, IndexType
 
-from pyspark import StorageLevel
 from geospark.core.SpatialRDD import PointRDD
 from geospark.core.enums import FileDataSplitter
 from geospark.core.spatialOperator import JoinQuery
+
+from shapely import geometry
+
 
 # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 os.environ["JAVA_HOME"]="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
@@ -224,9 +230,14 @@ def main():
     # for row in jim:
     #     print(row)
 
-    df = spark.createDataFrame(mapped_rdd)
+    schema = t.StructType([t.StructField('gnaf_pid', t.StringType(), True),
+                         t.StructField('state', t.StringType(), True),
+                         t.StructField('ce_pid', t.StringType(), True),
+                         t.StructField('geom', GeometryType(), True)])
+
+    df = spark.createDataFrame(mapped_rdd, schema)
     df.printSchema()
-    df.show()
+    df.show(10, False)
 
     print(mapped_rdd.count())
 
