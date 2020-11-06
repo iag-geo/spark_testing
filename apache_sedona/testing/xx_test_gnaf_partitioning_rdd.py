@@ -199,21 +199,17 @@ def main():
     # print(result_pair_rdd.take(1))
 
     flat_mapped_rdd = result_pair_rdd.flatMapValues(lambda x: x)
-
-    fred = flat_mapped_rdd.take(10)
-
-    for row in fred:
-        print(row)
+    # fred = flat_mapped_rdd.take(10)
+    # for row in fred:
+    #     print(row)
 
     mapped_rdd = flat_mapped_rdd.map(lambda x: {"gnaf_pid": x[1].getUserData().split("\t")[0], "state": x[1].getUserData().split("\t")[1], "ce_pid": x[0].getUserData().split("\t")[0], "geom": x[1].geom})
     # mapped_rdd = result_pair_rdd.map(lambda x: Row((y.getUserData().split("\t")[0], y.getUserData().split("\t")[1], x[0].getUserData().split("\t")[0], y.geom) for y in x[1]))
+    # jim = mapped_rdd.take(10)
+    # for row in jim:
+    #     print(row)
 
-    jim = mapped_rdd.take(10)
-
-    for row in jim:
-        print(row)
-
-    # print(result_pair_rdd.count())
+    print(mapped_rdd.count())
 
     # [Geometry: Polygon userData: WA32       TANGNEY WA, Geometry: Point userData: GAWA_146792426	WA]
 
