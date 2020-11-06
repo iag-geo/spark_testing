@@ -151,7 +151,8 @@ def main():
 
     # load gnaf points
     gnaf_df = spark.read.parquet(os.path.join(output_path, "gnaf")) \
-        .select("gnaf_pid", "state", "geom")
+        .select("gnaf_pid", "state", "geom") \
+        .cache()
 
     # convert df to rdd and export to disk
     point_rdd = export_rdd(gnaf_df, "gnaf_rdd", True)
@@ -176,7 +177,7 @@ def main():
     point_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)
     bdy_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)
 
-    logger.info("\t - GNAF and boundary data loaded: {}".format(datetime.now() - start_time))
+    logger.info("\t - loaded {} GNAF points and {} boundary rows: {}".format(gnaf_df.count(), bdy_rdd.count(), datetime.now() - start_time))
     start_time = datetime.now()
 
     # run the join
