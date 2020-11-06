@@ -150,27 +150,7 @@ def main():
     # point_rdd.rawSpatialRDD.saveAsTextFile(point_rdd_path)
 
     # load gnaf points
-    df = spark.read \
-        .option("header", True) \
-        .option("inferSchema", True) \
-        .csv(input_file_name)
-    # df.printSchema()
-    # df.show()
-
-    # # manually assign field types (not needed here as inferSchema works)
-    # df2 = (df
-    #        .withColumn("confidence", df.confidence.cast(t.ShortType()))
-    #        .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
-    #        .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
-    #        .withColumn("reliability", df.reliability.cast(t.ShortType()))
-    #        .withColumn("longitude", df.longitude.cast(t.DoubleType()))
-    #        .withColumn("latitude", df.latitude.cast(t.DoubleType()))
-    #        )
-    # # df2.printSchema()
-    # # df2.show()
-
-    # add point geometries and only keep a few columns
-    gnaf_df = df.withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
+    gnaf_df = spark.read.parquet(os.path.join(output_path, "gnaf")) \
         .select("gnaf_pid", "state", "geom")
 
     # convert df to rdd and export to disk
@@ -190,9 +170,10 @@ def main():
     point_rdd.spatialPartitioning(GridType.KDBTREE)
     bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
 
-    point_rdd.buildIndex(IndexType.RTREE, True)
+    # point_rdd.buildIndex(IndexType.RTREE, True)
 
-    point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
+    # point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
+    point_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)
     bdy_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)
 
     logger.info("\t - GNAF and boundary data loaded: {}".format(datetime.now() - start_time))
