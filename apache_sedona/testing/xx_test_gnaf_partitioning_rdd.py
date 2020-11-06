@@ -24,14 +24,16 @@ from geospark.core.SpatialRDD import PointRDD
 from geospark.core.enums import FileDataSplitter
 from geospark.core.spatialOperator import JoinQuery
 
-# # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
-# # set Conda environment vars for PySpark
-# os.environ["JAVA_HOME"] = "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
-# os.environ["SPARK_HOME"] = "/Users/hugh.saalmans/spark-2.4.6-bin-hadoop2.7"
-# os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
-# os.environ["PYSPARK_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
-# os.environ["PYSPARK_DRIVER_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
-# os.environ["PYLIB"] = os.environ["SPARK_HOME"] + "/python/lib"
+# REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
+os.environ["JAVA_HOME"]="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
+os.environ["SPARK_HOME"]="/Users/hugh.saalmans/spark-3.0.1-bin-hadoop3.2"
+os.environ["SPARK_LOCAL_IP"]="127.0.0.1"
+os.environ["SPARK_LOCAL_DIRS"]="/Users/hugh.saalmans/tmp/spark"
+os.environ["PYSPARK_PYTHON"]="/Users/hugh.saalmans/opt/miniconda3/envs/geospark3_env/bin/python"
+os.environ["PYSPARK_DRIVER_PYTHON"]="/Users/hugh.saalmans/opt/miniconda3/envs/geospark3_env/bin/python"
+os.environ["PYLIB"]="${SPARK_HOME_DIR}/python/lib"
+
+num_processors = cpu_count()
 
 
 # get postgres parameters from local text file
@@ -75,7 +77,7 @@ def main():
     #
     # sql = """COPY (
     #              SELECT longitude, latitude, gnaf_pid, state
-    #              FROM gnaf_202008.{}
+    #              FROM gnaf_202008.{} LIMIT 5000
     #          ) TO STDOUT WITH CSV"""
     # # sql = """COPY (
     # #              SELECT gnaf_pid, street_locality_pid, locality_pid, alias_principal, primary_secondary, building_name,
@@ -86,12 +88,12 @@ def main():
     # #          ) TO STDOUT WITH CSV"""
     #
     # # address principals
-    # with open(os.path.join(output_path, "gnaf_light.csv"), 'w') as csv_file:
+    # with open(os.path.join(output_path, "gnaf_light_10000.csv"), 'w') as csv_file:
     #     pg_cur.copy_expert(sql.format("address_principals"), csv_file)
     #     # pg_cur.copy_expert(sql.format("address_principals") + " HEADER", csv_file)
     #
     # # address aliases
-    # with open(os.path.join(output_path, "gnaf_light.csv"), 'a') as csv_file:
+    # with open(os.path.join(output_path, "gnaf_light_10000.csv"), 'a') as csv_file:
     #     pg_cur.copy_expert(sql.format("address_aliases"), csv_file)
     #
     # pg_cur.close()
@@ -111,7 +113,7 @@ def main():
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
              .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
-             .config("spark.cores.max", cpu_count() * 2)
+             .config("spark.cores.max", num_processors)
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.driver.memory", "8g")
              .getOrCreate()
@@ -128,10 +130,10 @@ def main():
     offset = 0  # The point long/lat starts from Column 0
     splitter = FileDataSplitter.CSV  # FileDataSplitter enumeration
     carry_other_attributes = True  # Carry Column 2 (hotel, gas, bar...)
-    level = StorageLevel.MEMORY_ONLY  # Storage level from pyspark
+    # level = StorageLevel.MEMORY_ONLY  # Storage level from pyspark
 
-    point_rdd = PointRDD(spark.sparkContext, os.path.join(output_path, "gnaf_light.csv"),
-                          offset, splitter, carry_other_attributes, level)
+    point_rdd = PointRDD(spark.sparkContext, os.path.join(output_path, "gnaf_light_10000.csv"),
+                          offset, splitter, carry_other_attributes)
 
     point_rdd.analyze()
 
@@ -195,13 +197,16 @@ def main():
     # run the join
     result_pair_rdd = JoinQuery.SpatialJoinQuery(point_rdd, bdy_rdd, True, True)
 
-    # keys_rdd = result_pair_rdd.flatMapValues(lambda x: [(k, x[k]) for k in x.keys()])
-    #
-    # fred = result_pair_rdd.take(10)
-    # for row in fred:
-    #     print(row)
+    print(result_pair_rdd.take(1))
 
-    print(result_pair_rdd.count())
+    mapped_rdd = result_pair_rdd.map(lambda x: [{"gnaf_pid": y.getUserData().split("\t")[0], "state": y.getUserData().split("\t")[1], "ce_pid": x[0].getUserData().split("\t")[0], "geom": y.geom} for y in x[1]])
+
+    fred = mapped_rdd.take(10)
+
+    for row in fred:
+        print(row)
+
+    # print(result_pair_rdd.count())
 
     # [Geometry: Polygon userData: WA32       TANGNEY WA, Geometry: Point userData: GAWA_146792426	WA]
 
@@ -238,7 +243,7 @@ def main():
     # cleanup
     spark.stop()
 
-    logger.info("\t - GNAF and boundaries exported to gzipped parquet files: {}"
+    logger.info("\t - GNAF boundary tagged: {}"
                 .format(datetime.now() - start_time))
 
 

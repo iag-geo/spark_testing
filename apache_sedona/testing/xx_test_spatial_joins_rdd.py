@@ -25,15 +25,15 @@ from geospark.core.spatialOperator import JoinQuery
 from geospark.core.SpatialRDD import PointRDD, PolygonRDD, SpatialRDD
 
 # # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
-# # set Conda environment vars for PySpark
-# os.environ["JAVA_HOME"] = "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
-# os.environ["SPARK_HOME"] = "/Users/hugh.saalmans/spark-2.4.6-bin-hadoop2.7"
-# os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
-# os.environ["PYSPARK_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
-# os.environ["PYSPARK_DRIVER_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
-# os.environ["PYLIB"] = os.environ["SPARK_HOME"] + "/python/lib"
+# os.environ["JAVA_HOME"]="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
+# os.environ["SPARK_HOME"]="${SPARK_HOME_DIR}"
+# os.environ["SPARK_LOCAL_IP"]="127.0.0.1"
+# os.environ["SPARK_LOCAL_DIRS"]="${HOME}/tmp/spark"
+# os.environ["PYSPARK_PYTHON"]="${HOME}/opt/miniconda3/envs/geospark3_env/bin/python"
+# os.environ["PYSPARK_DRIVER_PYTHON"]="${HOME}/opt/miniconda3/envs/geospark3_env/bin/python"
+# os.environ["PYLIB"]="${SPARK_HOME_DIR}/python/lib"
 
-num_processors = cpu_count() * 2
+num_processors = cpu_count()
 
 
 # get postgres parameters from local text file
