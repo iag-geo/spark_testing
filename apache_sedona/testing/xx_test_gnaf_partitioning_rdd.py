@@ -171,10 +171,10 @@ def main():
     point_rdd.spatialPartitioning(GridType.KDBTREE)
     bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
 
-    # point_rdd.buildIndex(IndexType.RTREE, True)
+    point_rdd.buildIndex(IndexType.RTREE, True)
 
-    # point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
-    point_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)
+    point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
+    # point_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)
     bdy_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)
 
     logger.info("\t - {} GNAF points and boundaries loaded: {}".format(gnaf_df.count(), datetime.now() - start_time))
@@ -182,7 +182,7 @@ def main():
 
     # run the join -- 14927161 out of 14927911 matched
     # returns [Geometry: Polygon userData: WA32       TANGNEY WA, [Geometry: Point userData: GAWA_146792426	WA, ...]]
-    result_pair_rdd = JoinQuery.SpatialJoinQuery(point_rdd, bdy_rdd, False, False)
+    result_pair_rdd = JoinQuery.SpatialJoinQuery(point_rdd, bdy_rdd, True, True)
     # print(result_pair_rdd.take(1))
 
     # flat map values to have one point to bdy match
@@ -235,7 +235,7 @@ def main():
     # join2_df.show(5)
 
     # output join DataFrame
-    export_to_parquet(join_df2, "gnaf_with_{}_rdd".format("commonwealth_electorates"))
+    export_to_parquet(join_df2, "gnaf_with_{}_rdd_with_index".format("commonwealth_electorates"))
 
     join_df2.unpersist()
     join_df.unpersist()
