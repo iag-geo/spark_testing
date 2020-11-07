@@ -27,9 +27,6 @@ from geospark.core.SpatialRDD import PointRDD
 from geospark.core.enums import FileDataSplitter
 from geospark.core.spatialOperator import JoinQuery
 
-from shapely import geometry
-
-
 # # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 # os.environ["JAVA_HOME"]="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
 # os.environ["SPARK_HOME"]="/Users/hugh.saalmans/spark-3.0.1-bin-hadoop3.2"
@@ -77,13 +74,13 @@ input_file_name = os.path.join(output_path, "gnaf_light.csv")
 def main():
     start_time = datetime.now()
 
-    # # copy gnaf tables to CSV
+    # # copy gnaf tables from Postgres to a CSV file
     # pg_conn = psycopg2.connect(local_pg_connect_string)
     # pg_cur = pg_conn.cursor()
     #
     # sql = """COPY (
     #              SELECT longitude, latitude, gnaf_pid, state
-    #              FROM gnaf_202008.{} LIMIT 5000
+    #              FROM gnaf_202008.{}
     #          ) TO STDOUT WITH CSV"""
     # # sql = """COPY (
     # #              SELECT gnaf_pid, street_locality_pid, locality_pid, alias_principal, primary_secondary, building_name,
@@ -94,12 +91,12 @@ def main():
     # #          ) TO STDOUT WITH CSV"""
     #
     # # address principals
-    # with open(os.path.join(output_path, "gnaf_light_10000.csv"), 'w') as csv_file:
+    # with open(input_file_name, 'w') as csv_file:
     #     pg_cur.copy_expert(sql.format("address_principals"), csv_file)
     #     # pg_cur.copy_expert(sql.format("address_principals") + " HEADER", csv_file)
     #
     # # address aliases
-    # with open(os.path.join(output_path, "gnaf_light_10000.csv"), 'a') as csv_file:
+    # with open(input_file_name, 'a') as csv_file:
     #     pg_cur.copy_expert(sql.format("address_aliases"), csv_file)
     #
     # pg_cur.close()
