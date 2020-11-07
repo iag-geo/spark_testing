@@ -1,14 +1,17 @@
 
 # script to load gnaf points from Postgres into CSV and Parquet
 
+import glob
 import logging
 import os
 import psycopg2
-import shutil
+# import shutil
 import sys
 
 from datetime import datetime
-from multiprocessing import cpu_count
+from itertools import repeat
+from multiprocessing import Pool, cpu_count
+from psycopg2 import pool
 
 from pyspark import StorageLevel
 from pyspark.sql import functions as f, types as t
@@ -59,11 +62,14 @@ jdbc_url = "jdbc:postgresql://{HOST}:{PORT}/{DB}".format(**local_pg_settings)
 # get connect string for psycopg2
 local_pg_connect_string = "dbname={DB} host={HOST} port={PORT} user={USER} password={PASS}".format(**local_pg_settings)
 
+# create Postgres connection pool
+pg_pool = psycopg2.pool.SimpleConnectionPool(1, num_processors, local_pg_connect_string)
+
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
 # gnaf csv file
-input_file_name = os.path.join(output_path, "gnaf_light_10000.csv")
+input_file_name = os.path.join(output_path, "gnaf_light.csv")
 
 # list of input boundary Postgres tables
 bdy_list = [{"name": "commonwealth_electorates", "id": "ce_pid"},
@@ -77,7 +83,7 @@ def main():
     start_time = datetime.now()
 
     # # copy gnaf tables from Postgres to a CSV file - a one off
-    # pg_conn = psycopg2.connect(local_pg_connect_string)
+    # pg_conn = pg_pool.getconn()
     # pg_cur = pg_conn.cursor()
     #
     # sql = """COPY (
@@ -102,7 +108,7 @@ def main():
     #     pg_cur.copy_expert(sql.format("address_aliases"), csv_file)
     #
     # pg_cur.close()
-    # pg_conn.close()
+    # pg_pool.putconn(pg_conn)
     #
     # logger.info("\t - GNAF points exported to CSV: {}".format( datetime.now() - start_time))
     # start_time = datetime.now()
@@ -154,6 +160,7 @@ def main():
         bdy_tag(spark, point_rdd, bdy)
 
     # merge output DFs with GNAF
+    start_time = datetime.now()
 
     # load gnaf points
     gnaf_df = spark.read \
@@ -172,10 +179,21 @@ def main():
     for bdy in bdy_list:
         gnaf_df = join_bdy_tags(spark, bdy)
         gnaf_df.createOrReplaceTempView("pnt")
-        # gnaf_df.printSchema()
-        # gnaf_df.show(10, False)
+
+    # create point geoms
+    final_df = gnaf_df.withColumn("geom", f.expr("concat('SRID=4326;POINT (', longitude, ' ', latitude, ')')")) \
+        .drop("longitude") \
+        .drop("latitude")
+
+    final_df.printSchema()
+    final_df.show(10, False)
+
+    logger.info("\t - Boundary tags merged: {}".format(datetime.now() - start_time))
 
     # output result to Postgres
+    export_to_postgres(final_df, "testing2.gnaf_with_bdy_tags", os.path.join(output_path, "temp_gnaf_with_bdy_tags"))
+
+    # todo: delete temp csv files
 
     # cleanup
     spark.stop()
@@ -255,8 +273,7 @@ def bdy_tag(spark, point_rdd, bdy):
 
 
 def get_bdy_rdd(spark, bdy):
-
-    # load boundaries
+    # load boundaries from Postgres
     sql = """SELECT {}, name, state, st_astext(geom) as wkt_geom
              FROM admin_bdys_202008.{}_analysis""".format(bdy["id"], bdy["name"])
     bdy_df = get_dataframe_from_postgres(spark, sql)
@@ -291,6 +308,85 @@ def export_to_parquet(df, name):
     df.write.option("compression", "gzip") \
         .mode("overwrite") \
         .parquet(os.path.join(output_path, name))
+
+
+# exports a DataFrame to Postgres (via CSV files saved to disk)
+def export_to_postgres(df, table_name, csv_folder, partition_column=None):
+    start_time = datetime.now()
+
+    # get Postgres connection & cursor
+    pg_conn = pg_pool.getconn()
+    pg_conn.autocommit = True
+    pg_cur = pg_conn.cursor()
+
+    # # potentially expensive way to get number of DataFrame partitions!
+    # num_partitions = df.rdd.getNumPartitions()
+
+    # write to csv files - one gets written per partition
+    # quotes are automatically put around strings with commas - i.e. csv is a safe export format
+    if partition_column is not None:
+        df.write.partitionBy(partition_column).csv(csv_folder, mode="overwrite", header=False, emptyValue="")
+    else:
+        df.write.csv(csv_folder, mode="overwrite", header=False, emptyValue="")
+
+    # logger.info("exported dataframe to {:,} CSV files : {}"
+    #     .format(num_partitions, datetime.now() - start_time))
+    logger.info("\t - exported DataFrame to CSV files : {}".format(datetime.now() - start_time))
+    start_time = datetime.now()
+
+    # create table
+    field_list = list()
+
+    for bdy in bdy_list:
+        field_list.append(bdy["id"] + " text")
+        field_list.append(bdy["id"].replace("_pid", "_state") + " text")
+
+    sql = """DROP TABLE IF EXISTS {0};
+             CREATE TABLE {0}
+             (
+                 gnaf_pid text NOT NULL,
+                 state text NOT NULL,
+                 {1},
+                 geom geometry(Point, 4326, 2) NOT NULL
+             );
+             ALTER TABLE {0} OWNER to postgres""".format(table_name, ",".join(field_list))
+
+    pg_cur.execute(sql)
+    # pg_cur.execute("TRUNCATE TABLE {}".format(table_name))
+
+    # get all CSV file paths and copy CSV files to Postgres using multiprocessing
+    file_list = list()
+
+    if partition_column is not None:
+        search_path = "{}/*/*/*.csv".format(csv_folder)
+    else:
+        search_path = "{}/*.csv".format(csv_folder)
+
+    for file_name in glob.glob(search_path):
+        file_list.append(file_name)
+
+    with Pool(num_processors) as p:
+        p.starmap(execute_copy, zip(file_list, repeat(table_name)))
+
+    pg_cur.execute("ANALYSE {}".format(table_name))
+
+    logger.info("\t - exported CSV files to Postgres : {}".format(datetime.now() - start_time))
+
+
+def execute_copy(file_name, table_name):
+    # get postgres connection from pool
+    pg_conn = pg_pool.getconn()
+    pg_conn.autocommit = True
+    pg_cur = pg_conn.cursor()
+
+    # Use a SQL statement. The Psycopg2 copy_from function has issues with quotes in CSV files
+    sql = """COPY {}
+             FROM '{}'
+             WITH (DELIMITER ',', FORMAT CSV, NULL '')""". format(table_name, file_name)
+    pg_cur.execute(sql)
+
+    pg_cur.close()
+    pg_pool.putconn(pg_conn)
 
 
 if __name__ == "__main__":
