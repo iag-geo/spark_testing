@@ -63,7 +63,14 @@ local_pg_connect_string = "dbname={DB} host={HOST} port={PORT} user={USER} passw
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
 # gnaf csv file
-input_file_name = os.path.join(output_path, "gnaf_light.csv")
+input_file_name = os.path.join(output_path, "gnaf_light_10000.csv")
+
+# list of input boundary Postgres tables
+bdy_list = [{"name": "commonwealth_electorates", "id": "ce_pid"},
+            {"name": "local_government_areas", "id": "lga_pid"},
+            {"name": "local_government_wards", "id": "ward_pid"},
+            {"name": "state_lower_house_electorates", "id": "se_lower_pid"},
+            {"name": "state_upper_house_electorates", "id": "se_upper_pid"}]
 
 
 def main():
@@ -117,8 +124,6 @@ def main():
              .getOrCreate()
              )
 
-    # .config("spark.kryoserializer.buffer.max", "2g")
-
     # Register Apache Sedona (geospark) UDTs and UDFs
     GeoSparkRegistrator.registerAll(spark)
 
@@ -144,11 +149,9 @@ def main():
     logger.info("\t - GNAF points loaded: {}".format(datetime.now() - start_time))
     # logger.info("\t - {} GNAF points loaded: {}".format(gnaf_df.count(), datetime.now() - start_time))
 
-    bdy_tag(spark, point_rdd, "commonwealth_electorates", "ce_pid")
-    bdy_tag(spark, point_rdd, "local_government_areas", "lga_pid")
-    bdy_tag(spark, point_rdd, "local_government_wards", "ward_pid")
-    bdy_tag(spark, point_rdd, "state_lower_house_electorates", "se_lower_pid")
-    bdy_tag(spark, point_rdd, "state_upper_house_electorates", "se_upper_pid")
+    # get boundary tags
+    for bdy in bdy_list:
+        bdy_tag(spark, point_rdd, bdy["name"], bdy["id"])
 
     # cleanup
     spark.stop()
@@ -184,17 +187,17 @@ def bdy_tag(spark, point_rdd, bdy_name, bdy_id):
     # for row in jim:
     #     print(row)
 
-    schema = t.StructType([t.StructField("gnaf_pid", t.StringType(), True),
-                           t.StructField("state", t.StringType(), True),
-                           t.StructField(bdy_id, t.StringType(), True),
-                           t.StructField(bdy_id + "_state", t.StringType(), True)])
+    schema = t.StructType([t.StructField("gnaf_pid", t.StringType(), False),
+                           t.StructField("state", t.StringType(), False),
+                           t.StructField(bdy_id, t.StringType(), False),
+                           t.StructField(bdy_id.replace("_pid", "_state"), t.StringType(), False)])
     # t.StructField('geom', GeometryType(), True)])
 
     join_df = spark.createDataFrame(mapped_rdd, schema)
     # join_df.printSchema()
     # join_df.show(10, False)
 
-    export_to_parquet(join_df, "gnaf_with_{}_rdd_with_index".format(bdy_name))
+    export_to_parquet(join_df, "gnaf_with_{}_with_index".format(bdy_name))
 
     # num_joined_points = join_df.count()
 
