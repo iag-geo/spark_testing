@@ -153,8 +153,52 @@ def main():
     for bdy in bdy_list:
         bdy_tag(spark, point_rdd, bdy["name"], bdy["id"])
 
+    # merge output DFs with GNAF
+
+    # load gnaf points
+    gnaf_df = spark.read \
+        .option("header", True) \
+        .option("inferSchema", True) \
+        .csv(input_file_name) \
+        .withColumnRenamed("_C0", "longitude") \
+        .withColumnRenamed("_C1", "latitude") \
+        .withColumnRenamed("_C2", "gnaf_pid") \
+        .withColumnRenamed("_C3", "state")
+
+    gnaf_df.printSchema()
+    gnaf_df.show(10, False)
+
+    gnaf_df.createOrReplaceTempView("pnt")
+
+    for bdy in bdy_list:
+        gnaf_df = join_bdy_tags(spark, bdy)
+        gnaf_df.createOrReplaceTempView("pnt")
+        gnaf_df.printSchema()
+        gnaf_df.show(10, False)
+
+    # output result to Postgres
+
     # cleanup
     spark.stop()
+
+
+def join_bdy_tags(spark, bdy):
+
+    # open bdy df
+    bdy_tag_df = spark.read.parquet(os.path.join(output_path, "gnaf_with_{}_with_index".format(bdy["name"])))
+    bdy_tag_df.createOrReplaceTempView("bdy_tag")
+
+    sql = """SELECT pnt.*,
+                        bdy_tag.{},
+                        bdy_tag.{}
+                 FROM pnt
+                     LEFT OUTER JOIN bdy_tag ON pnt.gnaf_pid = bdy_tag.gnaf_pid""" \
+        .format(bdy["id"], bdy["id"].replace("_pid", "_state"))
+    join_df = spark.sql(sql)
+
+    bdy_tag_df.unpersist()
+
+    return join_df
 
 
 def bdy_tag(spark, point_rdd, bdy_name, bdy_id):
