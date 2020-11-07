@@ -69,7 +69,7 @@ input_file_name = os.path.join(output_path, "gnaf_light.csv")
 def main():
     start_time = datetime.now()
 
-    # # copy gnaf tables from Postgres to a CSV file
+    # # copy gnaf tables from Postgres to a CSV file - a one off
     # pg_conn = psycopg2.connect(local_pg_connect_string)
     # pg_cur = pg_conn.cursor()
     #
