@@ -4,28 +4,23 @@
 import logging
 import os
 import psycopg2
-# import shapely
 import shutil
 import sys
 
 from datetime import datetime
 from multiprocessing import cpu_count
 
-from geospark.sql.types import GeometryType
 from pyspark import StorageLevel
 from pyspark.sql import functions as f, types as t
 from pyspark.sql import SparkSession
-from pyspark.sql.window import Window
 
-from geospark.register import upload_jars, GeoSparkRegistrator  # need to install geospark package
-from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
-
-from geospark.utils.adapter import Adapter
-from geospark.core.enums import GridType, IndexType
-
-from geospark.core.SpatialRDD import PointRDD
-from geospark.core.enums import FileDataSplitter
+from geospark.core.enums import GridType, IndexType, FileDataSplitter  # need to install geospark package
 from geospark.core.spatialOperator import JoinQuery
+from geospark.core.SpatialRDD import PointRDD
+from geospark.register import upload_jars, GeoSparkRegistrator
+# from geospark.sql.types import GeometryType
+from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
+from geospark.utils.adapter import Adapter
 
 # # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 # os.environ["JAVA_HOME"]="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
@@ -36,7 +31,7 @@ from geospark.core.spatialOperator import JoinQuery
 # os.environ["PYSPARK_DRIVER_PYTHON"]="/Users/hugh.saalmans/opt/miniconda3/envs/geospark3_env/bin/python"
 # os.environ["PYLIB"]="${SPARK_HOME_DIR}/python/lib"
 
-num_processors = cpu_count() * 2
+num_processors = cpu_count()
 
 
 # get postgres parameters from local text file
@@ -140,24 +135,10 @@ def main():
 
     point_rdd.analyze()
 
-    # point_rdd_path = os.path.join(output_path, "gnaf_rdd")
-    # shutil.rmtree(point_rdd_path, True)
-    # point_rdd.rawSpatialRDD.saveAsTextFile(point_rdd_path)
-
-    # # load gnaf points
-    # gnaf_df = spark.read.parquet(os.path.join(output_path, "gnaf")) \
-    #     .select("gnaf_pid", "state", "geom") \
-    #     .cache()
-    #
-    # gnaf_df.createOrReplaceTempView("pnt")
-    #
-    # # convert df to rdd and export to disk
-    # point_rdd = export_rdd(gnaf_df, "gnaf_rdd", True)
-    # point_rdd.analyze()
-
     # add partitioning and indexing to RDDs
     point_rdd.spatialPartitioning(GridType.KDBTREE)
     point_rdd.buildIndex(IndexType.RTREE, True)
+
     point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
 
     logger.info("\t - GNAF points loaded: {}".format(datetime.now() - start_time))
@@ -190,9 +171,6 @@ def bdy_tag(spark, point_rdd, bdy_name, bdy_id):
 
     # flat map values to have one point to bdy match
     flat_mapped_rdd = result_pair_rdd.flatMapValues(lambda x: x)
-    # fred = flat_mapped_rdd.take(10)
-    # for row in fred:
-    #     print(row)
 
     # map values to create RDD row of point data and bdy ID
     mapped_rdd = flat_mapped_rdd.map(
@@ -213,30 +191,12 @@ def bdy_tag(spark, point_rdd, bdy_name, bdy_id):
     # t.StructField('geom', GeometryType(), True)])
 
     join_df = spark.createDataFrame(mapped_rdd, schema)
-    # df.printSchema()
-    # df.show(10, False)
+    # join_df.printSchema()
+    # join_df.show(10, False)
 
     export_to_parquet(join_df, "gnaf_with_{}_rdd_with_index".format(bdy_name))
 
     # num_joined_points = join_df.count()
-
-    # join_df.createOrReplaceTempView("bdy_join")
-    #
-    # # join_df.explain()
-    #
-    # # get missing gnaf records due to no left join with a spatial join (above)
-    # sql = """SELECT pnt.*,
-    #                     bdy_join.{}
-    #              FROM pnt
-    #              LEFT OUTER JOIN bdy_join ON pnt.gnaf_pid = bdy_join.gnaf_pid""".format(bdy_id)
-    # join_df2 = spark.sql(sql)
-    # # join2_df.printSchema()
-    # # join2_df.show(5)
-    #
-    # # output join DataFrame
-    # export_to_parquet(join_df2, "gnaf_with_{}_rdd_with_index".format(bdy_name))
-    #
-    # join_df2.unpersist()
 
     join_df.unpersist()
     mapped_rdd.unpersist()
