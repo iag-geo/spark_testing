@@ -17,6 +17,11 @@ from pyspark import StorageLevel
 from pyspark.sql import functions as f, types as t
 from pyspark.sql import SparkSession
 
+# setup logging - code is here to prevent conflict with logging.basicConfig() from one of the imports below
+log_file = os.path.abspath(__file__).replace(".py", ".log")
+logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(asctime)s %(message)s",
+                    datefmt="%m/%d/%Y %I:%M:%S %p")
+
 from geospark.core.enums import GridType, IndexType, FileDataSplitter  # need to install geospark package
 from geospark.core.spatialOperator import JoinQuery
 from geospark.core.SpatialRDD import PointRDD
@@ -119,7 +124,7 @@ def main():
     spark = (SparkSession
              .builder
              .master("local[*]")
-             .appName("compass_iot_query")
+             .appName("query")
              .config("spark.sql.session.timeZone", "UTC")
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
@@ -394,18 +399,13 @@ def execute_copy(file_name, table_name):
 if __name__ == "__main__":
     full_start_time = datetime.now()
 
-    # setup logging
+    # setup logging to file and the console (screen)
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
     # set Spark logging levels
     logging.getLogger("pyspark").setLevel(logging.ERROR)
     logging.getLogger("py4j").setLevel(logging.ERROR)
-
-    # set logger
-    log_file = os.path.abspath(__file__).replace(".py", ".log")
-    logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(asctime)s %(message)s",
-                        datefmt="%m/%d/%Y %I:%M:%S %p")
 
     # setup logger to write to screen as well as writing to log file
     # define a Handler which writes INFO messages or higher to the sys.stderr

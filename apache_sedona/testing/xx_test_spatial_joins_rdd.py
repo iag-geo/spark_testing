@@ -80,7 +80,7 @@ def main():
     spark = (SparkSession
              .builder
              .master("local[*]")
-             .appName("compass_iot_query")
+             .appName("query")
              .config("spark.sql.session.timeZone", "UTC")
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)

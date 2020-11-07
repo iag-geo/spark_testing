@@ -95,7 +95,7 @@ def main():
     spark = (SparkSession
              .builder
              .master("local[*]")
-             .appName("compass_iot_query")
+             .appName("query")
              .config("spark.sql.session.timeZone", "UTC")
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
@@ -268,7 +268,7 @@ def export_trip_segments(spark):
     segment_df = spark.sql(sql).repartition(f.to_date(f.col("time_utc"))).drop("time_utc")
 
     # export df to postgres
-    export_to_postgres(segment_df, "compass_iot.test_oem_segments",
+    export_to_postgres(segment_df, "testing.test_oem_segments",
                        os.path.join(output_path, "test_data_segments"))
 
 
@@ -303,7 +303,7 @@ def export_small_area_data(spark):
              INNER JOIN vehicle ON point.vehicle_id = vehicle.vehicle_id"""
     area_df = spark.sql(sql)
     # export df to postgres
-    export_to_postgres(area_df, "compass_iot.test_oem_small_area_points",
+    export_to_postgres(area_df, "testing.test_oem_small_area_points",
                        os.path.join(output_path, "test_data_small_area"))
 
 
@@ -334,7 +334,7 @@ def export_single_id_data(spark):
     # id_df.printSchema()
     # id_df.show()
     # export df to postgres
-    export_to_postgres(id_df, "compass_iot.test_oem_single_id_points",
+    export_to_postgres(id_df, "testing.test_oem_single_id_points",
                        os.path.join(output_path, "test_data_single_id"))
 
 
@@ -578,12 +578,12 @@ def export_trip_and_stop_data(spark, schema_df=None):
     # export trip df to postgres
     logger.info("Step 9 : Exporting trips to Postgres")
     export_to_postgres(trips_stops_final_df.filter(trips_stops_final_df.is_stopped_fixed == False).drop("is_stopped_fixed"),
-                       "compass_iot.test_oem_trip", os.path.join(output_path, "step_8_test_data_trip"))
+                       "testing.test_oem_trip", os.path.join(output_path, "step_8_test_data_trip"))
 
     # export stop df to postgres
     logger.info("Step 10 : Exporting stops to Postgres")
     export_to_postgres(trips_stops_final_df.filter(trips_stops_final_df.is_stopped_fixed == True).drop("is_stopped_fixed"),
-                       "compass_iot.test_oem_stop", os.path.join(output_path, "step_9_test_data_stop"))
+                       "testing.test_oem_stop", os.path.join(output_path, "step_9_test_data_stop"))
 
 
 # exports a DataFrame to Postgres (via CSV files saved to disk)
