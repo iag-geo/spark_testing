@@ -159,6 +159,8 @@ def main():
     for bdy in bdy_list:
         bdy_tag(spark, point_rdd, bdy)
 
+    # point_rdd.unpersist()  # no such method on a SpatialRDD
+
     # merge output DFs with GNAF
     start_time = datetime.now()
 
@@ -185,8 +187,8 @@ def main():
         .drop("longitude") \
         .drop("latitude")
 
-    final_df.printSchema()
-    final_df.show(10, False)
+    # final_df.printSchema()
+    # final_df.show(10, False)
 
     logger.info("\t - Boundary tags merged: {}".format(datetime.now() - start_time))
 
