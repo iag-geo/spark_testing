@@ -77,7 +77,8 @@ output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 input_file_name = os.path.join(output_path, "gnaf_light.csv")
 
 # list of input boundary Postgres tables
-bdy_list = [{"name": "commonwealth_electorates", "id": "ce_pid"},
+bdy_list = [{"name": "state_bdys", "id": "state_pid"},
+            {"name": "commonwealth_electorates", "id": "ce_pid"},
             {"name": "local_government_areas", "id": "lga_pid"},
             {"name": "local_government_wards", "id": "ward_pid"},
             {"name": "state_lower_house_electorates", "id": "se_lower_pid"},
