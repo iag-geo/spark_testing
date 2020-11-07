@@ -151,30 +151,29 @@ def main():
 
     # get boundary tags
     for bdy in bdy_list:
-        bdy_tag(spark, point_rdd, bdy["name"], bdy["id"])
+        bdy_tag(spark, point_rdd, bdy)
 
     # merge output DFs with GNAF
 
     # load gnaf points
     gnaf_df = spark.read \
-        .option("header", True) \
+        .option("header", False) \
         .option("inferSchema", True) \
         .csv(input_file_name) \
         .withColumnRenamed("_C0", "longitude") \
         .withColumnRenamed("_C1", "latitude") \
         .withColumnRenamed("_C2", "gnaf_pid") \
         .withColumnRenamed("_C3", "state")
-
-    gnaf_df.printSchema()
-    gnaf_df.show(10, False)
+    # gnaf_df.printSchema()
+    # gnaf_df.show(10, False)
 
     gnaf_df.createOrReplaceTempView("pnt")
 
     for bdy in bdy_list:
         gnaf_df = join_bdy_tags(spark, bdy)
         gnaf_df.createOrReplaceTempView("pnt")
-        gnaf_df.printSchema()
-        gnaf_df.show(10, False)
+        # gnaf_df.printSchema()
+        # gnaf_df.show(10, False)
 
     # output result to Postgres
 
@@ -201,11 +200,11 @@ def join_bdy_tags(spark, bdy):
     return join_df
 
 
-def bdy_tag(spark, point_rdd, bdy_name, bdy_id):
+def bdy_tag(spark, point_rdd, bdy):
     start_time = datetime.now()
 
     # load boundaries
-    bdy_rdd = export_bdys(spark, bdy_name, bdy_id)
+    bdy_rdd = get_bdy_rdd(spark, bdy)
     bdy_rdd.analyze()
 
     bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
@@ -233,15 +232,15 @@ def bdy_tag(spark, point_rdd, bdy_name, bdy_id):
 
     schema = t.StructType([t.StructField("gnaf_pid", t.StringType(), False),
                            t.StructField("state", t.StringType(), False),
-                           t.StructField(bdy_id, t.StringType(), False),
-                           t.StructField(bdy_id.replace("_pid", "_state"), t.StringType(), False)])
+                           t.StructField(bdy["id"], t.StringType(), False),
+                           t.StructField(bdy["id"].replace("_pid", "_state"), t.StringType(), False)])
     # t.StructField('geom', GeometryType(), True)])
 
     join_df = spark.createDataFrame(mapped_rdd, schema)
     # join_df.printSchema()
     # join_df.show(10, False)
 
-    export_to_parquet(join_df, "gnaf_with_{}_with_index".format(bdy_name))
+    export_to_parquet(join_df, "gnaf_with_{}_with_index".format(bdy["name"]))
 
     # num_joined_points = join_df.count()
 
@@ -252,40 +251,14 @@ def bdy_tag(spark, point_rdd, bdy_name, bdy_id):
     # bdy_rdd.unpersist()  # no method for SpatialRDD
 
     logger.info("\t - GNAF points boundary tagged with {}: {}"
-                .format(bdy_name, datetime.now() - start_time))
+                .format(bdy["name"], datetime.now() - start_time))
 
 
-def export_rdd(df, path_name, partition_and_index=None):
+def get_bdy_rdd(spark, bdy):
 
-    # delete existing directory
-    output_rdd_path = os.path.join(output_path, path_name)
-    shutil.rmtree(output_rdd_path, True)
-
-    output_rdd = Adapter.toSpatialRdd(df, "geom")
-    output_rdd.analyze()
-
-    # add partitioning and indexing to each partition and export RDD to disk
-    if partition_and_index:
-        output_rdd.spatialPartitioning(GridType.KDBTREE)
-        output_rdd.buildIndex(IndexType.RTREE, True)  # needs to be set to False when writing to disk
-
-        # rdd_with_other_attributes = output_rdd.rawSpatialRDD.map(lambda x: x.getUserData())
-        # fred = rdd_with_other_attributes.take(10)
-        # for row in fred:
-        #     print(row)
-
-        # output_rdd.indexedRawRDD.saveAsObjectFile(output_rdd_path)
-    # else:
-
-    # output_rdd.rawSpatialRDD.saveAsTextFile(output_rdd_path)
-
-    return output_rdd
-
-
-def export_bdys(spark, bdy_name, bdy_id, partition_and_index=None):
     # load boundaries
     sql = """SELECT {}, name, state, st_astext(geom) as wkt_geom
-             FROM admin_bdys_202008.{}_analysis""".format(bdy_id, bdy_name)
+             FROM admin_bdys_202008.{}_analysis""".format(bdy["id"], bdy["name"])
     bdy_df = get_dataframe_from_postgres(spark, sql)
 
     # create geometries from WKT strings into new DataFrame
@@ -293,8 +266,14 @@ def export_bdys(spark, bdy_name, bdy_id, partition_and_index=None):
         .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)")) \
         .drop("wkt_geom")
 
-    # write bdys to gzipped parquet
-    return export_rdd(bdy_df2, bdy_name + "_rdd", partition_and_index)
+    # create rdd
+    output_rdd = Adapter.toSpatialRdd(bdy_df2, "geom")
+    output_rdd.analyze()
+
+    bdy_df2.unpersist()
+    bdy_df.unpersist()
+
+    return output_rdd
 
 
 def get_dataframe_from_postgres(spark, sql):
@@ -306,8 +285,6 @@ def get_dataframe_from_postgres(spark, sql):
         .option("driver", "org.postgresql.Driver") \
         .load()
     return df
-# .option("numPartitions", 32) \
-# .option("partitionColumn", "gid") \
 
 
 def export_to_parquet(df, name):
