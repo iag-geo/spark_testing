@@ -30,16 +30,16 @@ from geospark.core.spatialOperator import JoinQuery
 from shapely import geometry
 
 
-# REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
-os.environ["JAVA_HOME"]="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
-os.environ["SPARK_HOME"]="/Users/hugh.saalmans/spark-3.0.1-bin-hadoop3.2"
-os.environ["SPARK_LOCAL_IP"]="127.0.0.1"
-os.environ["SPARK_LOCAL_DIRS"]="/Users/hugh.saalmans/tmp/spark"
-os.environ["PYSPARK_PYTHON"]="/Users/hugh.saalmans/opt/miniconda3/envs/geospark3_env/bin/python"
-os.environ["PYSPARK_DRIVER_PYTHON"]="/Users/hugh.saalmans/opt/miniconda3/envs/geospark3_env/bin/python"
-os.environ["PYLIB"]="${SPARK_HOME_DIR}/python/lib"
+# # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
+# os.environ["JAVA_HOME"]="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
+# os.environ["SPARK_HOME"]="/Users/hugh.saalmans/spark-3.0.1-bin-hadoop3.2"
+# os.environ["SPARK_LOCAL_IP"]="127.0.0.1"
+# os.environ["SPARK_LOCAL_DIRS"]="/Users/hugh.saalmans/tmp/spark"
+# os.environ["PYSPARK_PYTHON"]="/Users/hugh.saalmans/opt/miniconda3/envs/geospark3_env/bin/python"
+# os.environ["PYSPARK_DRIVER_PYTHON"]="/Users/hugh.saalmans/opt/miniconda3/envs/geospark3_env/bin/python"
+# os.environ["PYLIB"]="${SPARK_HOME_DIR}/python/lib"
 
-num_processors = cpu_count()
+num_processors = cpu_count() * 2
 
 
 # get postgres parameters from local text file
