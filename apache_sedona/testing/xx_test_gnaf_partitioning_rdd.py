@@ -133,67 +133,67 @@ def main():
     # Register Apache Sedona (geospark) UDTs and UDFs
     GeoSparkRegistrator.registerAll(spark)
 
-    sc = spark.sparkContext
-
-    logger.info("\t - PySpark {} session initiated: {}".format(sc.version, datetime.now() - start_time))
-    start_time = datetime.now()
-
-    offset = 0  # The point long/lat starts from Column 0
-    carry_other_attributes = True  # include non-geo columns
-
-    point_rdd = PointRDD(sc, os.path.join(output_path, input_file_name),
-                         offset, FileDataSplitter.CSV, carry_other_attributes)
-
-    point_rdd.analyze()
-
-    # add partitioning and indexing to RDDs
-    point_rdd.spatialPartitioning(GridType.KDBTREE)
-    point_rdd.buildIndex(IndexType.RTREE, True)
-
-    point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
-
-    logger.info("\t - GNAF points loaded: {}".format(datetime.now() - start_time))
-    # logger.info("\t - {} GNAF points loaded: {}".format(gnaf_df.count(), datetime.now() - start_time))
-
-    # get boundary tags
-    for bdy in bdy_list:
-        bdy_tag(spark, point_rdd, bdy)
-
-    # point_rdd.unpersist()  # no such method on a SpatialRDD
-
-    # merge output DFs with GNAF
-    start_time = datetime.now()
-
-    # load gnaf points
-    gnaf_df = spark.read \
-        .option("header", False) \
-        .option("inferSchema", True) \
-        .csv(input_file_name) \
-        .withColumnRenamed("_C0", "longitude") \
-        .withColumnRenamed("_C1", "latitude") \
-        .withColumnRenamed("_C2", "gnaf_pid") \
-        .withColumnRenamed("_C3", "state")
-    # gnaf_df.printSchema()
-    # gnaf_df.show(10, False)
-
-    gnaf_df.createOrReplaceTempView("pnt")
-
-    for bdy in bdy_list:
-        gnaf_df = join_bdy_tags(spark, bdy)
-        gnaf_df.createOrReplaceTempView("pnt")
-
-    # create point geoms
-    final_df = gnaf_df.withColumn("geom", f.expr("concat('SRID=4326;POINT (', longitude, ' ', latitude, ')')")) \
-        .drop("longitude") \
-        .drop("latitude")
-
-    # final_df.printSchema()
-    # final_df.show(10, False)
-
-    logger.info("\t - Boundary tags merged: {}".format(datetime.now() - start_time))
-
-    # output result to Postgres
-    export_to_postgres(final_df, "testing2.gnaf_with_bdy_tags", os.path.join(output_path, "temp_gnaf_with_bdy_tags"))
+    # sc = spark.sparkContext
+    #
+    # logger.info("\t - PySpark {} session initiated: {}".format(sc.version, datetime.now() - start_time))
+    # start_time = datetime.now()
+    #
+    # offset = 0  # The point long/lat starts from Column 0
+    # carry_other_attributes = True  # include non-geo columns
+    #
+    # point_rdd = PointRDD(sc, os.path.join(output_path, input_file_name),
+    #                      offset, FileDataSplitter.CSV, carry_other_attributes)
+    #
+    # point_rdd.analyze()
+    #
+    # # add partitioning and indexing to RDDs
+    # point_rdd.spatialPartitioning(GridType.KDBTREE)
+    # point_rdd.buildIndex(IndexType.RTREE, True)
+    #
+    # point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
+    #
+    # logger.info("\t - GNAF points loaded: {}".format(datetime.now() - start_time))
+    # # logger.info("\t - {} GNAF points loaded: {}".format(gnaf_df.count(), datetime.now() - start_time))
+    #
+    # # get boundary tags
+    # for bdy in bdy_list:
+    #     bdy_tag(spark, point_rdd, bdy)
+    #
+    # # point_rdd.unpersist()  # no such method on a SpatialRDD
+    #
+    # # merge output DFs with GNAF
+    # start_time = datetime.now()
+    #
+    # # load gnaf points
+    # gnaf_df = spark.read \
+    #     .option("header", False) \
+    #     .option("inferSchema", True) \
+    #     .csv(input_file_name) \
+    #     .withColumnRenamed("_C0", "longitude") \
+    #     .withColumnRenamed("_C1", "latitude") \
+    #     .withColumnRenamed("_C2", "gnaf_pid") \
+    #     .withColumnRenamed("_C3", "state")
+    # # gnaf_df.printSchema()
+    # # gnaf_df.show(10, False)
+    #
+    # gnaf_df.createOrReplaceTempView("pnt")
+    #
+    # for bdy in bdy_list:
+    #     gnaf_df = join_bdy_tags(spark, bdy)
+    #     gnaf_df.createOrReplaceTempView("pnt")
+    #
+    # # create point geoms
+    # final_df = gnaf_df.withColumn("geom", f.expr("concat('SRID=4326;POINT (', longitude, ' ', latitude, ')')")) \
+    #     .drop("longitude") \
+    #     .drop("latitude")
+    #
+    # # final_df.printSchema()
+    # # final_df.show(10, False)
+    #
+    # logger.info("\t - Boundary tags merged: {}".format(datetime.now() - start_time))
+    #
+    # # output result to Postgres
+    # export_to_postgres(final_df, "testing2.gnaf_with_bdy_tags", os.path.join(output_path, "temp_gnaf_with_bdy_tags"))
 
     # todo: delete temp csv files
 
@@ -418,8 +418,7 @@ if __name__ == "__main__":
     # add the handler to the root logger
     logging.getLogger("").addHandler(console)
 
-    task_name = "Geospark testing"
-    system_name = "mobility.ai"
+    task_name = "Apache Sedona testing"
 
     logger.info("{} started".format(task_name))
     logger.info("Running on Python {}".format(sys.version.replace("\n", " ")))
