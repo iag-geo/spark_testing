@@ -1,11 +1,11 @@
 
-# script to load gnaf points from Postgres into CSV and Parquet
+# script to load gnaf points and psma boundaries from Postgres to test Apache Sedona spatial join query performance
 
 import glob
 import logging
 import os
 import psycopg2
-# import shutil
+import shutil
 import sys
 
 from datetime import datetime
@@ -26,7 +26,6 @@ from geospark.core.enums import GridType, IndexType, FileDataSplitter  # need to
 from geospark.core.spatialOperator import JoinQuery
 from geospark.core.SpatialRDD import PointRDD
 from geospark.register import upload_jars, GeoSparkRegistrator
-# from geospark.sql.types import GeometryType
 from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
 from geospark.utils.adapter import Adapter
 
@@ -77,49 +76,50 @@ output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 input_file_name = os.path.join(output_path, "gnaf_light.csv")
 
 # list of input boundary Postgres tables
-bdy_list = [{"name": "state_bdys", "id": "state_pid"},
-            {"name": "commonwealth_electorates", "id": "ce_pid"},
-            {"name": "local_government_areas", "id": "lga_pid"},
-            {"name": "local_government_wards", "id": "ward_pid"},
-            {"name": "state_lower_house_electorates", "id": "se_lower_pid"},
-            {"name": "state_upper_house_electorates", "id": "se_upper_pid"}]
+bdy_list = [{"name": "commonwealth_electorates", "id": "ce_pid"}]
+# bdy_list = [{"name": "state_bdys", "id": "state_pid"},
+#             {"name": "commonwealth_electorates", "id": "ce_pid"},
+#             {"name": "local_government_areas", "id": "lga_pid"},
+#             {"name": "local_government_wards", "id": "ward_pid"},
+#             {"name": "state_lower_house_electorates", "id": "se_lower_pid"},
+#             {"name": "state_upper_house_electorates", "id": "se_upper_pid"}]
 
 
 def main():
     start_time = datetime.now()
 
-    # # copy gnaf tables from Postgres to a CSV file - a one off
-    # pg_conn = pg_pool.getconn()
-    # pg_cur = pg_conn.cursor()
-    #
-    # sql = """COPY (
-    #              SELECT longitude, latitude, gnaf_pid, state
-    #              FROM gnaf_202008.{}
-    #          ) TO STDOUT WITH CSV"""
-    # # sql = """COPY (
-    # #              SELECT gnaf_pid, street_locality_pid, locality_pid, alias_principal, primary_secondary, building_name,
-    # #                     lot_number, flat_number, level_number, number_first, number_last, street_name, street_type,
-    # #                     street_suffix, address, locality_name, postcode, state, locality_postcode, confidence,
-    # #                     legal_parcel_id, mb_2011_code, mb_2016_code, latitude, longitude, geocode_type, reliability
-    # #              FROM gnaf_202008.{}
-    # #          ) TO STDOUT WITH CSV"""
-    #
-    # # address principals
-    # with open(input_file_name, 'w') as csv_file:
-    #     pg_cur.copy_expert(sql.format("address_principals"), csv_file)
-    #     # pg_cur.copy_expert(sql.format("address_principals") + " HEADER", csv_file)
-    #
-    # # address aliases
-    # with open(input_file_name, 'a') as csv_file:
-    #     pg_cur.copy_expert(sql.format("address_aliases"), csv_file)
-    #
-    # pg_cur.close()
-    # pg_pool.putconn(pg_conn)
-    #
-    # logger.info("\t - GNAF points exported to CSV: {}".format( datetime.now() - start_time))
-    # start_time = datetime.now()
+    # ----------------------------------------------------------
+    # copy gnaf tables from Postgres to a CSV file - a one off
+    #   - export required fields only and no header
+    # ----------------------------------------------------------
 
-    # upload Sedona (geospark) JARs
+    pg_conn = pg_pool.getconn()
+    pg_cur = pg_conn.cursor()
+
+    sql = """COPY (
+                 SELECT longitude, latitude, gnaf_pid, state
+                 FROM gnaf_202008.{}
+             ) TO STDOUT WITH CSV"""
+
+    # address principals
+    with open(input_file_name, 'w') as csv_file:
+        pg_cur.copy_expert(sql.format("address_principals"), csv_file)
+
+    # address aliases
+    with open(input_file_name, 'a') as csv_file:
+        pg_cur.copy_expert(sql.format("address_aliases"), csv_file)
+
+    pg_cur.close()
+    pg_pool.putconn(pg_conn)
+
+    logger.info("\t - GNAF points exported to CSV: {}".format( datetime.now() - start_time))
+    start_time = datetime.now()
+
+    # ----------------------------------------------------------
+    # create Spark session and context
+    # ----------------------------------------------------------
+
+    # upload Apache Sedona JARs
     upload_jars()
 
     spark = (SparkSession
@@ -136,7 +136,7 @@ def main():
              .getOrCreate()
              )
 
-    # Register Apache Sedona (geospark) UDTs and UDFs
+    # Register Apache Sedona UDTs and UDFs
     GeoSparkRegistrator.registerAll(spark)
 
     sc = spark.sparkContext
@@ -144,30 +144,41 @@ def main():
     logger.info("\t - PySpark {} session initiated: {}".format(sc.version, datetime.now() - start_time))
     start_time = datetime.now()
 
-    offset = 0  # The point long/lat starts from Column 0
+    # ----------------------------------------------------------
+    # create GNAF point RDD
+    # ----------------------------------------------------------
+
+    offset = 0  # The point long/lat fields start at column 0
     carry_other_attributes = True  # include non-geo columns
 
     point_rdd = PointRDD(sc, os.path.join(output_path, input_file_name),
                          offset, FileDataSplitter.CSV, carry_other_attributes)
-
     point_rdd.analyze()
 
-    # add partitioning and indexing to RDDs
+    # add partitioning and indexing
     point_rdd.spatialPartitioning(GridType.KDBTREE)
     point_rdd.buildIndex(IndexType.RTREE, True)
 
+    # set Spark storage type - set to MEMORY_AND_DISK if low on memory
     point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
 
     logger.info("\t - GNAF points loaded: {}".format(datetime.now() - start_time))
-    # logger.info("\t - {} GNAF points loaded: {}".format(gnaf_df.count(), datetime.now() - start_time))
 
-    # get boundary tags
+    # ----------------------------------------------------------
+    # get boundary tags using spatial joins
+    # ----------------------------------------------------------
+
     for bdy in bdy_list:
         bdy_tag(spark, point_rdd, bdy)
 
     # point_rdd.unpersist()  # no such method on a SpatialRDD
 
-    # merge output DFs with GNAF
+    # ----------------------------------------------------------
+    # merge boundary tag dataframes with GNAF records
+    #   - required because spatial joins are INNER JOIN only,
+    #     need to add untagged GNAF points
+    # ----------------------------------------------------------
+
     start_time = datetime.now()
 
     # load gnaf points
@@ -188,25 +199,24 @@ def main():
         gnaf_df = join_bdy_tags(spark, bdy)
         gnaf_df.createOrReplaceTempView("pnt")
 
-    # create point geoms
+    # create point geoms for output to Postgres - in the PostGIS specific EWKT format
     final_df = gnaf_df.withColumn("geom", f.expr("concat('SRID=4326;POINT (', longitude, ' ', latitude, ')')")) \
         .drop("longitude") \
         .drop("latitude")
-
     # final_df.printSchema()
     # final_df.show(10, False)
 
     logger.info("\t - Boundary tags merged: {}".format(datetime.now() - start_time))
 
     # output result to Postgres
-    export_to_postgres(final_df, "testing2.gnaf_with_bdy_tags", os.path.join(output_path, "temp_gnaf_with_bdy_tags"))
-
-    # todo: delete temp csv files
+    export_to_postgres(final_df, "testing2.gnaf_with_bdy_tags",
+                       os.path.join(output_path, "temp_gnaf_with_bdy_tags"), True)
 
     # cleanup
     spark.stop()
 
 
+# add boundary tags to a copy of gnaf points
 def join_bdy_tags(spark, bdy):
 
     # open bdy df
@@ -226,6 +236,7 @@ def join_bdy_tags(spark, bdy):
     return join_df
 
 
+# boundary tag gnaf points
 def bdy_tag(spark, point_rdd, bdy):
     start_time = datetime.now()
 
@@ -236,15 +247,15 @@ def bdy_tag(spark, point_rdd, bdy):
     bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
     bdy_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)
 
-    # run the join
-    # returns [Geometry: Polygon userData: WA32       TANGNEY WA, [Geometry: Point userData: GAWA_146792426	WA, ...]]
+    # run the join - returns a PairRDD with 1 boundary to 1-N points
+    # e.g. [Geometry: Polygon userData: WA32       TANGNEY WA, [Geometry: Point userData: GAWA_146792426	WA, ...]]
     result_pair_rdd = JoinQuery.SpatialJoinQuery(point_rdd, bdy_rdd, True, True)
     # print(result_pair_rdd.take(1))
 
-    # flat map values to have one point to bdy match
+    # flat map values to have one point to bdy matched pair
     flat_mapped_rdd = result_pair_rdd.flatMapValues(lambda x: x)
 
-    # map values to create RDD row of point data and bdy ID
+    # map values to create RDD row of gnaf & bdy IDs, plus state data
     mapped_rdd = flat_mapped_rdd.map(
         lambda x: [x[1].getUserData().split("\t")[0],
                    x[1].getUserData().split("\t")[1],
@@ -256,6 +267,7 @@ def bdy_tag(spark, point_rdd, bdy):
     # for row in jim:
     #     print(row)
 
+    # convert result to a dataframe of the following shema
     schema = t.StructType([t.StructField("gnaf_pid", t.StringType(), False),
                            t.StructField("state", t.StringType(), False),
                            t.StructField(bdy["id"], t.StringType(), False),
@@ -266,9 +278,10 @@ def bdy_tag(spark, point_rdd, bdy):
     # join_df.printSchema()
     # join_df.show(10, False)
 
+    # save result to disk
     export_to_parquet(join_df, "gnaf_with_{}_with_index".format(bdy["name"]))
 
-    # num_joined_points = join_df.count()
+    # num_joined_points = join_df.count()  # this can be an expensive operation
 
     join_df.unpersist()
     mapped_rdd.unpersist()
@@ -319,7 +332,7 @@ def export_to_parquet(df, name):
 
 
 # exports a DataFrame to Postgres (via CSV files saved to disk)
-def export_to_postgres(df, table_name, csv_folder, partition_column=None):
+def export_to_postgres(df, table_name, csv_folder, delete_files, partition_column=None):
     start_time = datetime.now()
 
     # get Postgres connection & cursor
@@ -377,6 +390,11 @@ def export_to_postgres(df, table_name, csv_folder, partition_column=None):
         p.starmap(execute_copy, zip(file_list, repeat(table_name)))
 
     pg_cur.execute("ANALYSE {}".format(table_name))
+
+    # delete CSV files
+    if delete_files:
+        shutil.rmtree(csv_folder)
+
 
     logger.info("\t - exported CSV files to Postgres : {}".format(datetime.now() - start_time))
 
