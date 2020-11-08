@@ -41,10 +41,10 @@ from geospark.utils.adapter import Adapter
 # set number of parallel processes (sets number of Spark executors and Postgres concurrent connections)
 num_processors = cpu_count()
 
-# set postgres parameters
+# set Postgres parameters
 pg_settings = {'HOST': 'localhost', 'DB': 'geo', 'PORT': '5432', 'USER': 'postgres', 'PASS': 'password'}
 
-# create postgres JDBC url
+# create Postgres JDBC url
 jdbc_url = "jdbc:postgresql://{HOST}:{PORT}/{DB}".format(**pg_settings)
 
 # get connect string for psycopg2
@@ -61,8 +61,7 @@ input_file_name = os.path.join(output_path, "gnaf_light.csv")
 
 # list of input boundary Postgres tables
 bdy_list = [{"name": "commonwealth_electorates", "id": "ce_pid"}]
-# bdy_list = [{"name": "state_bdys", "id": "state_pid"},
-#             {"name": "commonwealth_electorates", "id": "ce_pid"},
+# bdy_list = [{"name": "commonwealth_electorates", "id": "ce_pid"},
 #             {"name": "local_government_areas", "id": "lga_pid"},
 #             {"name": "local_government_wards", "id": "ward_pid"},
 #             {"name": "state_lower_house_electorates", "id": "se_lower_pid"},
@@ -146,10 +145,10 @@ def main():
     # set Spark storage type - set to MEMORY_AND_DISK if low on memory
     point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
 
-    logger.info("\t - Partitioned and Indexed GNAF RDD Created: {}".format(datetime.now() - start_time))
+    logger.info("\t - Partitioned & Indexed GNAF RDD Created: {}".format(datetime.now() - start_time))
 
     # ----------------------------------------------------------
-    # get boundary tags using spatial joins
+    # get boundary tags using a spatial join
     # ----------------------------------------------------------
 
     for bdy in bdy_list:
@@ -179,6 +178,7 @@ def main():
 
     gnaf_df.createOrReplaceTempView("pnt")
 
+    # add bdy tags one bdy type at a time
     for bdy in bdy_list:
         gnaf_df = join_bdy_tags(spark, bdy)
         gnaf_df.createOrReplaceTempView("pnt")
@@ -220,7 +220,7 @@ def join_bdy_tags(spark, bdy):
     return join_df
 
 
-# boundary tag gnaf points
+# boundary tag gnaf points and save to a Parquet dataframe on disk
 def bdy_tag(spark, point_rdd, bdy):
     start_time = datetime.now()
 
@@ -267,6 +267,7 @@ def bdy_tag(spark, point_rdd, bdy):
 
     # num_joined_points = join_df.count()  # this can be an expensive operation
 
+    # cleanup datasets in memory
     join_df.unpersist()
     mapped_rdd.unpersist()
     flat_mapped_rdd.unpersist()
@@ -277,6 +278,7 @@ def bdy_tag(spark, point_rdd, bdy):
                 .format(bdy["name"], datetime.now() - start_time))
 
 
+# load bdy table from Postgres and create SpatialRDD from it
 def get_bdy_rdd(spark, bdy):
     # load boundaries from Postgres
     sql = """SELECT {}, name, state, st_astext(geom) as wkt_geom
@@ -298,6 +300,7 @@ def get_bdy_rdd(spark, bdy):
     return output_rdd
 
 
+# load a dataframe from a Postgres query
 def get_dataframe_from_postgres(spark, sql):
     df = spark.read.format("jdbc") \
         .option("url", jdbc_url) \
@@ -309,13 +312,14 @@ def get_dataframe_from_postgres(spark, sql):
     return df
 
 
+# export a dataframe to Parquet files
 def export_to_parquet(df, name):
     df.write.option("compression", "gzip") \
         .mode("overwrite") \
         .parquet(os.path.join(output_path, name))
 
 
-# exports a DataFrame to Postgres (via CSV files saved to disk)
+# export a DataFrame to Postgres (via CSV files saved to disk)
 def export_to_postgres(df, table_name, csv_folder, delete_files, partition_column=None):
     start_time = datetime.now()
 
@@ -378,7 +382,6 @@ def export_to_postgres(df, table_name, csv_folder, delete_files, partition_colum
     # delete CSV files
     if delete_files:
         shutil.rmtree(csv_folder)
-
 
     logger.info("\t - exported CSV files to Postgres : {}".format(datetime.now() - start_time))
 
