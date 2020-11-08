@@ -234,7 +234,7 @@ def bdy_tag(spark, point_rdd, bdy):
     bdy_rdd.analyze()
 
     bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
-    bdy_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)
+    # bdy_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)  # no need to persist(?) - used once
 
     # run the join - returns a PairRDD with 1 boundary to 1-N points
     # e.g. [Geometry: Polygon userData: WA32       TANGNEY WA, [Geometry: Point userData: GAWA_146792426	WA, ...]]
