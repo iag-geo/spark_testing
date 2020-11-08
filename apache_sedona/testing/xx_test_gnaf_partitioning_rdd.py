@@ -56,16 +56,15 @@ pg_pool = psycopg2.pool.SimpleConnectionPool(1, num_processors, local_pg_connect
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
-# gnaf csv file
-input_file_name = os.path.join(output_path, "gnaf_light.csv")
+# GNAF csv file
+gnaf_csv_file_path = os.path.join(output_path, "gnaf_light.csv")
 
 # list of input boundary Postgres tables
-bdy_list = [{"name": "commonwealth_electorates", "id": "ce_pid"}]
-# bdy_list = [{"name": "commonwealth_electorates", "id": "ce_pid"},
-#             {"name": "local_government_areas", "id": "lga_pid"},
-#             {"name": "local_government_wards", "id": "ward_pid"},
-#             {"name": "state_lower_house_electorates", "id": "se_lower_pid"},
-#             {"name": "state_upper_house_electorates", "id": "se_upper_pid"}]
+bdy_list = [{"name": "commonwealth_electorates", "id": "ce_pid"},
+            {"name": "local_government_areas", "id": "lga_pid"},
+            {"name": "local_government_wards", "id": "ward_pid"},
+            {"name": "state_lower_house_electorates", "id": "se_lower_pid"},
+            {"name": "state_upper_house_electorates", "id": "se_upper_pid"}]
 
 
 def main():
@@ -85,17 +84,17 @@ def main():
              ) TO STDOUT WITH CSV"""
 
     # address principals
-    with open(input_file_name, 'w') as csv_file:
+    with open(gnaf_csv_file_path, 'w') as csv_file:
         pg_cur.copy_expert(sql.format("address_principals"), csv_file)
 
-    # address aliases
-    with open(input_file_name, 'a') as csv_file:
+    # append address aliases
+    with open(gnaf_csv_file_path, 'a') as csv_file:
         pg_cur.copy_expert(sql.format("address_aliases"), csv_file)
 
     pg_cur.close()
     pg_pool.putconn(pg_conn)
 
-    logger.info("\t - GNAF points exported to CSV: {}".format( datetime.now() - start_time))
+    logger.info("\t - GNAF points exported to CSV: {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
     # ----------------------------------------------------------
@@ -128,13 +127,13 @@ def main():
     start_time = datetime.now()
 
     # ----------------------------------------------------------
-    # create GNAF point RDD
+    # create GNAF PointRDD from CSV file
     # ----------------------------------------------------------
 
     offset = 0  # The point long/lat fields start at column 0
     carry_other_attributes = True  # include non-geo columns
 
-    point_rdd = PointRDD(sc, os.path.join(output_path, input_file_name),
+    point_rdd = PointRDD(sc, os.path.join(output_path, gnaf_csv_file_path),
                          offset, FileDataSplitter.CSV, carry_other_attributes)
     point_rdd.analyze()
 
@@ -145,7 +144,7 @@ def main():
     # set Spark storage type - set to MEMORY_AND_DISK if low on memory
     point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
 
-    logger.info("\t - Partitioned & Indexed GNAF RDD Created: {}".format(datetime.now() - start_time))
+    logger.info("\t - Partitioned & Indexed GNAF RDD created: {}".format(datetime.now() - start_time))
 
     # ----------------------------------------------------------
     # get boundary tags using a spatial join
@@ -164,11 +163,11 @@ def main():
 
     start_time = datetime.now()
 
-    # load gnaf points
+    # create gnaf dataframe and SQL view
     gnaf_df = spark.read \
         .option("header", False) \
         .option("inferSchema", True) \
-        .csv(input_file_name) \
+        .csv(gnaf_csv_file_path) \
         .withColumnRenamed("_C0", "longitude") \
         .withColumnRenamed("_C1", "latitude") \
         .withColumnRenamed("_C2", "gnaf_pid") \
@@ -178,12 +177,12 @@ def main():
 
     gnaf_df.createOrReplaceTempView("pnt")
 
-    # add bdy tags one bdy type at a time
+    # add bdy tags, one bdy type at a time
     for bdy in bdy_list:
         gnaf_df = join_bdy_tags(spark, bdy)
         gnaf_df.createOrReplaceTempView("pnt")
 
-    # create point geoms for output to Postgres - in the PostGIS specific EWKT format
+    # add point geoms for output to Postgres - in the PostGIS specific EWKT format
     final_df = gnaf_df.withColumn("geom", f.expr("concat('SRID=4326;POINT (', longitude, ' ', latitude, ')')")) \
         .drop("longitude") \
         .drop("latitude")
@@ -204,7 +203,7 @@ def main():
 def join_bdy_tags(spark, bdy):
 
     # open bdy df
-    bdy_tag_df = spark.read.parquet(os.path.join(output_path, "gnaf_with_{}_with_index".format(bdy["name"])))
+    bdy_tag_df = spark.read.parquet(os.path.join(output_path, "gnaf_with_{}".format(bdy["name"])))
     bdy_tag_df.createOrReplaceTempView("bdy_tag")
 
     sql = """SELECT pnt.*,
@@ -263,7 +262,7 @@ def bdy_tag(spark, point_rdd, bdy):
     # join_df.show(10, False)
 
     # save result to disk
-    export_to_parquet(join_df, "gnaf_with_{}_with_index".format(bdy["name"]))
+    export_to_parquet(join_df, "gnaf_with_{}".format(bdy["name"]))
 
     # num_joined_points = join_df.count()  # this can be an expensive operation
 
