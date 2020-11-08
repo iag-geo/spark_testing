@@ -1,5 +1,5 @@
 
-# script to load gnaf points and psma boundaries from Postgres to test Apache Sedona spatial join query performance
+# script to load gnaf points & psma boundaries from Postgres to test Apache Sedona spatial join performance
 
 import glob
 import logging
@@ -38,33 +38,17 @@ from geospark.utils.adapter import Adapter
 # os.environ["PYSPARK_DRIVER_PYTHON"]="/Users/hugh.saalmans/opt/miniconda3/envs/geospark3_env/bin/python"
 # os.environ["PYLIB"]="${SPARK_HOME_DIR}/python/lib"
 
+# set number of parallel processes (sets number of Spark executors and Postgres concurrent connections)
 num_processors = cpu_count()
 
-
-# get postgres parameters from local text file
-# format per connection is:  server_name := HOST|hostname,DB|database,PORT|port_number,USER|username,PASS|password
-def get_password(connection_name):
-    passwords_file_path = os.path.join(os.environ["GIT_HOME"], "passwords.ini")
-
-    if os.path.exists(passwords_file_path):
-        passwords_file = open(passwords_file_path, 'r').read().splitlines()
-        passwords_file = [i for i in passwords_file if len(i) != 0]  # remove empty lines
-        passwords_file = [i for i in passwords_file if i[0] != "#"]  # remove comment lines
-
-        params = dict()
-        for ini in passwords_file:
-            params[ini.split()[0].rstrip().lstrip()] = ini.split(':=')[1].rstrip().lstrip()
-
-        return dict(item.split("|") for item in params[connection_name].split(","))
-
-
-local_pg_settings = get_password("localhost_super")
+# set postgres parameters
+pg_settings = {'HOST': 'localhost', 'DB': 'geo', 'PORT': '5432', 'USER': 'postgres', 'PASS': 'password'}
 
 # create postgres JDBC url
-jdbc_url = "jdbc:postgresql://{HOST}:{PORT}/{DB}".format(**local_pg_settings)
+jdbc_url = "jdbc:postgresql://{HOST}:{PORT}/{DB}".format(**pg_settings)
 
 # get connect string for psycopg2
-local_pg_connect_string = "dbname={DB} host={HOST} port={PORT} user={USER} password={PASS}".format(**local_pg_settings)
+local_pg_connect_string = "dbname={DB} host={HOST} port={PORT} user={USER} password={PASS}".format(**pg_settings)
 
 # create Postgres connection pool
 pg_pool = psycopg2.pool.SimpleConnectionPool(1, num_processors, local_pg_connect_string)
@@ -162,7 +146,7 @@ def main():
     # set Spark storage type - set to MEMORY_AND_DISK if low on memory
     point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
 
-    logger.info("\t - GNAF points loaded: {}".format(datetime.now() - start_time))
+    logger.info("\t - Partitioned and Indexed GNAF RDD Created: {}".format(datetime.now() - start_time))
 
     # ----------------------------------------------------------
     # get boundary tags using spatial joins
@@ -318,8 +302,8 @@ def get_dataframe_from_postgres(spark, sql):
     df = spark.read.format("jdbc") \
         .option("url", jdbc_url) \
         .option("query", sql) \
-        .option("properties", local_pg_settings["USER"]) \
-        .option("password", local_pg_settings["PASS"]) \
+        .option("properties", pg_settings["USER"]) \
+        .option("password", pg_settings["PASS"]) \
         .option("driver", "org.postgresql.Driver") \
         .load()
     return df
