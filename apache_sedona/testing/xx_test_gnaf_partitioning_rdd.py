@@ -144,7 +144,7 @@ def main():
     # set Spark storage type - set to MEMORY_AND_DISK if low on memory
     point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
 
-    logger.info("\t - Partitioned & Indexed GNAF RDD created: {}".format(datetime.now() - start_time))
+    logger.info("\t - GNAF RDD created: {}".format(datetime.now() - start_time))
 
     # ----------------------------------------------------------
     # get boundary tags using a spatial join
@@ -279,7 +279,7 @@ def bdy_tag(spark, point_rdd, bdy):
     result_pair_rdd.unpersist()
     # bdy_rdd.unpersist()  # no method for SpatialRDD
 
-    logger.info("\t - GNAF points boundary tagged with {}: {}"
+    logger.info("\t - GNAF points bdy tagged with {}: {}"
                 .format(bdy["name"], datetime.now() - start_time))
 
 
@@ -328,6 +328,8 @@ def export_to_parquet(df, name):
 def export_to_postgres(df, table_name, csv_folder, delete_files, partition_column=None):
     start_time = datetime.now()
 
+    logger.info("\t - Exporting bdy tag dataframe to Postgres : {}")
+
     # get Postgres connection & cursor
     pg_conn = pg_pool.getconn()
     pg_conn.autocommit = True
@@ -345,7 +347,7 @@ def export_to_postgres(df, table_name, csv_folder, delete_files, partition_colum
 
     # logger.info("exported dataframe to {:,} CSV files : {}"
     #     .format(num_partitions, datetime.now() - start_time))
-    logger.info("\t - exported DataFrame to CSV files : {}".format(datetime.now() - start_time))
+    logger.info("\t\t - exported DataFrame to CSV files : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
     # create table
@@ -388,7 +390,7 @@ def export_to_postgres(df, table_name, csv_folder, delete_files, partition_colum
     if delete_files:
         shutil.rmtree(csv_folder)
 
-    logger.info("\t - exported CSV files to Postgres : {}".format(datetime.now() - start_time))
+    logger.info("\t\t - exported CSV files to Postgres : {}".format(datetime.now() - start_time))
 
 
 def execute_copy(file_name, table_name):
