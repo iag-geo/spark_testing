@@ -53,7 +53,7 @@ echo "-------------------------------------------------------------------------"
 cd ${HOME}
 
 # download and untar Spark files
-wget https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
+wget https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
 tar -xzf spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
 rm spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
 
