@@ -41,7 +41,7 @@ SPARK_VERSION="2.4.6"
 # get directory this script is running from
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-SPARK_HOME_DIR="${HOME}/spark-${SPARK_VERSION}-bin-hadoop2.7"
+SPARK_HOME_DIR="${HOME}/spark-${SPARK_VERSION}-with-sedona"
 
 # WARNING - remove existing spark install
 rm -r ${SPARK_HOME_DIR}
@@ -50,11 +50,12 @@ echo "-------------------------------------------------------------------------"
 echo "Downloading and Installing Apache Spark"
 echo "-------------------------------------------------------------------------"
 
-cd ${HOME}
+mkdir ${SPARK_HOME_DIR}
+cd ${SPARK_HOME_DIR}
 
 # download and untar Spark files
 wget https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
-tar -xzf spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
+tar -xzf spark-${SPARK_VERSION}-bin-hadoop2.7.tgz --directory ${SPARK_HOME_DIR} --strip-components=1
 rm spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
@@ -63,6 +64,8 @@ wget https://jdbc.postgresql.org/download/postgresql-42.2.18.jar
 
 # create folder for Spark temp files
 mkdir -p ${HOME}/tmp/spark
+
+cd ${HOME}
 
 echo "-------------------------------------------------------------------------"
 echo "Creating new Conda Environment 'geospark_env'"
