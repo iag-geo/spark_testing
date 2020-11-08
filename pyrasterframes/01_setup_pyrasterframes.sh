@@ -31,10 +31,11 @@ echo " Start time : $(date)"
 #
 # SETUP:
 #   - edit these if you know what versions go with what version!?
-#       - for the current version of PyRasterFrames (0.9.0) and Conda: only Python 3.7 & Spark 2.4.6 are a valid combo
+#       - for the current version of PyRasterFrames (0.9.0) and Conda: only Python 3.7 & Spark 2.4.5 are a valid combo
 
 PYTHON_VERSION="3.7"
-SPARK_VERSION="2.4.6"
+GDAL_VERSION="2.4.4"
+SPARK_VERSION="2.4.5"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -101,8 +102,8 @@ conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 conda activate pyrasterframes_env
 
 # install packages for PyRasterFrames
-echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} pyrasterframes psycopg2 jupyter matplotlib
-#pip install pyrasterframes
+echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} gdal=${GDAL_VERSION} psycopg2 jupyter matplotlib
+pip install pyrasterframes
 
 echo "-------------------------------------------------------------------------"
 echo "Verify PyRasterFrames version"
