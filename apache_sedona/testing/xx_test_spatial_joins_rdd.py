@@ -60,6 +60,7 @@ output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 gnaf_csv_file_path = os.path.join(output_path, "gnaf_light.csv")
 
 # list of input boundary Postgres tables
+# bdy_list = [{"name": "commonwealth_electorates", "id": "ce_pid"}]
 bdy_list = [{"name": "commonwealth_electorates", "id": "ce_pid"},
             {"name": "local_government_areas", "id": "lga_pid"},
             {"name": "local_government_wards", "id": "ward_pid"},
@@ -120,6 +121,12 @@ def main():
 
     # Register Apache Sedona UDTs and UDFs
     GeoSparkRegistrator.registerAll(spark)
+
+    # set Sedona spatial indexing and partitioning config in Spark session
+    # (no effect on the "small" spatial join query in this script. Will improve bigger queries)
+    spark.conf.set("geospark.global.index", "true")
+    spark.conf.set("geospark.global.indextype", "rtree")
+    spark.conf.set("geospark.join.gridtype", "kdbtree")
 
     sc = spark.sparkContext
 

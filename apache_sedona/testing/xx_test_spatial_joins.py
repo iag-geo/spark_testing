@@ -89,6 +89,12 @@ def main():
     # Register Apache Sedona (geospark) UDTs and UDFs
     GeoSparkRegistrator.registerAll(spark)
 
+    # set Sedona spatial indexing and partitioning config in Spark session
+    # (no effect on the "small" spatial join query in this script. Will improve bigger queries)
+    spark.conf.set("geospark.global.index", "true")
+    spark.conf.set("geospark.global.indextype", "rtree")
+    spark.conf.set("geospark.join.gridtype", "kdbtree")
+
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
 

@@ -9,8 +9,9 @@ from datetime import datetime
 from multiprocessing import cpu_count
 
 from pyspark.sql import SparkSession
-from geospark.register import upload_jars, GeoSparkRegistrator
-from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
+from pyrasterframes.utils import find_pyrasterframes_assembly
+from pyrasterframes import rasterfunctions as rf_funcs
+from pyrasterframes import rf_types
 
 # # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 # # set Conda environment vars for PySpark
@@ -25,40 +26,33 @@ from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
 input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
 # number of CPUs to use in processing (defaults to 2x local CPUs)
-num_processors = cpu_count() * 2
+num_processors = cpu_count()
+
+# create coordinate reference system for spatial operations
+wgs84_crs = rf_funcs.rf_mk_crs("EPSG:4326")
 
 
 def main():
     start_time = datetime.now()
 
-    # upload Sedona (geospark) JARs
-    # theoretically only need to do this once
-    upload_jars()
+    # reference PyRasterFrames JARs
+    rf_jar = find_pyrasterframes_assembly()
 
     spark = (SparkSession
              .builder
              .master("local[*]")
              .appName("query")
+             .config("spark.jars", rf_jar)
              .config("spark.sql.session.timeZone", "UTC")
              .config("spark.sql.debug.maxToStringFields", 100)
-             .config("spark.serializer", KryoSerializer.getName)
-             .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.executor.cores", 1)
              .config("spark.cores.max", num_processors)
              .config("spark.driver.memory", "8g")
              .config("spark.driver.maxResultSize", "1g")
-             .getOrCreate()
-             )
-
-    # Register Apache Sedona (geospark) UDTs and UDFs
-    GeoSparkRegistrator.registerAll(spark)
-
-    # set Sedona spatial indexing and partitioning config in Spark session
-    # (no effect on the "small" spatial join query in this script. Will improve bigger queries)
-    spark.conf.set("geospark.global.index", "true")
-    spark.conf.set("geospark.global.indextype", "rtree")
-    spark.conf.set("geospark.join.gridtype", "kdbtree")
+             .withKryoSerialization()
+             .getOrCreate()) \
+        .withRasterFrames()
 
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
@@ -68,20 +62,18 @@ def main():
     # bdy_wkt_df.printSchema()
     # bdy_wkt_df.show(5)
 
-    # create view to enable SQL queries
-    bdy_wkt_df.createOrReplaceTempView("bdy_wkt")
-
     # create geometries from WKT strings into new DataFrame
     # new DF will be spatially indexed automatically
-    bdy_df = spark.sql("select bdy_id, st_geomFromWKT(wkt_geom) as geometry from bdy_wkt")
+    bdy_df = bdy_wkt_df.withColumn("geom", rf_funcs.st_geomFromWKT("wkt_geom")) \
+        .drop("wkt_geom") \
+        .withColumn("geom_index", rf_funcs.rf_xz2_index("geom", wgs84_crs, 12)) \
+        .repartition("geom_index") \
+        .cache()
 
     # repartition and cache for performance (no effect on the "small" spatial join query here)
     # bdy_df.repartition(spark.sparkContext.defaultParallelism).cache().count()
-    # bdy_df.printSchema()
-    # bdy_df.show(5)
-
-    # create view to enable SQL queries
-    bdy_df.createOrReplaceTempView("bdy")
+    bdy_df.printSchema()
+    bdy_df.show(5)
 
     logger.info("\t - Loaded and spatially enabled {:,} boundaries: {}"
                 .format(bdy_df.count(), datetime.now() - start_time))
@@ -92,23 +84,17 @@ def main():
     # point_wkt_df.printSchema()
     # point_wkt_df.show(5)
 
-    # create view to enable SQL queries
-    point_wkt_df.createOrReplaceTempView("point_wkt")
-
-    # create geometries from lat/long fields into new DataFrame
-    # new DF will be spatially indexed automatically
-    sql = """select point_id, 
-                    st_point(cast(longitude as decimal(9, 6)), cast(latitude as decimal(8, 6))) as geometry
-             from point_wkt"""
-    point_df = spark.sql(sql)
+    # create point geometries from lat/long fields into new DataFrame
+    point_df = point_wkt_df.withColumn("geom", rf_funcs.st_makePoint("longitude", "latitude")) \
+        .drop("wkt_geom") \
+        .withColumn("geom_index", rf_funcs.rf_z2_index("geom", wgs84_crs, 12)) \
+        .repartition("geom_index") \
+        .cache()
 
     # repartition and cache for performance (no effect on the "small" spatial join query here)
     # point_df.repartition(spark.sparkContext.defaultParallelism).cache().count()
-    # point_df.printSchema()
-    # point_df.show(5)
-
-    # create view to enable SQL queries
-    point_df.createOrReplaceTempView("pnt")
+    point_df.printSchema()
+    point_df.show(5)
 
     logger.info("\t - Loaded and spatially enabled {:,} points: {}"
                 .format(point_df.count(), datetime.now() - start_time))
@@ -116,14 +102,8 @@ def main():
 
     # run spatial join to boundary tag the points
     # notes:
-    #   - spatial partitions and indexes for join will be created automatically
     #   - it's an inner join so point records could be lost
-    sql = """SELECT pnt.point_id,
-                    bdy.bdy_id, 
-                    pnt.geometry
-             FROM pnt
-             INNER JOIN bdy ON ST_Intersects(pnt.geometry, bdy.geometry)"""
-    join_df = spark.sql(sql)
+    join_df = point_df.join(bdy_df, rf_funcs.st_intersects(point_df.geom, bdy_df.geom))
     # join_df.explain()
 
     # # output join DataFrame
