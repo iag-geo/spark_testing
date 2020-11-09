@@ -51,8 +51,8 @@ def main():
              .config("spark.driver.memory", "8g")
              .config("spark.driver.maxResultSize", "1g")
              .withKryoSerialization()
-             .getOrCreate()) \
-        .withRasterFrames()
+             .getOrCreate()
+        .withRasterFrames())
 
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
