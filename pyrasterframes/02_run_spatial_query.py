@@ -28,9 +28,6 @@ input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 # number of CPUs to use in processing (defaults to 2x local CPUs)
 num_processors = cpu_count()
 
-# create coordinate reference system for spatial operations
-wgs84_crs = rf_funcs.rf_mk_crs("EPSG:4326")
-
 
 def main():
     start_time = datetime.now()
@@ -52,10 +49,14 @@ def main():
              .config("spark.driver.maxResultSize", "1g")
              .withKryoSerialization()
              .getOrCreate()
-        .withRasterFrames())
+             .withRasterFrames()
+             )
 
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
+
+    # create coordinate reference system for spatial operations
+    wgs84_crs = rf_funcs.rf_mk_crs("EPSG:4326")
 
     # load boundaries (geometries are Well Known Text strings)
     bdy_wkt_df = spark.read.parquet(os.path.join(input_path, "boundaries"))
@@ -64,16 +65,15 @@ def main():
 
     # create geometries from WKT strings into new DataFrame
     # new DF will be spatially indexed automatically
-    bdy_df = bdy_wkt_df.withColumn("geom", rf_funcs.st_geomFromWKT("wkt_geom")) \
+    bdy_df = bdy_wkt_df.withColumn("geom", rf_funcs.st_polygonFromText("wkt_geom")) \
         .drop("wkt_geom") \
-        .withColumn("geom_index", rf_funcs.rf_xz2_index("geom", wgs84_crs, 12)) \
-        .repartition("geom_index") \
-        .cache()
+        .withColumn("geom_index", rf_funcs.rf_xz2_index("geom", wgs84_crs, 18)) \
+        .repartition("geom_index")
 
     # repartition and cache for performance (no effect on the "small" spatial join query here)
     # bdy_df.repartition(spark.sparkContext.defaultParallelism).cache().count()
-    bdy_df.printSchema()
-    bdy_df.show(5)
+    # bdy_df.printSchema()
+    # bdy_df.show(5)
 
     logger.info("\t - Loaded and spatially enabled {:,} boundaries: {}"
                 .format(bdy_df.count(), datetime.now() - start_time))
@@ -87,14 +87,13 @@ def main():
     # create point geometries from lat/long fields into new DataFrame
     point_df = point_wkt_df.withColumn("geom", rf_funcs.st_makePoint("longitude", "latitude")) \
         .drop("wkt_geom") \
-        .withColumn("geom_index", rf_funcs.rf_z2_index("geom", wgs84_crs, 12)) \
-        .repartition("geom_index") \
-        .cache()
+        .withColumn("geom_index", rf_funcs.rf_z2_index("geom", wgs84_crs, 18)) \
+        .repartition("geom_index")
 
     # repartition and cache for performance (no effect on the "small" spatial join query here)
     # point_df.repartition(spark.sparkContext.defaultParallelism).cache().count()
-    point_df.printSchema()
-    point_df.show(5)
+    # point_df.printSchema()
+    # point_df.show(5)
 
     logger.info("\t - Loaded and spatially enabled {:,} points: {}"
                 .format(point_df.count(), datetime.now() - start_time))
