@@ -394,7 +394,7 @@ def export_to_postgres(df, table_name, csv_folder, delete_files, partition_colum
     pg_cur.execute("ANALYSE {}".format(table_name))
 
     # add index on gnaf_pid
-    sql = """CREATE INDEX {}_gnaf_pid_idx ON {}""".format(table_name.split(".")[1], table_name)
+    sql = """CREATE INDEX {}_gnaf_pid_idx ON {} USING btree (gnaf_pid)""".format(table_name.split(".")[1], table_name)
     pg_cur.execute(sql)
 
     # delete CSV files
