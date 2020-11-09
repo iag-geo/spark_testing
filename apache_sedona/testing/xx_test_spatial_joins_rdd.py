@@ -60,12 +60,12 @@ output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 gnaf_csv_file_path = os.path.join(output_path, "gnaf_light.csv")
 
 # list of input boundary Postgres tables
-# bdy_list = [{"name": "commonwealth_electorates", "id": "ce_pid"}]
-bdy_list = [{"name": "commonwealth_electorates", "id": "ce_pid"},
-            {"name": "local_government_areas", "id": "lga_pid"},
-            {"name": "local_government_wards", "id": "ward_pid"},
-            {"name": "state_lower_house_electorates", "id": "se_lower_pid"},
-            {"name": "state_upper_house_electorates", "id": "se_upper_pid"}]
+# bdy_list = [{"name": "commonwealth_electorates", "id_field": "ce_pid", "name_field": "ce_name"}]
+bdy_list = [{"name": "commonwealth_electorates", "id_field": "ce_pid", "name_field": "ce_name"},
+            {"name": "local_government_areas", "id_field": "lga_pid", "name_field": "lga_name"},
+            {"name": "local_government_wards", "id_field": "ward_pid", "name_field": "ward_name"},
+            {"name": "state_lower_house_electorates", "id_field": "se_lower_pid", "name_field": "se_lower_name"},
+            {"name": "state_upper_house_electorates", "id_field": "se_upper_pid", "name_field": "se_upper_name"}]
 
 
 def main():
@@ -80,7 +80,7 @@ def main():
     pg_cur = pg_conn.cursor()
 
     sql = """COPY (
-                 SELECT longitude, latitude, gnaf_pid, state
+                 SELECT longitude, latitude, gnaf_pid, locality_pid, locality_name, postcode, state
                  FROM gnaf_202008.{}
              ) TO STDOUT WITH CSV"""
 
@@ -175,10 +175,13 @@ def main():
         .option("header", False) \
         .option("inferSchema", True) \
         .csv(gnaf_csv_file_path) \
-        .withColumnRenamed("_C0", "longitude") \
-        .withColumnRenamed("_C1", "latitude") \
+        .drop("_C0") \
+        .drop("_C1") \
         .withColumnRenamed("_C2", "gnaf_pid") \
-        .withColumnRenamed("_C3", "state")
+        .withColumnRenamed("_C3", "locality_pid") \
+        .withColumnRenamed("_C4", "locality_name") \
+        .withColumnRenamed("_C5", "postcode") \
+        .withColumnRenamed("_C6", "state")
     # gnaf_df.printSchema()
     # gnaf_df.show(10, False)
 
@@ -189,17 +192,17 @@ def main():
         gnaf_df = join_bdy_tags(spark, bdy)
         gnaf_df.createOrReplaceTempView("pnt")
 
-    # add point geoms for output to Postgres - in the PostGIS specific EWKT format
-    final_df = gnaf_df.withColumn("geom", f.expr("concat('SRID=4326;POINT (', longitude, ' ', latitude, ')')")) \
-        .drop("longitude") \
-        .drop("latitude")
-    # final_df.printSchema()
-    # final_df.show(10, False)
+    # # add point geoms for output to Postgres - in the PostGIS specific EWKT format
+    # final_df = gnaf_df.withColumn("geom", f.expr("concat('SRID=4326;POINT (', longitude, ' ', latitude, ')')")) \
+    #     .drop("longitude") \
+    #     .drop("latitude")
+    # # final_df.printSchema()
+    # # final_df.show(10, False)
 
     logger.info("\t - Boundary tags merged: {}".format(datetime.now() - start_time))
 
     # output result to Postgres
-    export_to_postgres(final_df, "testing2.gnaf_with_bdy_tags",
+    export_to_postgres(gnaf_df, "testing2.gnaf_with_bdy_tags",
                        os.path.join(output_path, "temp_gnaf_with_bdy_tags"), True)
 
     # cleanup
@@ -224,7 +227,7 @@ def join_bdy_tags(spark, bdy):
                         bdy_tag.{}
                  FROM pnt
                      LEFT OUTER JOIN bdy_tag ON pnt.gnaf_pid = bdy_tag.gnaf_pid""" \
-        .format(bdy["id"], bdy["id"].replace("_pid", "_state"))
+        .format(bdy["id_field"], bdy["name_field"])
     join_df = spark.sql(sql)
 
     bdy_tag_df.unpersist()
@@ -254,10 +257,8 @@ def bdy_tag(spark, point_rdd, bdy):
     # map values to create RDD row of gnaf & bdy IDs, plus state data
     mapped_rdd = flat_mapped_rdd.map(
         lambda x: [x[1].getUserData().split("\t")[0],
-                   x[1].getUserData().split("\t")[1],
                    x[0].getUserData().split("\t")[0],
-                   x[0].getUserData().split("\t")[2]]
-        # x[1].geom]
+                   x[0].getUserData().split("\t")[1]]
     )
     # jim = mapped_rdd.take(10)
     # for row in jim:
@@ -265,10 +266,8 @@ def bdy_tag(spark, point_rdd, bdy):
 
     # convert result to a dataframe of the following shema
     schema = t.StructType([t.StructField("gnaf_pid", t.StringType(), False),
-                           t.StructField("state", t.StringType(), False),
-                           t.StructField(bdy["id"], t.StringType(), False),
-                           t.StructField(bdy["id"].replace("_pid", "_state"), t.StringType(), False)])
-    # t.StructField('geom', GeometryType(), True)])
+                           t.StructField(bdy["id_field"], t.StringType(), False),
+                           t.StructField(bdy["name_field"], t.StringType(), False)])
 
     join_df = spark.createDataFrame(mapped_rdd, schema)
     # join_df.printSchema()
@@ -293,8 +292,8 @@ def bdy_tag(spark, point_rdd, bdy):
 # load bdy table from Postgres and create SpatialRDD from it
 def get_bdy_rdd(spark, bdy):
     # load boundaries from Postgres
-    sql = """SELECT {}, name, state, st_astext(geom) as wkt_geom
-             FROM admin_bdys_202008.{}_analysis""".format(bdy["id"], bdy["name"])
+    sql = """SELECT {}, name as {}, st_astext(geom) as wkt_geom
+             FROM admin_bdys_202008.{}_analysis""".format(bdy["id_field"], bdy["name_field"], bdy["name"])
     bdy_df = get_dataframe_from_postgres(spark, sql)
 
     # create geometries from WKT strings into new DataFrame
@@ -361,19 +360,20 @@ def export_to_postgres(df, table_name, csv_folder, delete_files, partition_colum
     field_list = list()
 
     for bdy in bdy_list:
-        field_list.append(bdy["id"] + " text")
-        field_list.append(bdy["id"].replace("_pid", "_state") + " text")
+        field_list.append(bdy["id_field"] + " text")
+        field_list.append(bdy["name_field"] + " text")
 
     sql = """DROP TABLE IF EXISTS {0};
              CREATE TABLE {0}
              (
                  gnaf_pid text NOT NULL,
+                 locality_pid text,
+                 locality_name text,
+                 postcode text,
                  state text NOT NULL,
-                 {1},
-                 geom geometry(Point, 4326, 2) NOT NULL
+                 {1}
              );
              ALTER TABLE {0} OWNER to postgres""".format(table_name, ",".join(field_list))
-
     pg_cur.execute(sql)
     # pg_cur.execute("TRUNCATE TABLE {}".format(table_name))
 
@@ -392,6 +392,10 @@ def export_to_postgres(df, table_name, csv_folder, delete_files, partition_colum
         p.starmap(execute_copy, zip(file_list, repeat(table_name)))
 
     pg_cur.execute("ANALYSE {}".format(table_name))
+
+    # add index on gnaf_pid
+    sql = """CREATE INDEX {}_gnaf_pid_idx ON {}""".format(table_name.split(".")[1], table_name)
+    pg_cur.execute(sql)
 
     # delete CSV files
     if delete_files:
