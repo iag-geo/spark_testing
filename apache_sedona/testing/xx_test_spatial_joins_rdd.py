@@ -122,11 +122,11 @@ def main():
     # Register Apache Sedona UDTs and UDFs
     GeoSparkRegistrator.registerAll(spark)
 
-    # set Sedona spatial indexing and partitioning config in Spark session
-    # (no effect on the "small" spatial join query in this script. Will improve bigger queries)
-    spark.conf.set("geospark.global.index", "true")
-    spark.conf.set("geospark.global.indextype", "rtree")
-    spark.conf.set("geospark.join.gridtype", "kdbtree")
+    # # set Sedona spatial indexing and partitioning config in Spark session
+    # # (no effect on the "small" spatial join query in this script. Will improve bigger queries)
+    # spark.conf.set("geospark.global.index", "true")
+    # spark.conf.set("geospark.global.indextype", "rtree")
+    # spark.conf.set("geospark.join.gridtype", "kdbtree")
 
     sc = spark.sparkContext
 
@@ -208,11 +208,11 @@ def main():
     # cleanup
     spark.stop()
 
-    # # optionally delete intermediate bdy tag files and GNAF csv file
-    # for bdy in bdy_list:
-    #     shutil.rmtree(os.path.join(output_path, "gnaf_with_{}".format(bdy["name"])))
-    #
-    # os.remove(gnaf_csv_file_path)
+    # delete intermediate bdy tag files and GNAF csv file
+    for bdy in bdy_list:
+        shutil.rmtree(os.path.join(output_path, "gnaf_with_{}".format(bdy["name"])))
+
+    os.remove(gnaf_csv_file_path)
 
 
 # add boundary tags to a copy of gnaf points
