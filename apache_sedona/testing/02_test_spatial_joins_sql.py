@@ -89,16 +89,19 @@ def main():
     # Register Apache Sedona (geospark) UDTs and UDFs
     GeoSparkRegistrator.registerAll(spark)
 
-    # set Sedona spatial indexing and partitioning config in Spark session
-    # (no effect on the "small" spatial join query in this script. Will improve bigger queries)
-    spark.conf.set("geospark.global.index", "true")
-    spark.conf.set("geospark.global.indextype", "rtree")
-    spark.conf.set("geospark.join.gridtype", "kdbtree")
+    # # set Sedona spatial indexing and partitioning config in Spark session
+    # # (slowed down the "small" spatial join query in this script. Might improve bigger queries)
+    # spark.conf.set("geospark.global.index", "true")
+    # spark.conf.set("geospark.global.indextype", "rtree")
+    # spark.conf.set("geospark.join.gridtype", "kdbtree")
+    # spark.conf.set("ggeospark.join.numpartition", "-1")
+    # spark.conf.set("geospark.join.indexbuildside", "right")
+    # spark.conf.set("geospark.join.spatitionside", "right")
 
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
 
-    # load gnaf points and create geoms
+    # # load gnaf points and create geoms
     # df = spark.read \
     #     .option("header", True) \
     #     .option("inferSchema", True) \
@@ -126,29 +129,30 @@ def main():
     # tag_df.printSchema()
 
     point_df = spark.read.parquet(os.path.join(output_path, "gnaf_with_{}".format("commonwealth_electorates")))
-    point_df.createOrReplaceTempView("pnt")
 
-    bdy_tag(spark, "local_government_areas", "lga_pid")
-    # tag_df2.printSchema()
-
-    point_df.unpersist()
-
-    point_df = spark.read.parquet(os.path.join(output_path, "gnaf_with_{}".format("local_government_areas")))
     # point_df.createOrReplaceTempView("pnt")
 
-    # bdy_tag(spark, "local_government_wards", "ward_pid")
-    # bdy_tag(spark, "state_lower_house_electorates", "se_lower_pid")
-    # bdy_tag(spark, "state_upper_house_electorates", "se_upper_pid")
+    # bdy_tag(spark, "local_government_areas", "lga_pid")
+    # tag_df2.printSchema()
 
-    bdy_ids = "ce_pid text, lga_pid text"
-
-    final_df = point_df.withColumn("wkt_geom", f.expr("concat('SRID=4326;POINT (', st_x(geom), ' ', st_y(geom), ')')"))\
-        .drop("geom")
-    # final_df.printSchema()
-
-    # output to postgres, via CSV
-    table_name = "gnaf_with_bdy_tags"
-    export_to_postgres(final_df, "testing2.{}".format(table_name), bdy_ids, os.path.join(output_path, table_name))
+    # point_df.unpersist()
+    #
+    # point_df = spark.read.parquet(os.path.join(output_path, "gnaf_with_{}".format("local_government_areas")))
+    # # point_df.createOrReplaceTempView("pnt")
+    #
+    # # bdy_tag(spark, "local_government_wards", "ward_pid")
+    # # bdy_tag(spark, "state_lower_house_electorates", "se_lower_pid")
+    # # bdy_tag(spark, "state_upper_house_electorates", "se_upper_pid")
+    #
+    # bdy_ids = "ce_pid text, lga_pid text"
+    #
+    # final_df = point_df.withColumn("wkt_geom", f.expr("concat('SRID=4326;POINT (', st_x(geom), ' ', st_y(geom), ')')"))\
+    #     .drop("geom")
+    # # final_df.printSchema()
+    #
+    # # output to postgres, via CSV
+    # table_name = "gnaf_with_bdy_tags"
+    # export_to_postgres(final_df, "testing2.{}".format(table_name), bdy_ids, os.path.join(output_path, table_name))
 
     # cleanup
     spark.stop()
@@ -175,15 +179,9 @@ def bdy_tag(spark, bdy_name, bdy_id):
                     bdy.{}
              FROM pnt
              INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
-    # sql = """SELECT /*+ BROADCAST(bdy) */ pnt.gnaf_pid,
-    #                 bdy.{},
-    #                 pnt.geom
-    #          FROM pnt
-    #          INNER JOIN bdy ON pnt.partition_id = bdy.partition_id
-    #          AND ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
     join_df = spark.sql(sql)
     join_df.createOrReplaceTempView("bdy_join")
-    # join_df.explain()
+    join_df.explain()
 
     # get missing gnaf records due to no left join with a spatial join (above)
     sql = """SELECT pnt.*,
@@ -198,7 +196,7 @@ def bdy_tag(spark, bdy_name, bdy_id):
     # join_df.show(5)
 
     # output join DataFrame
-    export_to_parquet(join_df2, "gnaf_with_{}_rdd".format(bdy_name))
+    export_to_parquet(join_df2, "gnaf_with_{}".format(bdy_name))
 
     join_df2.unpersist()
     join_df.unpersist()

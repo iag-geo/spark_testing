@@ -122,20 +122,20 @@ def main():
     # df.printSchema()
     # df.show()
 
-    # manually assign field types (not needed here as inferSchema works)
-    df2 = (df
-           .withColumn("confidence", df.confidence.cast(t.ShortType()))
-           .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
-           .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
-           .withColumn("reliability", df.reliability.cast(t.ShortType()))
-           .withColumn("longitude", df.longitude.cast(t.DoubleType()))
-           .withColumn("latitude", df.latitude.cast(t.DoubleType()))
-           )
-    # df2.printSchema()
-    # df2.show()
+    # # manually assign field types (not needed here as inferSchema works)
+    # df2 = (df
+    #        .withColumn("confidence", df.confidence.cast(t.ShortType()))
+    #        .withColumn("mb_2011_code", df.mb_2011_code.cast(t.LongType()))
+    #        .withColumn("mb_2016_code", df.mb_2016_code.cast(t.LongType()))
+    #        .withColumn("reliability", df.reliability.cast(t.ShortType()))
+    #        .withColumn("longitude", df.longitude.cast(t.DoubleType()))
+    #        .withColumn("latitude", df.latitude.cast(t.DoubleType()))
+    #        )
+    # # df2.printSchema()
+    # # df2.show()
 
     # add point geometries and partition by longitude into 400-500k row partitions
-    gnaf_df = df2.withColumn("geom", f.expr("ST_Point(longitude, latitude)"))
+    gnaf_df = df.withColumn("geom", f.expr("ST_Point(longitude, latitude)"))
     # .withColumnRenamed("gnaf_pid", "id")
     # .withColumn("partition_id", (f.percent_rank().over(Window.partitionBy().orderBy("longitude")) * f.lit(100.0))
     #             .cast(t.ShortType())) \
