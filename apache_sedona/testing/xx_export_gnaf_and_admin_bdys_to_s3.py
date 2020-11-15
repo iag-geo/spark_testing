@@ -77,8 +77,8 @@ jdbc_url = "jdbc:postgresql://{HOST}:{PORT}/{DB}".format(**pg_settings)
 pg_connect_string = "dbname={DB} host={HOST} port={PORT} user={USER} password={PASS}".format(**pg_settings)
 
 # aws details
-s3_bucket = "mobai-sandpit-bucket-open-data"
-s3_folder = "psma-admin-bdys"
+s3_bucket = "minus34.com"
+s3_folder = "opendata/psma-202008/parquet"
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
@@ -213,13 +213,17 @@ def main():
                 # add gid field to query
                 query = query.replace("SELECT ", "SELECT row_number() OVER () AS gid,")
 
-            bdy_df = import_bdys(spark, query, min_gid, max_gid, 500000)
-            export_to_parquet(bdy_df, table_name)
-            copy_to_s3(table_name)
+            # check table has records
+            if max_gid is not None and max_gid > min_gid:
+                bdy_df = import_bdys(spark, query, min_gid, max_gid, 500000)
+                export_to_parquet(bdy_df, table_name)
+                copy_to_s3(schema_name, table_name)
 
-            # bdy_df.unpersist()
+                bdy_df.unpersist()
 
-            logger.info("\t\t {}. exported {} : {}".format(i, table_name, datetime.now() - start_time))
+                logger.info("\t\t {}. exported {} : {}".format(i, table_name, datetime.now() - start_time))
+            else:
+                logger.warning("\t\t {}. {} has no records! : {}".format(i, table_name, datetime.now() - start_time))
 
             i += 1
 
@@ -271,12 +275,12 @@ def export_to_parquet(df, name):
         .parquet(os.path.join(output_path, name))
 
 
-def copy_to_s3(name):
+def copy_to_s3(schema_name, name):
 
     # delete existing files (each time you run this Spark creates new, random parquet file names)
     s3 = boto3.resource('s3')
     bucket = s3.Bucket(s3_bucket)
-    bucket.objects.filter(Prefix=os.path.join(s3_folder, name)).delete()
+    bucket.objects.filter(Prefix=os.path.join(s3_folder, schema_name, name)).delete()
 
     s3_client = boto3.client('s3')
     config = TransferConfig(multipart_threshold=1024 ** 2)  # 1MB
@@ -285,7 +289,7 @@ def copy_to_s3(name):
     for root,dirs,files in os.walk(os.path.join(output_path, name)):
         for file in files:
             response = s3_client\
-                .upload_file(os.path.join(output_path, name, file), s3_bucket, os.path.join(s3_folder, name, file)
+                .upload_file(os.path.join(output_path, name, file), s3_bucket, os.path.join(s3_folder, schema_name, name, file)
                              , Config=config)
 
             if response is not None:
