@@ -81,7 +81,7 @@ s3_bucket = "mobai-sandpit-bucket-open-data"
 s3_folder = "psma-admin-bdys"
 
 # output path for gzipped parquet files
-output_path = "/Users/s57405/tmp/open_data/psma_admin_bdys"
+output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
 # database schemas to export to S3
 schema_names = ["gnaf_202008", "admin_bdys_202008"]
@@ -191,15 +191,29 @@ def main():
                             'FROM {0}.{1}' AS sqlstmt"""\
                 .format(schema_name, table_name, geom_sql)
             pg_cur.execute(sql)
-            query = pg_cur.fetchone()[0]
-            print(query)
+            query = str(pg_cur.fetchone()[0])  # str is just there for intellisense in Pycharm
+            # print(query)
 
             # get min and max gid values to enable parallel import from Postgres to Spark
-            sql = """SELECT min(gid), max(gid) FROM {}.{}""".format(schema_name, table_name)
-            pg_cur.execute(sql)
-            gid_range = pg_cur.fetchone()
+            # add gid field based on row number if missing
+            if "gid," in query:
+                sql = """SELECT min(gid), max(gid) FROM {}.{}""".format(schema_name, table_name)
+                pg_cur.execute(sql)
+                gid_range = pg_cur.fetchone()
+                min_gid = gid_range[0]
+                max_gid = gid_range[1]
 
-            bdy_df = import_bdys(spark, query, gid_range[0], gid_range[1], 500000)
+            else:
+                # get row count as the max gid value
+                sql = """SELECT count(*) FROM {}.{}""".format(schema_name, table_name)
+                pg_cur.execute(sql)
+                min_gid = 1
+                max_gid = pg_cur.fetchone()[0]
+
+                # add gid field to query
+                query = query.replace("SELECT ", "SELECT row_number() OVER () AS gid,")
+
+            bdy_df = import_bdys(spark, query, min_gid, max_gid, 500000)
             export_to_parquet(bdy_df, table_name)
             copy_to_s3(table_name)
 
