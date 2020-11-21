@@ -51,11 +51,12 @@ bdy_list = [{"name": "local_government_areas", "id_field": "lga_pid", "name_fiel
 
 def main():
 
-    rdd_join()
+    rdd_flatmap_join()
+    # rdd_filesave_join()
 
 
-def rdd_join():
-    logger.info("\t - RDD flat map join start")
+def rdd_filesave_join():
+    logger.info("\t - RDD file save join start")
 
     full_start_time = datetime.now()
 
@@ -118,30 +119,139 @@ def rdd_join():
 
         # run the join - returns a PairRDD with 1 boundary to 1-N points
         # e.g. [Geometry: Polygon userData: WA32       TANGNEY WA, [Geometry: Point userData: GAWA_146792426	WA, ...]]
+        result_pair_rdd = JoinQuery.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
+        # jim = result_pair_rdd.take(10)
+        # for row in jim:
+        #     print(row)
+
+        result_pair_rdd.saveAsTextFile(os.path.join(output_path, "rdd_file_save_gnaf_with_{}".format(bdy["name"])))
+
+        # # flat map values to have one point to bdy matched pair
+        # flat_mapped_rdd = result_pair_rdd.flatMapValues(lambda x: x)
+        #
+        # # map values to create RDD row of gnaf & bdy IDs, plus state data
+        # mapped_rdd = flat_mapped_rdd.map(
+        #     lambda x: [x[1].getUserData().split("\t")[0],
+        #                x[0].getUserData().split("\t")[0],
+        #                x[0].getUserData().split("\t")[1]]
+        # )
+        #
+        # # convert result to a dataframe of the following shema
+        # schema = t.StructType([t.StructField("gnaf_pid", t.StringType(), False),
+        #                        t.StructField(bdy["id_field"], t.StringType(), False),
+        #                        t.StructField(bdy["name_field"], t.StringType(), False)])
+        #
+        # join_df = spark.createDataFrame(mapped_rdd, schema)
+        #
+        # # save result to disk
+        # join_df.write \
+        #     .option("compression", "gzip") \
+        #     .mode("overwrite") \
+        #     .parquet(os.path.join(output_path, "rdd_file_save_gnaf_with_{}".format(bdy["name"])))
+
+        logger.info("\t\t - GNAF points bdy tagged with {}: {}"
+                    .format(bdy["name"], datetime.now() - start_time))
+
+    # cleanup
+    spark.stop()
+
+    logger.info("\t - RDD file save join done: {}".format(datetime.now() - full_start_time))
+
+
+def rdd_flatmap_join():
+    logger.info("\t - RDD flat map join start")
+
+    full_start_time = datetime.now()
+
+    # ----------------------------------------------------------
+    # get spark session and context
+    # ----------------------------------------------------------
+
+    start_time = datetime.now()
+
+    spark = create_spark_session()
+    sc = spark.sparkContext
+    sedona_version = pkg_resources.get_distribution("geospark").version
+
+    logger.info("\t - PySpark {} session initiated with Apache Sedona {}: {}"
+                .format(sc.version, sedona_version, datetime.now() - start_time))
+
+    # ----------------------------------------------------------
+    # create GNAF PointRDD from CSV file
+    # ----------------------------------------------------------
+
+    start_time = datetime.now()
+
+    offset = 0  # The point long/lat fields start at column 0
+    carry_other_attributes = True  # include non-geo columns
+
+    point_rdd = PointRDD(sc, os.path.join(output_path, gnaf_csv_file_path),
+                         offset, FileDataSplitter.CSV, carry_other_attributes)
+    point_rdd.analyze()
+
+    # add partitioning and indexing
+    point_rdd.spatialPartitioning(GridType.KDBTREE)
+    point_rdd.buildIndex(IndexType.RTREE, True)
+
+    # set Spark storage type - set to MEMORY_AND_DISK if low on memory
+    point_rdd.indexedRDD.persist(StorageLevel.MEMORY_ONLY)
+
+    logger.info("\t\t - GNAF RDD created: {}".format(datetime.now() - start_time))
+
+    # ----------------------------------------------------------
+    # get boundary tags using a spatial join
+    # ----------------------------------------------------------
+
+    for bdy in bdy_list:
+        start_time = datetime.now()
+
+        # load boundaries
+        # create geometries from WKT strings into new DataFrame
+        bdy_df = spark.read.parquet(os.path.join(output_path, bdy["name"])) \
+            .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)")) \
+            .drop("wkt_geom")
+
+        # create bdy rdd
+        bdy_rdd = Adapter.toSpatialRdd(bdy_df, "geom")
+        bdy_rdd.analyze()
+
+        bdy_df.unpersist()
+
+        # add partitioning and indexing
+        bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
+        bdy_rdd.buildIndex(IndexType.RTREE, True)
+
+        # set Spark storage type - set to MEMORY_AND_DISK if low on memory
+        bdy_rdd.spatialPartitionedRDD.persist(StorageLevel.MEMORY_ONLY)  # no need to persist(?) - used once
+
+        # run the join - returns a PairRDD with 1 boundary to 1-N points
+        # e.g. [Geometry: Polygon userData: WA32      TANGNEY WA, [Geometry: Point userData: GAWA_146792426	WA, ...]]
         result_pair_rdd = JoinQuery.SpatialJoinQuery(point_rdd, bdy_rdd, True, True)
 
-        # flat map values to have one point to bdy matched pair
-        flat_mapped_rdd = result_pair_rdd.flatMapValues(lambda x: x)
+        # result_pair_rdd.saveAsTextFile(os.path.join(output_path, "rdd_gnaf_with_{}".format(bdy["name"])))
 
-        # map values to create RDD row of gnaf & bdy IDs, plus state data
-        mapped_rdd = flat_mapped_rdd.map(
-            lambda x: [x[1].getUserData().split("\t")[0],
-                       x[0].getUserData().split("\t")[0],
-                       x[0].getUserData().split("\t")[1]]
-        )
-
-        # convert result to a dataframe of the following shema
-        schema = t.StructType([t.StructField("gnaf_pid", t.StringType(), False),
-                               t.StructField(bdy["id_field"], t.StringType(), False),
-                               t.StructField(bdy["name_field"], t.StringType(), False)])
-
-        join_df = spark.createDataFrame(mapped_rdd, schema)
-
-        # save result to disk
-        join_df.write \
-            .option("compression", "gzip") \
-            .mode("overwrite") \
-            .parquet(os.path.join(output_path, "rdd_flat_map_gnaf_with_{}".format(bdy["name"])))
+        # # flat map values to have one point to bdy matched pair
+        # flat_mapped_rdd = result_pair_rdd.flatMapValues(lambda x: x)
+        #
+        # # map values to create RDD row of gnaf & bdy IDs, plus state data
+        # mapped_rdd = flat_mapped_rdd.map(
+        #     lambda x: [x[1].getUserData().split("\t")[0],
+        #                x[0].getUserData().split("\t")[0],
+        #                x[0].getUserData().split("\t")[1]]
+        # )
+        #
+        # # convert result to a dataframe of the following shema
+        # schema = t.StructType([t.StructField("gnaf_pid", t.StringType(), False),
+        #                        t.StructField(bdy["id_field"], t.StringType(), False),
+        #                        t.StructField(bdy["name_field"], t.StringType(), False)])
+        #
+        # join_df = spark.createDataFrame(mapped_rdd, schema)
+        #
+        # # save result to disk
+        # join_df.write \
+        #     .option("compression", "gzip") \
+        #     .mode("overwrite") \
+        #     .parquet(os.path.join(output_path, "rdd_gnaf_with_{}".format(bdy["name"])))
 
         logger.info("\t\t - GNAF points bdy tagged with {}: {}"
                     .format(bdy["name"], datetime.now() - start_time))
