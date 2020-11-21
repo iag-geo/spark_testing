@@ -103,7 +103,7 @@ def rdd_join():
 
         # load boundaries
         # create geometries from WKT strings into new DataFrame
-        bdy_df = spark.read.parquet(os.path.join(os.path.dirname(os.path.realpath(__file__)), bdy["name"])) \
+        bdy_df = spark.read.parquet(os.path.join(output_path, bdy["name"])) \
             .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)")) \
             .drop("wkt_geom")
 
@@ -141,7 +141,7 @@ def rdd_join():
         join_df.write \
             .option("compression", "gzip") \
             .mode("overwrite") \
-            .parquet(os.path.join(output_path, "gnaf_with_{}".format(bdy["name"])))
+            .parquet(os.path.join(output_path, "rdd_flat_map_gnaf_with_{}".format(bdy["name"])))
 
         logger.info("\t\t - GNAF points bdy tagged with {}: {}"
                     .format(bdy["name"], datetime.now() - start_time))
@@ -210,5 +210,5 @@ if __name__ == "__main__":
 
     main()
 
-    logger.info("{} finished : {}".format(task_name))
+    logger.info("{} finished".format(task_name))
     print()

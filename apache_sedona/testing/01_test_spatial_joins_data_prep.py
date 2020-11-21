@@ -66,14 +66,14 @@ def main():
 
     sql = """COPY (
                  SELECT longitude, latitude, gnaf_pid, state
-                 FROM gnaf_202008.{}
+                 FROM gnaf_202011.{}
              ) TO STDOUT WITH CSV"""
     # sql = """COPY (
     #              SELECT gnaf_pid, street_locality_pid, locality_pid, alias_principal, primary_secondary, building_name,
     #                     lot_number, flat_number, level_number, number_first, number_last, street_name, street_type,
     #                     street_suffix, address, locality_name, postcode, state, locality_postcode, confidence,
     #                     legal_parcel_id, mb_2011_code, mb_2016_code, latitude, longitude, geocode_type, reliability
-    #              FROM gnaf_202008.{}
+    #              FROM gnaf_202011.{}
     #          ) TO STDOUT WITH CSV"""
 
     # address principals
@@ -167,7 +167,7 @@ def export_bdys(spark, bdy_name, bdy_id):
     # sql = """SELECT partition_id, {}, name, state, st_astext(geom) as wkt_geom
     #          FROM testing2.{}_partitioned""".format(bdy_id, bdy_name)
     sql = """SELECT {}, name, state, st_astext(geom) as wkt_geom
-             FROM admin_bdys_202008.{}_analysis""".format(bdy_id, bdy_name)
+             FROM admin_bdys_202011.{}_analysis""".format(bdy_id, bdy_name)
     bdy_df = get_dataframe_from_postgres(spark, sql)
 
     # # create view to enable SQL queries
