@@ -1,17 +1,13 @@
 
 # script to load gnaf points & psma boundaries from Postgres to test Apache Sedona spatial join performance
 
-import glob
 import logging
 import os
-import psycopg2
-import shutil
+import pkg_resources
 import sys
 
 from datetime import datetime
-from itertools import repeat
-from multiprocessing import Pool, cpu_count
-from psycopg2 import pool
+from multiprocessing import cpu_count
 
 from pyspark import StorageLevel
 from pyspark.sql import functions as f, types as t
@@ -62,18 +58,25 @@ def rdd_join():
     logger.info("\t - RDD flat map join start")
 
     full_start_time = datetime.now()
-    start_time = datetime.now()
 
     # ----------------------------------------------------------
     # get spark session and context
     # ----------------------------------------------------------
 
+    start_time = datetime.now()
+
     spark = create_spark_session()
     sc = spark.sparkContext
+    sedona_version = pkg_resources.get_distribution("geospark").version
+
+    logger.info("\t - PySpark {} session initiated with Apache Sedona {}: {}"
+                .format(sc.version, sedona_version, datetime.now() - start_time))
 
     # ----------------------------------------------------------
     # create GNAF PointRDD from CSV file
     # ----------------------------------------------------------
+
+    start_time = datetime.now()
 
     offset = 0  # The point long/lat fields start at column 0
     carry_other_attributes = True  # include non-geo columns
@@ -180,7 +183,6 @@ def create_spark_session():
 
 
 if __name__ == "__main__":
-    full_start_time = datetime.now()
 
     # setup logging to file and the console (screen)
     logger = logging.getLogger()
@@ -201,13 +203,12 @@ if __name__ == "__main__":
     # add the handler to the root logger
     logging.getLogger().addHandler(console)
 
-    task_name = "Apache Sedona testing"
+    task_name = "Apache Sedona benchmark"
 
     logger.info("{} started".format(task_name))
     logger.info("Running on Python {}".format(sys.version.replace("\n", " ")))
 
     main()
 
-    time_taken = datetime.now() - full_start_time
-    logger.info("{} finished : {}".format(task_name, time_taken))
+    logger.info("{} finished : {}".format(task_name))
     print()
