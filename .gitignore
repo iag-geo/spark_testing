@@ -128,3 +128,4 @@ dmypy.json
 # Pyre type checker
 .pyre/
 /apache_sedona/testing/data/
+/apache_sedona/spark-warehouse/
