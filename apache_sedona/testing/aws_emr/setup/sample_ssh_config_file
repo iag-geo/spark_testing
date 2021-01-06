@@ -1,0 +1,5 @@
+host i-* mi-*
+  User hadoop
+  IdentityFile <full path to .pem file>
+  ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p' --profile default"
+  ServerAliveInterval 240
