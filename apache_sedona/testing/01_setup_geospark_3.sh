@@ -18,7 +18,7 @@ echo " Start time : $(date)"
 #
 # PRE_REQUISITES:
 #   1. Java 8 OpenJDK is installed
-#        - Install using Homebrew: brew cask install adoptopenjdk8
+#        - Install using Homebrew: brew install --cask adoptopenjdk/openjdk/adoptopenjdk8
 #
 #   2. Miniconda installed in default directory ($HOME/opt/miniconda3)
 #        - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
