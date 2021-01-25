@@ -14,22 +14,28 @@ echo " Start time : $(date)"
 #
 # WARNINGS:
 #   - Removes existing Spark install in $HOME/spark-$SPARK_VERSION-with-sedona folder
-#   - Removes existing 'geospark3_env' Conda environment
+#   - Removes existing 'sedona_spark3_env' Conda environment
 #
 # PRE_REQUISITES:
 #   1. Java 8 OpenJDK is installed
-#        - Install using Homebrew: brew install --cask adoptopenjdk/openjdk/adoptopenjdk8
+#        - Install using Homebrew:
+#            brew install openjdk@8
+#        - Edit .bash_profile:
+#            export PATH="/usr/local/opt/openjdk@8/bin:$PATH"
+#            export JAVA_HOME="/usr/local/opt/openjdk@8"
+#        - Reload .bash_profile:
+#            source .bash_profile
 #
 #   2. Miniconda installed in default directory ($HOME/opt/miniconda3)
 #        - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
 #
-#   3. (as at 22/10/2020) Download and build Apache Sedona 1.3.2 SNAPSHOT
-#        - Get the source code here: https://github.com/apache/incubator-sedona/releases/tag/1.3.2-spark-3.0
-#        - Build instructions are here: http://sedona.apache.org/download/compile/
+#   3. (as at 25/01/2021) Download and build Apache Sedona 1.0.0 RC1
+#        - Get the source code here: https://github.com/apache/incubator-sedona/releases/tag/sedona-1.0.0-incubating-rc1
+#        - Build instructions are here: https://sedona.staged.apache.org/download/compile/
 #
 # ISSUES:
 #   1. Conda environment variables aren't accessible in IntelliJ/Pycharm due to a missing feature
-#        - Geospark python scripts will fail in IntelliJ/Pycharm as Spark env vars aren't set (e.g. $SPARK_HOME)
+#        - Sedona python scripts will fail in IntelliJ/Pycharm as Spark env vars aren't set (e.g. $SPARK_HOME)
 #
 # --------------------------------------------------------------------------------------------------------------------
 #
@@ -39,7 +45,7 @@ echo " Start time : $(date)"
 
 PYTHON_VERSION="3.8"
 SPARK_VERSION="3.0.1"
-GEOSPARK_INSTALL_DIR="${HOME}/incubator-sedona-1.3.2-spark-3.0"
+SEDONA_INSTALL_DIR="${HOME}/incubator-sedona-sedona-1.0.0-incubating-rc1"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -73,65 +79,63 @@ mkdir -p ${HOME}/tmp/spark
 cd ${HOME} || exit
 
 echo "-------------------------------------------------------------------------"
-echo "Creating new Conda Environment 'geospark3_env'"
+echo "Creating new Conda Environment 'sedona_spark3_env'"
 echo "-------------------------------------------------------------------------"
 
 # stop the Conda environment currently running
 conda deactivate
 
 # WARNING - remove existing environment
-conda env remove --name geospark3_env
+conda env remove --name sedona_spark3_env
 
 # update Conda platform
 echo "y" | conda update conda
 
 # Create Conda environment
-echo "y" | conda create -n geospark3_env python=${PYTHON_VERSION}
+echo "y" | conda create -n sedona_spark3_env python=${PYTHON_VERSION}
 
 # activate and setup env
-conda activate geospark3_env
+conda activate sedona_spark3_env
 conda config --env --add channels conda-forge
 conda config --env --set channel_priority strict
 
 # add environment variables
-conda env config vars set JAVA_HOME="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
+conda env config vars set JAVA_HOME="/usr/local/opt/openjdk@8"
 conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
 conda env config vars set SPARK_LOCAL_DIRS="${HOME}/tmp/spark"
-conda env config vars set PYSPARK_PYTHON="${HOME}/opt/miniconda3/envs/geospark3_env/bin/python"
-conda env config vars set PYSPARK_DRIVER_PYTHON="${HOME}/opt/miniconda3/envs/geospark3_env/bin/ipython"
+conda env config vars set PYSPARK_PYTHON="${HOME}/opt/miniconda3/envs/sedona_spark3_env/bin/python"
+conda env config vars set PYSPARK_DRIVER_PYTHON="${HOME}/opt/miniconda3/envs/sedona_spark3_env/bin/ipython"
 conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 
 # reactivate for env vars to take effect
-conda activate geospark3_env
+conda activate sedona_spark3_env
 
-# install conda packages for geospark
+# install conda packages for Sedona
 echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} psycopg2 jupyter matplotlib boto3
 
 echo "-------------------------------------------------------------------------"
-echo "Install Geospark Python API"
+echo "Install Sedona Python API"
 echo "-------------------------------------------------------------------------"
 
-# Copy Geospark JARs over to Spark install and install geospark in Python from local setup.py
-cp ${GEOSPARK_INSTALL_DIR}/core/target/geospark-1.3.2-SNAPSHOT.jar ${SPARK_HOME}/jars
-cp ${GEOSPARK_INSTALL_DIR}/sql/target/geospark-sql_3.0-1.3.2-SNAPSHOT.jar ${SPARK_HOME}/jars
-#cp ${GEOSPARK_INSTALL_DIR}/viz/target/geospark-viz_3.0-1.3.2-SNAPSHOT.jar ${SPARK_HOME}/jars  # currently incompatible
+# Copy Sedona JARs over to Spark install and install Sedona in Python from local setup.py
+cp ${SEDONA_INSTALL_DIR}/python-adapter/target/sedona-python-adapter-3.0_2.12-1.0.0-incubating.jar ${SPARK_HOME}/jars
 
-cd ${GEOSPARK_INSTALL_DIR}/python || exit
+cd ${SEDONA_INSTALL_DIR}/python || exit
 python setup.py install
 
 echo "-------------------------------------------------------------------------"
-echo "Verify Geospark version"
+echo "Verify Sedona version"
 echo "-------------------------------------------------------------------------"
 
-# confirm version of Geospark installed
-conda list geospark
+# confirm version of Sedona installed
+conda list sedona
 
 echo "-------------------------------------------------------------------------"
-echo "Run test Geospark script to prove everything is working"
+echo "Run test Sedona script to prove everything is working"
 echo "-------------------------------------------------------------------------"
 
-python ${SCRIPT_DIR}/../02_run_spatial_query.py
+python ${SCRIPT_DIR}/xx_run_spatial_query.py
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
