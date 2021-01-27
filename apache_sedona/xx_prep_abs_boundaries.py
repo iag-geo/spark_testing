@@ -76,7 +76,7 @@ def main():
     export_to_parquet(ra_df, "boundaries")
 
     # load meshblock centroid coordinates (not geoms)
-    sql = """select mb_code16 as point_id, st_y(st_centroid(geom)) as latitude, st_x(st_centroid(geom)) as longitude 
+    sql = """select mb_code16 as point_id, ste_name16 as state, st_y(st_centroid(geom)) as latitude, st_x(st_centroid(geom)) as longitude 
              from census_2016_bdys.mb_2016_aust
              where geom is not null"""
     mb_df = get_dataframe_from_postgres(spark, sql)
