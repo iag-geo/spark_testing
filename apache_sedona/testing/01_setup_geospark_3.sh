@@ -125,11 +125,20 @@ cd ${SEDONA_INSTALL_DIR}/python || exit
 python setup.py install
 
 echo "-------------------------------------------------------------------------"
+echo "Install additional Python packages using Pip"
+echo "-------------------------------------------------------------------------"
+
+# use pip as most pre-reqs already added by Sedona package install
+pip install geopandas
+pip install ipyleaflet
+
+echo "-------------------------------------------------------------------------"
 echo "Verify Sedona version"
 echo "-------------------------------------------------------------------------"
 
 # confirm version of Sedona installed
-conda list sedona
+#conda list sedona
+pip list | grep "sedona"
 
 echo "-------------------------------------------------------------------------"
 echo "Run test Sedona script to prove everything is working"
