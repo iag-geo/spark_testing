@@ -7,7 +7,8 @@ import sys
 
 from datetime import datetime
 from multiprocessing import cpu_count
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, Window
+from pyspark.sql import functions as f
 
 # # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 # # set Conda environment vars for PySpark
@@ -66,7 +67,7 @@ def main():
     start_time = datetime.now()
 
     # load ABS remoteness areas
-    sql = """select ra_code16 as bdy_id, st_astext(st_subdivide(geom, 512)) as wkt_geom 
+    sql = """select ra_code16 as bdy_id, ra_name16 as bdy_type, ste_name16 as state, st_astext(st_subdivide(geom, 512)) as wkt_geom
              from census_2016_bdys.ra_2016_aust
              where geom is not null"""
     ra_df = get_dataframe_from_postgres(spark, sql)
@@ -80,8 +81,18 @@ def main():
              where geom is not null"""
     mb_df = get_dataframe_from_postgres(spark, sql)
 
+    # filter to get every 10th row (to speed up the tutorial/demo code
+    w = Window.orderBy(mb_df["point_id"])
+
+    filtered_mb_df = mb_df.withColumn("row_number", f.row_number().over(w)) \
+        .filter(f.col("row_number") % f.lit(10) == 0) \
+        .drop("row_number")
+    # filtered_mb_df.printSchema()
+    # filtered_mb_df.show()
+    # print(filtered_mb_df.count())
+
     # write meshblock coords to gzipped parquet
-    export_to_parquet(mb_df, "points")
+    export_to_parquet(filtered_mb_df, "points")
 
     # cleanup
     spark.stop()

@@ -48,7 +48,7 @@ def main():
              .getOrCreate()
              )
 
-    # Add Sedona functions and types
+    # Add Sedona functions and types to Spark
     SedonaRegistrator.registerAll(spark)
 
     # set Sedona spatial indexing and partitioning config in Spark session
