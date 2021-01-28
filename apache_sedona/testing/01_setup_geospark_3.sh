@@ -69,15 +69,19 @@ wget https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_
 tar -xzf spark-${SPARK_VERSION}-bin-hadoop3.2.tgz --directory ${SPARK_HOME_DIR} --strip-components=1
 rm spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
 
+echo "-------------------------------------------------------------------------"
+echo "Downloading additional JAR files"
+echo "-------------------------------------------------------------------------"
+
 cd ${SPARK_HOME_DIR}/jars || exit
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 wget https://jdbc.postgresql.org/download/postgresql-42.2.18.jar
 
-# get hadoop-aws JAR file (optional - required for accessing )
+# get hadoop-aws JAR file (optional - required for accessing S3)
 wget https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar
 
-# get aws-java-sdk JAR file for connecting to S3 (optional)
+# get aws-java-sdk JAR file (optional - required for accessing S3)
 wget https://search.maven.org/remotecontent?filepath=com/amazonaws/aws-java-sdk/1.11.880/aws-java-sdk-1.11.880.jar
 
 # get Google Storage connector shaded JAR (optional)
