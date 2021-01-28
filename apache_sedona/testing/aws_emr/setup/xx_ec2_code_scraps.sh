@@ -22,3 +22,12 @@ mvn dependency:get -DremoteRepositories=http://repo1.maven.org/maven2/ \
 mvn dependency:get -DremoteRepositories=http://repo1.maven.org/maven2/ \
                    -Dartifact=com.amazonaws:aws-java-sdk-bundle:1.11.880:jar \
                    -Dtransitive=false -Ddest=aws-java-sdk-bundle-1.11.880.jar
+
+# get hadoop-aws JAR file
+https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar
+
+# get aws-java-sdk JAR file
+https://search.maven.org/remotecontent?filepath=com/amazonaws/aws-java-sdk/1.11.880/aws-java-sdk-1.11.880.jar
+
+# get Google Storage connector shaded JAR
+https://search.maven.org/remotecontent?filepath=com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.2.0/gcs-connector-hadoop3-2.2.0-shaded.jar
