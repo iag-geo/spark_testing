@@ -14,7 +14,7 @@ echo " Start time : $(date)"
 #
 # WARNINGS:
 #   - Removes existing Spark install in $HOME/spark-$SPARK_VERSION-with-sedona folder
-#   - Removes existing 'sedona_env' Conda environment
+#   - Removes existing 'sedona' Conda environment
 #
 # PRE_REQUISITES:
 #   1. Java 8 OpenJDK is installed
@@ -94,23 +94,23 @@ mkdir -p ${HOME}/tmp/spark
 cd ${HOME} || exit
 
 echo "-------------------------------------------------------------------------"
-echo "Creating new Conda Environment 'sedona_env'"
+echo "Creating new Conda Environment 'sedona'"
 echo "-------------------------------------------------------------------------"
 
 # stop the Conda environment currently running
 conda deactivate
 
 # WARNING - remove existing environment
-conda env remove --name sedona_env
+conda env remove --name sedona
 
 # update Conda platform
 echo "y" | conda update conda
 
 # Create Conda environment
-echo "y" | conda create -n sedona_env python=${PYTHON_VERSION}
+echo "y" | conda create -n sedona python=${PYTHON_VERSION}
 
 # activate and setup env
-conda activate sedona_env
+conda activate sedona
 conda config --env --add channels conda-forge
 conda config --env --set channel_priority strict
 
@@ -119,12 +119,12 @@ conda env config vars set JAVA_HOME="/usr/local/opt/openjdk@8"
 conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
 conda env config vars set SPARK_LOCAL_DIRS="${HOME}/tmp/spark"
-conda env config vars set PYSPARK_PYTHON="${HOME}/opt/miniconda3/envs/sedona_env/bin/python"
-conda env config vars set PYSPARK_DRIVER_PYTHON="${HOME}/opt/miniconda3/envs/sedona_env/bin/ipython"
+conda env config vars set PYSPARK_PYTHON="${HOME}/opt/miniconda3/envs/sedona/bin/python"
+conda env config vars set PYSPARK_DRIVER_PYTHON="${HOME}/opt/miniconda3/envs/sedona/bin/ipython"
 conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 
 # reactivate for env vars to take effect
-conda activate sedona_env
+conda activate sedona
 
 # install conda packages for Sedona
 echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} psycopg2 jupyter matplotlib boto3
