@@ -81,11 +81,11 @@ def main():
              where geom is not null"""
     mb_df = get_dataframe_from_postgres(spark, sql)
 
-    # filter to get every 10th row (to speed up the tutorial/demo code
+    # filter to get every 4th row (to speed up the tutorial/demo code)
     w = Window.orderBy(mb_df["point_id"])
 
     filtered_mb_df = mb_df.withColumn("row_number", f.row_number().over(w)) \
-        .filter(f.col("row_number") % f.lit(10) == 0) \
+        .filter(f.col("row_number") % f.lit(4) == 0) \
         .drop("row_number")
     # filtered_mb_df.printSchema()
     # filtered_mb_df.show()
