@@ -11,9 +11,8 @@ from datetime import datetime
 from pyspark.sql import functions as f, types as t  # need to install pyspark package
 from pyspark.sql import SparkSession, Window
 
-from geospark.register import upload_jars, GeoSparkRegistrator  # need to install geospark package
-from geospark.sql.types import GeometryType
-from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
+from sedona.register import SedonaRegistrator  # need to install geospark package
+from sedona.utils import KryoSerializer, SedonaKryoRegistrator
 
 # # target records per partition
 # records_per_partition = 2500000
@@ -36,9 +35,6 @@ def main():
     aws_secret_key = credentials.secret_key
     # aws_session_token = credentials.token
 
-    # upload Sedona (geospark) JARs
-    upload_jars()
-
     spark = (SparkSession
              .builder
              .appName("gdelt_testing")
@@ -51,13 +47,13 @@ def main():
              .config("spark.hadoop.fs.s3a.secret.key", aws_secret_key)
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.serializer", KryoSerializer.getName)
-             .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
+             .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
              .config("spark.driver.maxResultSize", "0")
              .getOrCreate()
              )
 
     # Register Apache Sedona (geospark) UDTs and UDFs
-    GeoSparkRegistrator.registerAll(spark)
+    SedonaRegistrator.registerAll(spark)
 
     sc = spark.sparkContext
 
@@ -70,9 +66,6 @@ def main():
     day_df = spark.read.option("inferSchema", "true").csv(input_day_path)
     day_df.printSchema()
     day_df.show(5)
-
-
-
 
     # release the dataframes' memory
     day_df.unpersist()
