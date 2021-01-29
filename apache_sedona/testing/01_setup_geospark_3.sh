@@ -69,6 +69,9 @@ wget https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_
 tar -xzf spark-${SPARK_VERSION}-bin-hadoop3.2.tgz --directory ${SPARK_HOME_DIR} --strip-components=1
 rm spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
 
+# create log4j properties file (based on Spark template)
+cp ${SPARK_HOME_DIR}/conf/log4j.properties.template ${SPARK_HOME_DIR}/conf/log4j.properties
+
 echo "-------------------------------------------------------------------------"
 echo "Downloading additional JAR files"
 echo "-------------------------------------------------------------------------"
