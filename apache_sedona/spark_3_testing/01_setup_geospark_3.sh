@@ -41,15 +41,16 @@ echo " Start time : $(date)"
 #
 # SETUP:
 #   - edit these if its now the future and versions have changed
-#       - This script currently installs the Sedona 1.3.2 pre-release for Spark 3.0.1 - requires a local build & install of Sedona
+#       - This script currently installs Apacha Sedona 1.0.0 RC1
+#           - Requires a local Sedona build & install as it's not released in Pypi (as at 05/02/2021)
 
-PYTHON_VERSION="3.8"
+PYTHON_VERSION="3.8"  # note: 3.9 not compatible with a Sedona pre-requisite, Shapely
 SPARK_VERSION="3.0.1"
 SEDONA_INSTALL_DIR="${HOME}/incubator-sedona-sedona-1.0.0-incubating-rc1"
 
 # --------------------------------------------------------------------------------------------------------------------
 
-# get directory this script is running from
+# set the directory this script is running from
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 SPARK_HOME_DIR="${HOME}/spark-${SPARK_VERSION}-with-sedona"
@@ -81,15 +82,14 @@ cd ${SPARK_HOME_DIR}/jars || exit
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 wget https://jdbc.postgresql.org/download/postgresql-42.2.18.jar
 
-# get hadoop-aws JAR file (optional - required for accessing S3)
-wget https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar
+# get hadoop-aws JAR file (optional - required for accessing AWS S3)
+#wget https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar
 
-# get aws-java-sdk JAR file (optional - required for accessing S3)
-wget https://search.maven.org/remotecontent?filepath=com/amazonaws/aws-java-sdk/1.11.880/aws-java-sdk-1.11.880.jar
+# get aws-java-sdk JAR file (optional - required for accessing AWS S3)
+#wget https://search.maven.org/remotecontent?filepath=com/amazonaws/aws-java-sdk/1.11.880/aws-java-sdk-1.11.880.jar
 
-# get Google Storage connector shaded JAR (optional)
-wget https://search.maven.org/remotecontent?filepath=com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.2.0/gcs-connector-hadoop3-2.2.0-shaded.jar
-
+# get Google Storage connector shaded JAR (optional - required for accessing GCP Storage)
+#wget https://search.maven.org/remotecontent?filepath=com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.2.0/gcs-connector-hadoop3-2.2.0-shaded.jar
 
 # create folder for Spark temp files
 mkdir -p ${HOME}/tmp/spark
@@ -117,7 +117,7 @@ conda activate sedona
 conda config --env --add channels conda-forge
 conda config --env --set channel_priority strict
 
-# add environment variables
+# add environment variables for Pyspark
 conda env config vars set JAVA_HOME="/usr/local/opt/openjdk@8"
 conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
@@ -130,7 +130,7 @@ conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 conda activate sedona
 
 # install conda packages for Sedona
-echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} psycopg2 jupyter matplotlib boto3
+echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} psycopg2 jupyter matplotlib
 
 echo "-------------------------------------------------------------------------"
 echo "Install Sedona Python API"
@@ -146,9 +146,9 @@ echo "-------------------------------------------------------------------------"
 echo "Install additional Python packages using Pip"
 echo "-------------------------------------------------------------------------"
 
-# use pip as most pre-reqs already added by Sedona package install
+# use pip as most of their pre-reqs already added by Sedona package install
 pip install geopandas
-pip install ipyleaflet
+#pip install ipyleaflet
 
 echo "-------------------------------------------------------------------------"
 echo "Verify Sedona version"
@@ -166,7 +166,7 @@ python ${SCRIPT_DIR}/xx_run_spatial_query.py
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
-cd ${HOME} || exit
+cd ${SCRIPT_DIR} || exit
 
 duration=$SECONDS
 

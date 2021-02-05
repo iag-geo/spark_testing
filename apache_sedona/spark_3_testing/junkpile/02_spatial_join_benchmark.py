@@ -35,7 +35,7 @@ pg_settings = {'HOST': 'localhost', 'DB': 'geo', 'PORT': '5432', 'USER': 'postgr
 jdbc_url = "jdbc:postgresql://{HOST}:{PORT}/{DB}".format(**pg_settings)
 
 # output path for gzipped parquet files
-output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
+output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data")
 
 # GNAF csv file
 gnaf_csv_file_path = os.path.join(output_path, "gnaf_light.csv")

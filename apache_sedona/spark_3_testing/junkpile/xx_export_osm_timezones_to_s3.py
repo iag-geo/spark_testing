@@ -81,7 +81,7 @@ s3_bucket = "minus34.com"
 s3_folder = "opendata/osm/time_zone/parquet"
 
 # output path for gzipped parquet files
-output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
+output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data")
 
 # table to export to S3
 schema_name = "public"

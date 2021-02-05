@@ -54,7 +54,7 @@ local_pg_connect_string = "dbname={DB} host={HOST} port={PORT} user={USER} passw
 pg_pool = psycopg2.pool.SimpleConnectionPool(1, num_processors, local_pg_connect_string)
 
 # output path for gzipped parquet files
-output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
+output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data")
 
 # GNAF csv file
 gnaf_csv_file_path = os.path.join(output_path, "gnaf_light.csv")

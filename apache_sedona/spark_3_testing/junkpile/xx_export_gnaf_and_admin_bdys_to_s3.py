@@ -81,7 +81,7 @@ s3_bucket = "minus34.com"
 s3_folder = "opendata/psma-202008/parquet"
 
 # output path for gzipped parquet files
-output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
+output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data")
 
 # database schemas to export to S3
 schema_names = ["gnaf_202008", "admin_bdys_202008"]
