@@ -133,14 +133,16 @@ conda activate sedona
 echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} psycopg2 jupyter matplotlib
 
 echo "-------------------------------------------------------------------------"
-echo "Install Sedona Python API"
+echo "Install Apache Sedona"
 echo "-------------------------------------------------------------------------"
 
-# Copy Sedona JARs over to Spark install and install Sedona in Python from local setup.py
-cp ${SEDONA_INSTALL_DIR}/python-adapter/target/sedona-python-adapter-3.0_2.12-1.0.0-incubating.jar ${SPARK_HOME}/jars
+pip install apache-sedona
 
-cd ${SEDONA_INSTALL_DIR}/python || exit
-python setup.py install
+## Copy Sedona JARs over to Spark install and install Sedona in Python from local setup.py
+#cp ${SEDONA_INSTALL_DIR}/python-adapter/target/sedona-python-adapter-3.0_2.12-1.0.0-incubating.jar ${SPARK_HOME}/jars
+#
+#cd ${SEDONA_INSTALL_DIR}/python || exit
+#python setup.py install
 
 echo "-------------------------------------------------------------------------"
 echo "Install additional Python packages using Pip"
