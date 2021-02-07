@@ -9,32 +9,20 @@ from datetime import datetime
 from multiprocessing import cpu_count
 
 from pyspark.sql import SparkSession
-from geospark.register import upload_jars, GeoSparkRegistrator
-from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
-
-# # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
-# # set Conda environment vars for PySpark
-# os.environ["JAVA_HOME"] = "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
-# os.environ["SPARK_HOME"] = "/Users/hugh.saalmans/spark-2.4.6-bin-hadoop2.7"
-# os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
-# os.environ["PYSPARK_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
-# os.environ["PYSPARK_DRIVER_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
-# os.environ["PYLIB"] = os.environ["SPARK_HOME"] + "/python/lib"
+from sedona.register import SedonaRegistrator
+from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
 # input path for parquet files
 input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
-# number of CPUs to use in processing (defaults to 2x local CPUs)
-num_processors = cpu_count() * 2
+# number of CPUs to use in processing (defaults to number of local CPUs)
+num_processors = cpu_count()
 
 
 def main():
     start_time = datetime.now()
 
-    # upload Sedona (geospark) JARs
-    # theoretically only need to do this once
-    upload_jars()
-
+    # create spark session object
     spark = (SparkSession
              .builder
              .master("local[*]")
@@ -42,7 +30,7 @@ def main():
              .config("spark.sql.session.timeZone", "UTC")
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
-             .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
+             .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.executor.cores", 1)
              .config("spark.cores.max", num_processors)
@@ -51,14 +39,14 @@ def main():
              .getOrCreate()
              )
 
-    # Register Apache Sedona (geospark) UDTs and UDFs
-    GeoSparkRegistrator.registerAll(spark)
+    # Add Sedona functions and types to Spark
+    SedonaRegistrator.registerAll(spark)
 
     # set Sedona spatial indexing and partitioning config in Spark session
     # (no effect on the "small" spatial join query in this script. Will improve bigger queries)
-    spark.conf.set("geospark.global.index", "true")
-    spark.conf.set("geospark.global.indextype", "rtree")
-    spark.conf.set("geospark.join.gridtype", "kdbtree")
+    spark.conf.set("sedona.global.index", "true")
+    spark.conf.set("sedona.global.indextype", "rtree")
+    spark.conf.set("sedona.join.gridtype", "kdbtree")
 
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
@@ -73,7 +61,7 @@ def main():
 
     # create geometries from WKT strings into new DataFrame
     # new DF will be spatially indexed automatically
-    bdy_df = spark.sql("select bdy_id, st_geomFromWKT(wkt_geom) as geometry from bdy_wkt")
+    bdy_df = spark.sql("select bdy_id, ST_GeomFromWKT(wkt_geom) as geometry from bdy_wkt")
 
     # repartition and cache for performance (no effect on the "small" spatial join query here)
     # bdy_df.repartition(spark.sparkContext.defaultParallelism).cache().count()
@@ -98,7 +86,7 @@ def main():
     # create geometries from lat/long fields into new DataFrame
     # new DF will be spatially indexed automatically
     sql = """select point_id, 
-                    st_point(cast(longitude as decimal(9, 6)), cast(latitude as decimal(8, 6))) as geometry
+                    ST_Point(longitude, latitude) as geometry
              from point_wkt"""
     point_df = spark.sql(sql)
 
@@ -170,7 +158,7 @@ if __name__ == "__main__":
     # add the handler to the root logger
     logging.getLogger("").addHandler(console)
 
-    task_name = "Geospark testing"
+    task_name = "Apache Sedona testing"
     system_name = "mobility.ai"
 
     logger.info("{} started".format(task_name))
