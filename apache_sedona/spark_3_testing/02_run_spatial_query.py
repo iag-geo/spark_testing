@@ -12,20 +12,11 @@ from pyspark.sql import SparkSession
 from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
-# # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
-# # set Conda environment vars for PySpark
-# os.environ["JAVA_HOME"] = "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
-# os.environ["SPARK_HOME"] = "/Users/hugh.saalmans/spark-2.4.6-bin-hadoop2.7"
-# os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
-# os.environ["PYSPARK_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/sedona_spark3_env/bin/python"
-# os.environ["PYSPARK_DRIVER_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/sedona_spark3_env/bin/python"
-# os.environ["PYLIB"] = os.environ["SPARK_HOME"] + "/python/lib"
-
 # input path for parquet files
 input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data")
 
-# number of CPUs to use in processing (defaults to 2x local CPUs)
-num_processors = cpu_count() * 2
+# number of CPUs to use in processing (defaults to number of local CPUs)
+num_processors = cpu_count()
 
 
 def main():

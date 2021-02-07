@@ -29,10 +29,6 @@ echo " Start time : $(date)"
 #   2. Miniconda installed in default directory ($HOME/opt/miniconda3)
 #        - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
 #
-#   3. (as at 25/01/2021) Download and build Apache Sedona 1.0.0 RC1
-#        - Get the source code here: https://github.com/apache/incubator-sedona/releases/tag/sedona-1.0.0-incubating-rc1
-#        - Build instructions are here: https://sedona.staged.apache.org/download/compile/
-#
 # ISSUES:
 #   1. Conda environment variables aren't accessible in IntelliJ/Pycharm due to a missing feature
 #        - Sedona python scripts will fail in IntelliJ/Pycharm as Spark env vars aren't set (e.g. $SPARK_HOME)
@@ -41,12 +37,11 @@ echo " Start time : $(date)"
 #
 # SETUP:
 #   - edit these if its now the future and versions have changed
-#       - This script currently installs Apacha Sedona 1.0.0 RC1
-#           - Requires a local Sedona build & install as it's not released in Pypi (as at 05/02/2021)
+#
 
-PYTHON_VERSION="3.8"  # note: 3.9 not compatible with a Sedona pre-requisite, Shapely
+PYTHON_VERSION="3.9"
 SPARK_VERSION="3.0.1"
-SEDONA_INSTALL_DIR="${HOME}/incubator-sedona-sedona-1.0.0-incubating-rc1"
+SEDONA_VERSION="1.0.0"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -138,11 +133,14 @@ echo "-------------------------------------------------------------------------"
 
 pip install apache-sedona
 
-## Copy Sedona JARs over to Spark install and install Sedona in Python from local setup.py
-#cp ${SEDONA_INSTALL_DIR}/python-adapter/target/sedona-python-adapter-3.0_2.12-1.0.0-incubating.jar ${SPARK_HOME}/jars
-#
-#cd ${SEDONA_INSTALL_DIR}/python || exit
-#python setup.py install
+# download and untar adapter JAR
+wget https://apache.mirror.digitalpacific.com.au/incubator/sedona/${SEDONA_VERSION}-incubating/apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz
+tar -zxvf apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz apache-sedona-${SEDONA_VERSION}-incubating-bin/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar
+rm apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz
+
+# copy to Spark JARs folder
+cp apache-sedona-${SEDONA_VERSION}-incubating-bin/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar ${SPARK_HOME_DIR}/jars/
+rm -R apache-sedona-${SEDONA_VERSION}-incubating-bin
 
 echo "-------------------------------------------------------------------------"
 echo "Install additional Python packages using Pip"
@@ -164,7 +162,7 @@ echo "-------------------------------------------------------------------------"
 echo "Run test Sedona script to prove everything is working"
 echo "-------------------------------------------------------------------------"
 
-python ${SCRIPT_DIR}/xx_run_spatial_query.py
+python ${SCRIPT_DIR}/02_run_spatial_query.py
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
