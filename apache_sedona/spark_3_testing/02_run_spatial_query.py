@@ -86,7 +86,7 @@ def main():
     # create geometries from lat/long fields into new DataFrame
     # new DF will be spatially indexed automatically
     sql = """select point_id, 
-                    ST_Point(cast(longitude as decimal(9, 6)), cast(latitude as decimal(8, 6))) as geometry
+                    ST_Point(longitude, latitude) as geometry
              from point_wkt"""
     point_df = spark.sql(sql)
 

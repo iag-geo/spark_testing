@@ -125,37 +125,29 @@ conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 conda activate sedona
 
 # install conda packages for Sedona
-echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} psycopg2 jupyter matplotlib
+echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} psycopg2 geopandas jupyter matplotlib
 
 echo "-------------------------------------------------------------------------"
 echo "Install Apache Sedona"
 echo "-------------------------------------------------------------------------"
 
+# step 1 - install from pip
 pip install apache-sedona
 
+# step 2 - add sedona-python-adapter JAR to Spark JAR files
 # download and untar adapter JAR
 wget https://apache.mirror.digitalpacific.com.au/incubator/sedona/${SEDONA_VERSION}-incubating/apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz
 tar -zxvf apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz apache-sedona-${SEDONA_VERSION}-incubating-bin/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar
 rm apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz
-
 # copy to Spark JARs folder
 cp apache-sedona-${SEDONA_VERSION}-incubating-bin/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar ${SPARK_HOME_DIR}/jars/
 rm -R apache-sedona-${SEDONA_VERSION}-incubating-bin
-
-echo "-------------------------------------------------------------------------"
-echo "Install additional Python packages using Pip"
-echo "-------------------------------------------------------------------------"
-
-# use pip as most of their pre-reqs already added by Sedona package install
-pip install geopandas
-#pip install ipyleaflet
 
 echo "-------------------------------------------------------------------------"
 echo "Verify Sedona version"
 echo "-------------------------------------------------------------------------"
 
 # confirm version of Sedona installed
-#conda list sedona
 pip list | grep "sedona"
 
 echo "-------------------------------------------------------------------------"
