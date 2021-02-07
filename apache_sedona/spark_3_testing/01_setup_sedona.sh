@@ -29,6 +29,10 @@ echo " Start time : $(date)"
 #   2. Miniconda installed in default directory ($HOME/opt/miniconda3)
 #        - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
 #
+#   3. (as at 25/01/2021) Download and build Apache Sedona 1.0.0 RC1
+#        - Get the source code here: https://github.com/apache/incubator-sedona/releases/tag/sedona-1.0.0-incubating-rc1
+#        - Build instructions are here: https://sedona.staged.apache.org/download/compile/
+#
 # ISSUES:
 #   1. Conda environment variables aren't accessible in IntelliJ/Pycharm due to a missing feature
 #        - Sedona python scripts will fail in IntelliJ/Pycharm as Spark env vars aren't set (e.g. $SPARK_HOME)
@@ -42,6 +46,8 @@ echo " Start time : $(date)"
 PYTHON_VERSION="3.9"
 SPARK_VERSION="3.0.1"
 SEDONA_VERSION="1.0.0"
+
+SEDONA_BUILD_DIR="${HOME}/apache-sedona-${SEDONA_VERSION}-incubating-src"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -134,14 +140,29 @@ echo "-------------------------------------------------------------------------"
 # step 1 - install from pip
 pip install apache-sedona
 
-# step 2 - add sedona-python-adapter JAR to Spark JAR files
-# download and untar adapter JAR
-wget https://apache.mirror.digitalpacific.com.au/incubator/sedona/${SEDONA_VERSION}-incubating/apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz
-tar -zxvf apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz apache-sedona-${SEDONA_VERSION}-incubating-bin/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar
-rm apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz
+# step 2 - add Sedona Python adapter JAR to Spark JAR files
+
+# download source code
+mkdir ${SEDONA_BUILD_DIR}
+cd ${SEDONA_BUILD_DIR} || exit
+wget https://apache.mirror.digitalpacific.com.au/incubator/sedona/${SEDONA_VERSION}-incubating/apache-sedona-${SEDONA_VERSION}-incubating-src.tar.gz
+tar -xzf apache-sedona-${SEDONA_VERSION}-incubating-src.tar.gz --directory ${SEDONA_BUILD_DIR} --strip-components=1
+rm apache-sedona-${SEDONA_VERSION}-incubating-src.tar.gz
+
+# build JAR with GeoTools included (GeoTools not included in binaries due to licensing)
+cd python-adapter || exit
+mvn clean install -DskipTests -Dscala=2.12 -Dspark=3.0 -Dgeotools
+
 # copy to Spark JARs folder
-cp apache-sedona-${SEDONA_VERSION}-incubating-bin/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar ${SPARK_HOME_DIR}/jars/
-rm -R apache-sedona-${SEDONA_VERSION}-incubating-bin
+cp python-adapter/target/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar ${SPARK_HOME_DIR}/jars/
+
+## download and untar Sedona python adapter JAR - doesn't include GeoTools, causing issues with a number of functions
+#wget https://apache.mirror.digitalpacific.com.au/incubator/sedona/${SEDONA_VERSION}-incubating/apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz
+#tar -zxvf apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz apache-sedona-${SEDONA_VERSION}-incubating-bin/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar
+#rm apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz
+## copy to Spark JARs folder
+#cp apache-sedona-${SEDONA_VERSION}-incubating-bin/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar ${SPARK_HOME_DIR}/jars/
+#rm -R apache-sedona-${SEDONA_VERSION}-incubating-bin
 
 echo "-------------------------------------------------------------------------"
 echo "Verify Sedona version"
