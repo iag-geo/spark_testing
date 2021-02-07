@@ -9,6 +9,8 @@ from datetime import datetime
 from multiprocessing import cpu_count
 
 from pyspark.sql import SparkSession
+from pyspark.sql import functions as f
+
 from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
@@ -61,7 +63,8 @@ def main():
 
     # create geometries from WKT strings into new DataFrame
     # new DF will be spatially indexed automatically
-    bdy_df = spark.sql("select bdy_id, ST_GeomFromWKT(wkt_geom) as geometry from bdy_wkt")
+    sql = "select bdy_id, state, ST_GeomFromWKT(wkt_geom) as geometry from bdy_wkt"
+    bdy_df = spark.sql(sql).repartition(96, "state")
 
     # repartition and cache for performance (no effect on the "small" spatial join query here)
     # bdy_df.repartition(spark.sparkContext.defaultParallelism).cache().count()
@@ -85,10 +88,8 @@ def main():
 
     # create geometries from lat/long fields into new DataFrame
     # new DF will be spatially indexed automatically
-    sql = """select point_id, 
-                    ST_Point(longitude, latitude) as geometry
-             from point_wkt"""
-    point_df = spark.sql(sql)
+    sql = "select point_id, state, ST_Point(longitude, latitude) as geometry from point_wkt"
+    point_df = spark.sql(sql).repartition(96, "state")
 
     # repartition and cache for performance (no effect on the "small" spatial join query here)
     # point_df.repartition(spark.sparkContext.defaultParallelism).cache().count()
@@ -107,7 +108,8 @@ def main():
     #   - spatial partitions and indexes for join will be created automatically
     #   - it's an inner join so point records could be lost
     sql = """SELECT pnt.point_id,
-                    bdy.bdy_id, 
+                    bdy.bdy_id,
+                    bdy.state,
                     pnt.geometry
              FROM pnt
              INNER JOIN bdy ON ST_Intersects(pnt.geometry, bdy.geometry)"""
@@ -122,7 +124,7 @@ def main():
     num_joined_points = join_df.count()
 
     join_df.printSchema()
-    join_df.show(5)
+    join_df.orderBy(f.rand()).show(5, False)
 
     logger.info("\t - {:,} points were boundary tagged: {}"
                 .format(num_joined_points, datetime.now() - start_time))
