@@ -26,16 +26,7 @@ echo " Start time : $(date)"
 #        - Reload .bash_profile:
 #            source .bash_profile
 #
-#   2. Apache Maven is installed
-#        - Install using Homebrew:
-#            brew install maven
-#        - Edit .bash_profile:
-#            export PATH="/usr/local/Cellar/maven/3.6.3_1:$PATH"
-#            export MAVEN_HOME="/usr/local/Cellar/maven/3.6.3_1/libexec"
-#        - Reload .bash_profile:
-#            source .bash_profile
-#
-#   3. Miniconda installed in default directory ($HOME/opt/miniconda3)
+#   2. Miniconda installed in default directory ($HOME/opt/miniconda3)
 #        - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
 #
 # ISSUES:
@@ -52,7 +43,7 @@ PYTHON_VERSION="3.9"
 SPARK_VERSION="3.0.1"
 SEDONA_VERSION="1.0.0"
 
-SEDONA_BUILD_DIR="${HOME}/apache-sedona-${SEDONA_VERSION}-incubating-src"
+#SEDONA_BUILD_DIR="${HOME}/apache-sedona-${SEDONA_VERSION}-incubating-src"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -147,26 +138,30 @@ pip install apache-sedona
 
 # step 2 - add Sedona Python adapter JAR to Spark JAR files
 
-# download source code
-mkdir ${SEDONA_BUILD_DIR}
-cd ${SEDONA_BUILD_DIR} || exit
-wget https://apache.mirror.digitalpacific.com.au/incubator/sedona/${SEDONA_VERSION}-incubating/apache-sedona-${SEDONA_VERSION}-incubating-src.tar.gz
-tar -xzf apache-sedona-${SEDONA_VERSION}-incubating-src.tar.gz --directory ${SEDONA_BUILD_DIR} --strip-components=1
-rm apache-sedona-${SEDONA_VERSION}-incubating-src.tar.gz
+## download source code
+#mkdir ${SEDONA_BUILD_DIR}
+#cd ${SEDONA_BUILD_DIR} || exit
+#wget https://apache.mirror.digitalpacific.com.au/incubator/sedona/${SEDONA_VERSION}-incubating/apache-sedona-${SEDONA_VERSION}-incubating-src.tar.gz
+#tar -xzf apache-sedona-${SEDONA_VERSION}-incubating-src.tar.gz --directory ${SEDONA_BUILD_DIR} --strip-components=1
+#rm apache-sedona-${SEDONA_VERSION}-incubating-src.tar.gz
+#
+## build JAR with GeoTools included (GeoTools not included in binaries due to licensing)
+#mvn clean install -DskipTests -Dscala=2.12 -Dspark=3.0 -Dgeotools
+#
+## copy to Spark JARs folder
+#cp python-adapter/target/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar ${SPARK_HOME_DIR}/jars/
 
-# build JAR with GeoTools included (GeoTools not included in binaries due to licensing)
-mvn clean install -DskipTests -Dscala=2.12 -Dspark=3.0 -Dgeotools
-
-# copy to Spark JARs folder
-cp python-adapter/target/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar ${SPARK_HOME_DIR}/jars/
-
-## download and untar Sedona python adapter JAR - doesn't include GeoTools, causing issues with a number of functions
+## download and untar official Sedona python adapter JAR - doesn't include GeoTools, causing issues with a number of functions
 #wget https://apache.mirror.digitalpacific.com.au/incubator/sedona/${SEDONA_VERSION}-incubating/apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz
 #tar -zxvf apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz apache-sedona-${SEDONA_VERSION}-incubating-bin/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar
 #rm apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz
 ## copy to Spark JARs folder
 #cp apache-sedona-${SEDONA_VERSION}-incubating-bin/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar ${SPARK_HOME_DIR}/jars/
 #rm -R apache-sedona-${SEDONA_VERSION}-incubating-bin
+
+# download unofficial shaded Sedona python adapter JAR with GeoTools
+cd ${SPARK_HOME_DIR}/jars || exit
+wget https://s3-ap-southeast-2.amazonaws.com/minus34.com/opensource/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar
 
 echo "-------------------------------------------------------------------------"
 echo "Verify Sedona version"
