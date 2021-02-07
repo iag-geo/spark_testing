@@ -26,12 +26,17 @@ echo " Start time : $(date)"
 #        - Reload .bash_profile:
 #            source .bash_profile
 #
-#   2. Miniconda installed in default directory ($HOME/opt/miniconda3)
-#        - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
+#   2. Apache Maven is installed
+#        - Install using Homebrew:
+#            brew install maven
+#        - Edit .bash_profile:
+#            export PATH="/usr/local/Cellar/maven/3.6.3_1:$PATH"
+#            export MAVEN_HOME="/usr/local/Cellar/maven/3.6.3_1/libexec"
+#        - Reload .bash_profile:
+#            source .bash_profile
 #
-#   3. (as at 25/01/2021) Download and build Apache Sedona 1.0.0 RC1
-#        - Get the source code here: https://github.com/apache/incubator-sedona/releases/tag/sedona-1.0.0-incubating-rc1
-#        - Build instructions are here: https://sedona.staged.apache.org/download/compile/
+#   3. Miniconda installed in default directory ($HOME/opt/miniconda3)
+#        - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
 #
 # ISSUES:
 #   1. Conda environment variables aren't accessible in IntelliJ/Pycharm due to a missing feature
@@ -150,7 +155,6 @@ tar -xzf apache-sedona-${SEDONA_VERSION}-incubating-src.tar.gz --directory ${SED
 rm apache-sedona-${SEDONA_VERSION}-incubating-src.tar.gz
 
 # build JAR with GeoTools included (GeoTools not included in binaries due to licensing)
-cd python-adapter || exit
 mvn clean install -DskipTests -Dscala=2.12 -Dspark=3.0 -Dgeotools
 
 # copy to Spark JARs folder
