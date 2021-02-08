@@ -20,7 +20,7 @@ echo " Start time : $(date)"
 #   1. Java 8 OpenJDK is installed
 #        - Install using Homebrew:
 #            brew install openjdk@8
-#        - Edit .bash_profile:
+#        - Add the following lines to your .bash_profile file:
 #            export PATH="/usr/local/opt/openjdk@8/bin:$PATH"
 #            export JAVA_HOME="/usr/local/opt/openjdk@8"
 #        - Reload .bash_profile:
