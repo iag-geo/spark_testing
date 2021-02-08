@@ -43,8 +43,6 @@ PYTHON_VERSION="3.9"
 SPARK_VERSION="3.0.1"
 SEDONA_VERSION="1.0.0"
 
-#SEDONA_BUILD_DIR="${HOME}/apache-sedona-${SEDONA_VERSION}-incubating-src"
-
 # --------------------------------------------------------------------------------------------------------------------
 
 # set the directory this script is running from
@@ -127,7 +125,7 @@ conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 conda activate sedona
 
 # install conda packages for Sedona
-echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} psycopg2 geopandas jupyter matplotlib
+echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} pyspark-stubs=${SPARK_VERSION} psycopg2 geopandas jupyter matplotlib
 
 echo "-------------------------------------------------------------------------"
 echo "Install Apache Sedona"
@@ -138,28 +136,8 @@ pip install apache-sedona
 
 # step 2 - add Sedona Python adapter JAR to Spark JAR files
 
-## download source code
-#mkdir ${SEDONA_BUILD_DIR}
-#cd ${SEDONA_BUILD_DIR} || exit
-#wget https://apache.mirror.digitalpacific.com.au/incubator/sedona/${SEDONA_VERSION}-incubating/apache-sedona-${SEDONA_VERSION}-incubating-src.tar.gz
-#tar -xzf apache-sedona-${SEDONA_VERSION}-incubating-src.tar.gz --directory ${SEDONA_BUILD_DIR} --strip-components=1
-#rm apache-sedona-${SEDONA_VERSION}-incubating-src.tar.gz
-#
-## build JAR with GeoTools included (GeoTools not included in binaries due to licensing)
-#mvn clean install -DskipTests -Dscala=2.12 -Dspark=3.0 -Dgeotools
-#
-## copy to Spark JARs folder
-#cp python-adapter/target/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar ${SPARK_HOME_DIR}/jars/
-
-## download and untar official Sedona python adapter JAR - doesn't include GeoTools, causing issues with a number of functions
-#wget https://apache.mirror.digitalpacific.com.au/incubator/sedona/${SEDONA_VERSION}-incubating/apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz
-#tar -zxvf apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz apache-sedona-${SEDONA_VERSION}-incubating-bin/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar
-#rm apache-sedona-${SEDONA_VERSION}-incubating-bin.tar.gz
-## copy to Spark JARs folder
-#cp apache-sedona-${SEDONA_VERSION}-incubating-bin/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar ${SPARK_HOME_DIR}/jars/
-#rm -R apache-sedona-${SEDONA_VERSION}-incubating-bin
-
-# download unofficial shaded Sedona python adapter JAR with GeoTools
+# download unofficial shaded Sedona python adapter JAR with GeoTools embedded
+# Note: Apache Sedona has an Apache license, GeoTools' license is LGPL
 cd ${SPARK_HOME_DIR}/jars || exit
 wget https://s3-ap-southeast-2.amazonaws.com/minus34.com/opensource/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar
 
