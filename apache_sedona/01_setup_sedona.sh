@@ -125,21 +125,13 @@ conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 conda activate sedona
 
 # install conda packages for Sedona
-echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} pyspark-stubs=${SPARK_VERSION} psycopg2 geopandas jupyter matplotlib
+echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} pyspark-stubs psycopg2 geopandas jupyter matplotlib
 
 echo "-------------------------------------------------------------------------"
 echo "Install Apache Sedona"
 echo "-------------------------------------------------------------------------"
 
-# step 1 - install from pip
 pip install apache-sedona
-
-# step 2 - add Sedona Python adapter JAR to Spark JAR files
-
-# download unofficial shaded Sedona python adapter JAR with GeoTools embedded
-# Note: Apache Sedona has an Apache license, GeoTools' license is LGPL
-cd ${SPARK_HOME_DIR}/jars || exit
-wget https://s3-ap-southeast-2.amazonaws.com/minus34.com/opensource/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar
 
 echo "-------------------------------------------------------------------------"
 echo "Verify Sedona version"
