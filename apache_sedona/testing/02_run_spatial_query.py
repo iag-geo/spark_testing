@@ -28,17 +28,14 @@ def main():
     spark = (SparkSession
              .builder
              .master("local[*]")
-             .appName("query")
+             .appName("Spatial Join Test")
              .config("spark.sql.session.timeZone", "UTC")
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
              .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
-             .config("spark.jars.repositories", "https://repo.osgeo.org/repository/release")
              .config("spark.jars.packages",
-                     "org.apache.sedona:sedona-python-adapter-3.0_2.12:1.0.0-incubating,"
-                     "org.geotools:gt-main:24.0,"
-                     "org.geotools:gt-referencing:24.0,"
-                     "org.geotools:gt-epsg-hsql:24.0")
+                     'org.apache.sedona:sedona-python-adapter-3.0_2.12:1.0.0-incubating,'
+                     'org.datasyslab:geotools-wrapper:geotools-24.0')
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.executor.cores", 1)
              .config("spark.cores.max", num_processors)

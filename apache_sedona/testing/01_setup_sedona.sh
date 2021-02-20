@@ -131,13 +131,7 @@ echo "-------------------------------------------------------------------------"
 echo "Install Apache Sedona"
 echo "-------------------------------------------------------------------------"
 
-# step 1 - install from pip
 pip install apache-sedona
-
-# Step 2 - manually copy JAI JAR file as Maven doesn't have this required binary file
-mkdir -p ${HOME}/.ivy2/cache/javax.media/jai_core/jars
-cd ${HOME}/.ivy2/cache/javax.media/jai_core/jars
-wget https://s3-ap-southeast-2.amazonaws.com/minus34.com/opensource/jai_core-1.1.3.jar
 
 echo "-------------------------------------------------------------------------"
 echo "Verify Sedona version"
