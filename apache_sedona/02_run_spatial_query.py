@@ -15,7 +15,7 @@ from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
 # input path for parquet files
-input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data")
+input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "./data")
 
 # number of CPUs to use in processing (defaults to number of local CPUs)
 num_processors = cpu_count()
