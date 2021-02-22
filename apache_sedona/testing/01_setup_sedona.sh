@@ -36,16 +36,15 @@ echo " Start time : $(date)"
 # --------------------------------------------------------------------------------------------------------------------
 #
 # SETUP:
-#   - edit these if its now the future and versions have changed
+#   - edit these if it's now the future and versions have changed
 #
 
 PYTHON_VERSION="3.9"
 SPARK_VERSION="3.0.1"
-SEDONA_VERSION="1.0.0"
 
 # --------------------------------------------------------------------------------------------------------------------
 
-# set the directory this script is running from
+# get the directory this script is running from
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 SPARK_HOME_DIR="${HOME}/spark-${SPARK_VERSION}-with-sedona"
@@ -75,7 +74,7 @@ echo "-------------------------------------------------------------------------"
 cd ${SPARK_HOME_DIR}/jars || exit
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
-wget https://jdbc.postgresql.org/download/postgresql-42.2.18.jar
+wget https://jdbc.postgresql.org/download/postgresql-42.2.19.jar
 
 # get hadoop-aws JAR file (optional - required for accessing AWS S3)
 #wget https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar
