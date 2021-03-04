@@ -41,6 +41,8 @@ echo " Start time : $(date)"
 
 PYTHON_VERSION="3.9"
 SPARK_VERSION="3.0.2"
+MAVEN_VERSION="3.6.3"
+
 SEDONA_INSTALL_DIR="${HOME}/incubator-sedona"
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -49,9 +51,22 @@ SEDONA_INSTALL_DIR="${HOME}/incubator-sedona"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 SPARK_HOME_DIR="${HOME}/spark-${SPARK_VERSION}-with-sedona-nightly"
+MAVEN_HOME_DIR="${HOME}/maven-${MAVEN_VERSION}"
+
 
 # WARNING - remove existing spark install
 rm -r ${SPARK_HOME_DIR}
+
+echo "-------------------------------------------------------------------------"
+echo "Install Maven"
+echo "-------------------------------------------------------------------------"
+
+mkdir ${MAVEN_HOME_DIR}
+cd ${MAVEN_HOME_DIR} || exit
+
+wget -q -e https://www.strategylions.com.au/mirror/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz
+tar xzf apache-maven-$MAVEN_VERSION-bin.tar.gz
+rm apache-maven-$MAVEN_VERSION-bin.tar.gz
 
 echo "-------------------------------------------------------------------------"
 echo "Downloading and Installing Apache Spark"
@@ -114,6 +129,7 @@ conda config --env --set channel_priority strict
 
 # add environment variables for Pyspark
 conda env config vars set JAVA_HOME="/usr/local/opt/openjdk@8"
+conda env config vars set MAVEN_HOME="${MAVEN_HOME_DIR}"
 conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
 conda env config vars set SPARK_LOCAL_DIRS="${HOME}/tmp/spark"
@@ -131,7 +147,9 @@ echo "-------------------------------------------------------------------------"
 echo "Build & Install Apache Sedona"
 echo "-------------------------------------------------------------------------"
 
-
+# Build it
+cd ${SEDONA_INSTALL_DIR} || exit
+mvn clean install -DskipTests
 
 # Copy Sedona JARs over to Spark install and install Sedona in Python from local setup.py
 cp ${SEDONA_INSTALL_DIR}/python-adapter/target/sedona-python-adapter-3.0_2.12-1.0.0-incubating.jar ${SPARK_HOME}/jars
