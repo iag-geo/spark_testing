@@ -84,9 +84,9 @@ def main():
 
     # # set Sedona spatial indexing and partitioning config in Spark session
     # # (slowed down the "small" spatial join query in this script. Might improve bigger queries)
-    spark.conf.set("geospark.global.index", "true")
-    spark.conf.set("geospark.global.indextype", "rtree")
-    spark.conf.set("geospark.join.gridtype", "kdbtree")
+    # spark.conf.set("geospark.global.index", "true")
+    # spark.conf.set("geospark.global.indextype", "rtree")
+    # spark.conf.set("geospark.join.gridtype", "kdbtree")
     # spark.conf.set("ggeospark.join.numpartition", "-1")
     # spark.conf.set("geospark.join.indexbuildside", "right")
     # spark.conf.set("geospark.join.spatitionside", "right")
