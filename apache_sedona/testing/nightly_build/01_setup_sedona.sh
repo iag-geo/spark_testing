@@ -41,7 +41,7 @@ echo " Start time : $(date)"
 
 PYTHON_VERSION="3.9"
 SPARK_VERSION="3.0.2"
-MAVEN_VERSION="3.6.3"
+#MAVEN_VERSION="3.6.3"
 
 SEDONA_VERSION="1.0.1-incubating-SNAPSHOT"
 SEDONA_INSTALL_DIR="${HOME}/incubator-sedona"
@@ -52,28 +52,27 @@ SEDONA_INSTALL_DIR="${HOME}/incubator-sedona"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 SPARK_HOME_DIR="${HOME}/spark-${SPARK_VERSION}-with-sedona-nightly"
-MAVEN_HOME_DIR="${HOME}/maven-${MAVEN_VERSION}"
+#MAVEN_HOME_DIR="${HOME}/maven-${MAVEN_VERSION}"
 
 # WARNING - remove existing spark install
 rm -r ${SPARK_HOME_DIR}
 
-echo "-------------------------------------------------------------------------"
-echo "Install Maven"
-echo "-------------------------------------------------------------------------"
-
-mkdir ${MAVEN_HOME_DIR}
-cd ${MAVEN_HOME_DIR} || exit
-
-wget https://www.strategylions.com.au/mirror/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz
-tar xzf apache-maven-$MAVEN_VERSION-bin.tar.gz
-rm apache-maven-$MAVEN_VERSION-bin.tar.gz
+#echo "-------------------------------------------------------------------------"
+#echo "Install Maven"
+#echo "-------------------------------------------------------------------------"
+#
+#cd ${HOME}
+#
+#wget https://www.strategylions.com.au/mirror/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz
+#tar xzf apache-maven-$MAVEN_VERSION-bin.tar.gz
+#rm apache-maven-$MAVEN_VERSION-bin.tar.gz
 
 echo "-------------------------------------------------------------------------"
 echo "Downloading and Installing Apache Spark"
 echo "-------------------------------------------------------------------------"
 
 mkdir ${SPARK_HOME_DIR}
-cd ${SPARK_HOME_DIR} || exit
+cd ${SPARK_HOME_DIR}
 
 # download and untar Spark files
 wget https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
@@ -87,7 +86,7 @@ echo "-------------------------------------------------------------------------"
 echo "Downloading additional JAR files"
 echo "-------------------------------------------------------------------------"
 
-cd ${SPARK_HOME_DIR}/jars || exit
+cd ${SPARK_HOME_DIR}/jars
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 wget https://jdbc.postgresql.org/download/postgresql-42.2.19.jar
@@ -104,7 +103,7 @@ wget https://jdbc.postgresql.org/download/postgresql-42.2.19.jar
 # create folder for Spark temp files
 mkdir -p ${HOME}/tmp/spark
 
-cd ${HOME} || exit
+cd ${HOME}
 
 echo "-------------------------------------------------------------------------"
 echo "Creating new Conda Environment 'sedona-nightly'"
@@ -129,7 +128,7 @@ conda config --env --set channel_priority strict
 
 # add environment variables for Pyspark
 conda env config vars set JAVA_HOME="/usr/local/opt/openjdk@8"
-conda env config vars set MAVEN_HOME="${MAVEN_HOME_DIR}"
+#conda env config vars set MAVEN_HOME="${HOME}/apache-maven-${MAVEN_VERSION}"
 conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
 conda env config vars set SPARK_LOCAL_DIRS="${HOME}/tmp/spark"
@@ -148,11 +147,11 @@ echo "Build & Install Apache Sedona"
 echo "-------------------------------------------------------------------------"
 
 # download it
-cd cd ${HOME} || exit
+cd cd ${HOME}
 git clone https://github.com/apache/incubator-sedona.git
 
 # Build it
-cd ${SEDONA_INSTALL_DIR} || exit
+cd ${SEDONA_INSTALL_DIR}
 mvn clean install -DskipTests
 
 # install it
@@ -161,7 +160,7 @@ mvn clean install -DskipTests
 cp ${SEDONA_INSTALL_DIR}/python-adapter/target/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}.jar ${SPARK_HOME}/jars
 
 # install Sedona in Python from local setup.py
-cd ${SEDONA_INSTALL_DIR}/python || exit
+cd ${SEDONA_INSTALL_DIR}/python
 python setup.py install
 
 echo "-------------------------------------------------------------------------"
@@ -179,7 +178,7 @@ python ${SCRIPT_DIR}/02_run_spatial_query.py
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
-cd ${SCRIPT_DIR} || exit
+cd ${SCRIPT_DIR}
 
 duration=$SECONDS
 
