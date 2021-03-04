@@ -41,12 +41,12 @@ output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data
 gnaf_csv_file_path = os.path.join(output_path, "gnaf_light.csv")
 
 # list of input boundary Postgres tables
-bdy_list = [{"name": "local_government_areas", "id_field": "lga_pid", "name_field": "lga_name"}]
-# bdy_list = [{"name": "commonwealth_electorates", "id_field": "ce_pid", "name_field": "ce_name"},
-#             {"name": "local_government_areas", "id_field": "lga_pid", "name_field": "lga_name"},
-#             {"name": "local_government_wards", "id_field": "ward_pid", "name_field": "ward_name"},
-#             {"name": "state_lower_house_electorates", "id_field": "se_lower_pid", "name_field": "se_lower_name"},
-#             {"name": "state_upper_house_electorates", "id_field": "se_upper_pid", "name_field": "se_upper_name"}]
+# bdy_list = [{"name": "local_government_areas", "id_field": "lga_pid", "name_field": "lga_name"}]
+bdy_list = [{"name": "commonwealth_electorates", "id_field": "ce_pid", "name_field": "ce_name"},
+            {"name": "local_government_areas", "id_field": "lga_pid", "name_field": "lga_name"},
+            {"name": "local_government_wards", "id_field": "ward_pid", "name_field": "ward_name"},
+            {"name": "state_lower_house_electorates", "id_field": "se_lower_pid", "name_field": "se_lower_name"},
+            {"name": "state_upper_house_electorates", "id_field": "se_upper_pid", "name_field": "se_upper_name"}]
 
 
 def main():

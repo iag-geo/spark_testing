@@ -14,19 +14,9 @@ from psycopg2 import pool
 
 from pyspark.sql import functions as f, types as t
 from pyspark.sql import SparkSession
-from pyspark.sql.window import Window
 
-from geospark.register import upload_jars, GeoSparkRegistrator  # need to install geospark package
-from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
-
-# # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
-# # set Conda environment vars for PySpark
-# os.environ["JAVA_HOME"] = "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
-# os.environ["SPARK_HOME"] = "/Users/hugh.saalmans/spark-2.4.6-bin-hadoop2.7"
-# os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
-# os.environ["PYSPARK_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
-# os.environ["PYSPARK_DRIVER_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
-# os.environ["PYLIB"] = os.environ["SPARK_HOME"] + "/python/lib"
+from sedona.register import SedonaRegistrator
+from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
 num_processors = cpu_count() * 2
 
@@ -62,38 +52,41 @@ pg_pool = psycopg2.pool.SimpleConnectionPool(1, num_processors, local_pg_connect
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data")
 
-# gnaf csv file
-input_file_name = os.path.join(output_path, "gnaf.csv")
+# # gnaf csv file
+# input_file_name = os.path.join(output_path, "gnaf.csv")
 
 
 def main():
     start_time = datetime.now()
 
-    # upload Sedona (geospark) JARs
-    upload_jars()
-
+    # create spark session object
     spark = (SparkSession
              .builder
              .master("local[*]")
-             .appName("query")
+             .appName("Spatial Join Test")
              .config("spark.sql.session.timeZone", "UTC")
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
-             .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
-             .config("spark.cores.max", num_processors)
+             .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
+             # .config("spark.jars.packages",
+             #         'org.apache.sedona:sedona-python-adapter-3.0_2.12:1.0.0-incubating,'
+             #         'org.datasyslab:geotools-wrapper:geotools-24.0')
              .config("spark.sql.adaptive.enabled", "true")
+             .config("spark.executor.cores", 1)
+             .config("spark.cores.max", num_processors)
              .config("spark.driver.memory", "8g")
+             .config("spark.driver.maxResultSize", "1g")
              .getOrCreate()
              )
 
-    # Register Apache Sedona (geospark) UDTs and UDFs
-    GeoSparkRegistrator.registerAll(spark)
+    # Add Sedona functions and types to Spark
+    SedonaRegistrator.registerAll(spark)
 
     # # set Sedona spatial indexing and partitioning config in Spark session
     # # (slowed down the "small" spatial join query in this script. Might improve bigger queries)
-    # spark.conf.set("geospark.global.index", "true")
-    # spark.conf.set("geospark.global.indextype", "rtree")
-    # spark.conf.set("geospark.join.gridtype", "kdbtree")
+    spark.conf.set("geospark.global.index", "true")
+    spark.conf.set("geospark.global.indextype", "rtree")
+    spark.conf.set("geospark.join.gridtype", "kdbtree")
     # spark.conf.set("ggeospark.join.numpartition", "-1")
     # spark.conf.set("geospark.join.indexbuildside", "right")
     # spark.conf.set("geospark.join.spatitionside", "right")
@@ -111,7 +104,8 @@ def main():
     #     .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
     #     .cache()
 
-    point_df = spark.read.parquet(os.path.join(output_path, "gnaf")).select("gnaf_pid", "state", "geom")
+    point_df = spark.read.parquet(os.path.join(output_path, "gnaf")).select("gnaf_pid", "state", "geom")\
+        .repartition(192, "state")
     # point_df = gnaf_df.select("gnaf_pid", "state", "geom")
     # point_df = gnaf_df.select("gnaf_pid", "state", "longitude", "latitude", "geom")\
     #     .repartitionByRange(100, "longitude")
@@ -163,7 +157,8 @@ def bdy_tag(spark, bdy_name, bdy_id):
 
     # load boundaries and create geoms
     bdy_df = spark.read.parquet(os.path.join(output_path, bdy_name)) \
-        .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)"))
+        .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)")) \
+        .repartition(192, "state")
         # .repartitionByRange(100, "partition_id")
     bdy_df.createOrReplaceTempView("bdy")
 
@@ -175,7 +170,7 @@ def bdy_tag(spark, bdy_name, bdy_id):
     #   - spatial partitions and indexes for join will be created automatically
     #   - it's an inner join so point records could be lost (left joins not yet supported by Geospark)
     #   - force broadcast of unpartitioned boundaries (to speed up query) using /*+ BROADCAST(bdy) */
-    sql = """SELECT /*+ BROADCAST(bdy) */ pnt.gnaf_pid,
+    sql = """SELECT pnt.gnaf_pid,
                     bdy.{}
              FROM pnt
              INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)

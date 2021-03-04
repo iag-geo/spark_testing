@@ -152,7 +152,7 @@ git clone https://github.com/apache/incubator-sedona.git
 
 # Build it
 cd ${SEDONA_INSTALL_DIR}
-mvn clean install -DskipTests
+mvn clean install -DskipTests -Dgeotools
 
 # install it
 
