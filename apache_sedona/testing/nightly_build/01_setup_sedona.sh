@@ -64,7 +64,7 @@ echo "-------------------------------------------------------------------------"
 mkdir ${MAVEN_HOME_DIR}
 cd ${MAVEN_HOME_DIR} || exit
 
-wget -q -e https://www.strategylions.com.au/mirror/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz
+wget https://www.strategylions.com.au/mirror/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz
 tar xzf apache-maven-$MAVEN_VERSION-bin.tar.gz
 rm apache-maven-$MAVEN_VERSION-bin.tar.gz
 
