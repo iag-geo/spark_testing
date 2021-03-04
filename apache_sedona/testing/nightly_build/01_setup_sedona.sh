@@ -53,7 +53,6 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SPARK_HOME_DIR="${HOME}/spark-${SPARK_VERSION}-with-sedona-nightly"
 MAVEN_HOME_DIR="${HOME}/maven-${MAVEN_VERSION}"
 
-
 # WARNING - remove existing spark install
 rm -r ${SPARK_HOME_DIR}
 
@@ -147,13 +146,20 @@ echo "-------------------------------------------------------------------------"
 echo "Build & Install Apache Sedona"
 echo "-------------------------------------------------------------------------"
 
+# download it
+cd cd ${HOME} || exit
+git clone https://github.com/apache/incubator-sedona.git
+
 # Build it
 cd ${SEDONA_INSTALL_DIR} || exit
 mvn clean install -DskipTests
 
-# Copy Sedona JARs over to Spark install and install Sedona in Python from local setup.py
-cp ${SEDONA_INSTALL_DIR}/python-adapter/target/sedona-python-adapter-3.0_2.12-1.0.0-incubating.jar ${SPARK_HOME}/jars
+# install it
 
+# Copy Sedona JARs to Spark install
+cp ${SEDONA_INSTALL_DIR}/python-adapter/target/sedona-python-adapter-3.0_2.12-1.0.1-incubating-SNAPSHOT.jar ${SPARK_HOME}/jars
+
+# install Sedona in Python from local setup.py
 cd ${SEDONA_INSTALL_DIR}/python || exit
 python setup.py install
 
