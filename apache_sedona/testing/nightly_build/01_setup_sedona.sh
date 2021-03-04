@@ -43,6 +43,7 @@ PYTHON_VERSION="3.9"
 SPARK_VERSION="3.0.2"
 MAVEN_VERSION="3.6.3"
 
+SEDONA_VERSION="1.0.1-incubating-SNAPSHOT"
 SEDONA_INSTALL_DIR="${HOME}/incubator-sedona"
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -157,7 +158,7 @@ mvn clean install -DskipTests
 # install it
 
 # Copy Sedona JARs to Spark install
-cp ${SEDONA_INSTALL_DIR}/python-adapter/target/sedona-python-adapter-3.0_2.12-1.0.1-incubating-SNAPSHOT.jar ${SPARK_HOME}/jars
+cp ${SEDONA_INSTALL_DIR}/python-adapter/target/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}.jar ${SPARK_HOME}/jars
 
 # install Sedona in Python from local setup.py
 cd ${SEDONA_INSTALL_DIR}/python || exit
