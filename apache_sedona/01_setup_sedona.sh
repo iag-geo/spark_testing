@@ -123,8 +123,14 @@ conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 # reactivate for env vars to take effect
 conda activate sedona
 
-# install conda packages for Sedona
-echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} pyspark-stubs psycopg2 geopandas jupyter matplotlib
+# install Pyspark
+echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} pyspark-stubs
+
+# install supporting & useful packages
+echo "y" | conda install -c conda-forge psycopg2 geopandas pyarrow jupyter matplotlib
+
+## OPTIONAL - AWS Packages
+#echo "y" | conda install -c conda-forge boto3 awscli
 
 echo "-------------------------------------------------------------------------"
 echo "Install Apache Sedona"
