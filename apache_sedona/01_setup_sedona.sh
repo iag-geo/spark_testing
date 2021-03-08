@@ -127,7 +127,7 @@ conda activate sedona
 echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} pyspark-stubs
 
 # install supporting & useful packages
-echo "y" | conda install -c conda-forge psycopg2 sqlalchemy geopandas pyarrow jupyter matplotlib
+echo "y" | conda install -c conda-forge psycopg2 sqlalchemy geoalchemy2 geopandas pyarrow jupyter matplotlib
 
 ## OPTIONAL - AWS Packages
 #echo "y" | conda install -c conda-forge boto3 awscli
