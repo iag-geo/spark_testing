@@ -141,7 +141,7 @@ conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 conda activate sedona-nightly
 
 # install conda packages for Sedona
-echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} pyspark-stubs psycopg2 geopandas jupyter matplotlib
+echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} pyspark-stubs psycopg2 geopandas jupyter matplotlib awsclie boto3
 
 echo "-------------------------------------------------------------------------"
 echo "Build & Install Apache Sedona"
