@@ -54,8 +54,9 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SPARK_HOME_DIR="${HOME}/spark-${SPARK_VERSION}-with-sedona-nightly"
 #MAVEN_HOME_DIR="${HOME}/maven-${MAVEN_VERSION}"
 
-# WARNING - remove existing spark install
+# WARNING - remove existing spark and Sedona installs
 rm -r ${SPARK_HOME_DIR}
+rm -r ${SEDONA_INSTALL_DIR}
 
 #echo "-------------------------------------------------------------------------"
 #echo "Install Maven"
