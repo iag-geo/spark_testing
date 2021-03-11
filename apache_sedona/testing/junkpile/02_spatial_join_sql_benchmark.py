@@ -1,7 +1,6 @@
 
 # script to benchmark spatial join performance between gnaf and a national boundary dataset
 
-# import logging
 import os
 
 from datetime import datetime
@@ -13,16 +12,11 @@ from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
 start_time = datetime.now()
 
-# # set Spark logging levels
-# logging.getLogger("pyspark").setLevel(logging.ERROR)
-# logging.getLogger("py4j").setLevel(logging.ERROR)
-
-num_processors = cpu_count()
-num_partitions = num_processors * 12
+num_processors = cpu_count() * 2
+num_partitions = num_processors * 6
 
 # input path for gzipped parquet files
-input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                          "/Users/hugh.saalmans/git/minus34/gnaf-loader/spark/data")
+input_path = "/Users/hugh.saalmans/git/minus34/gnaf-loader/spark/data"
 
 # boundary info
 bdy_name = "commonwealth_electorates"
@@ -51,22 +45,22 @@ spark = (SparkSession
          .getOrCreate()
          )
 
-# set Spark log level
-spark.sparkContext.setLogLevel("ERROR")
-
 # Add Sedona functions and types to Spark
 SedonaRegistrator.registerAll(spark)
 
-# # load gnaf points and create geoms
-point_df = spark.read.parquet(os.path.join(input_path, "address_principals")) \
-    .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom")) \
-    .repartition(num_partitions, "state")
+# load gnaf points and create geoms
+point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
+            .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
+            .limit(1000000)
+            .repartition(num_partitions, "state")
+            )
 point_df.createOrReplaceTempView("pnt")
 
 # load boundaries and create geoms
-bdy_df = spark.read.parquet(os.path.join(input_path, bdy_name)) \
-    .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom")) \
-    .repartition(num_partitions, "state")
+bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_name))
+          .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
+          .repartition(num_partitions, "state")
+          )
 bdy_df.createOrReplaceTempView("bdy")
 
 # run spatial join to boundary tag the points
