@@ -13,7 +13,7 @@ from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 start_time = datetime.now()
 
 num_processors = cpu_count() * 2
-num_partitions = num_processors * 6
+num_partitions = num_processors * 24
 
 # input path for gzipped parquet files
 input_path = "/Users/hugh.saalmans/git/minus34/gnaf-loader/spark/data"
@@ -38,7 +38,7 @@ spark = (SparkSession
          #         'org.apache.sedona:sedona-python-adapter-3.0_2.12:1.0.0-incubating,'
          #         'org.datasyslab:geotools-wrapper:geotools-24.0')
          .config("spark.sql.adaptive.enabled", "true")
-         .config("spark.executor.cores", 1)
+         .config("spark.executor.cores", 4)
          .config("spark.cores.max", num_processors)
          .config("spark.driver.memory", "12g")
          # .config("spark.driver.maxResultSize", "2g")
@@ -51,7 +51,7 @@ SedonaRegistrator.registerAll(spark)
 # load gnaf points and create geoms
 point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
             .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-            .limit(1000000)
+            # .limit(1000000)
             .repartition(num_partitions, "state")
             )
 point_df.createOrReplaceTempView("pnt")
