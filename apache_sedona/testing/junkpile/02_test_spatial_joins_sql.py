@@ -18,7 +18,7 @@ from pyspark.sql import SparkSession
 from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
-num_processors = cpu_count() * 2
+num_processors = cpu_count()
 
 
 # get postgres parameters from local text file
@@ -49,11 +49,12 @@ local_pg_connect_string = "dbname={DB} host={HOST} port={PORT} user={USER} passw
 # create Postgres connection pool
 pg_pool = psycopg2.pool.SimpleConnectionPool(1, num_processors, local_pg_connect_string)
 
+# inpout path for reference data
+input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                          "/Users/hugh.saalmans/git/minus34/gnaf-loader/spark/data")
+
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data")
-
-# # gnaf csv file
-# input_file_name = os.path.join(output_path, "gnaf.csv")
 
 
 def main():
@@ -104,11 +105,9 @@ def main():
     #     .withColumn("geom", f.expr("ST_Point(longitude, latitude)")) \
     #     .cache()
 
-    point_df = spark.read.parquet(os.path.join(output_path, "gnaf")).select("gnaf_pid", "state", "geom")\
+    point_df = spark.read.parquet(os.path.join(input_path, "address_principals")) \
+        .select("gnaf_pid", "state", f.expr("ST_GeomFromWKB(geom)").alias("geom")) \
         .repartition(192, "state")
-    # point_df = gnaf_df.select("gnaf_pid", "state", "geom")
-    # point_df = gnaf_df.select("gnaf_pid", "state", "longitude", "latitude", "geom")\
-    #     .repartitionByRange(100, "longitude")
 
     point_df.createOrReplaceTempView("pnt")
 
@@ -122,7 +121,7 @@ def main():
 
     # tag_df.printSchema()
 
-    point_df = spark.read.parquet(os.path.join(output_path, "gnaf_with_{}".format("commonwealth_electorates")))
+    # point_df = spark.read.parquet(os.path.join(input_path, "gnaf_with_{}".format("commonwealth_electorates")))
 
     # point_df.createOrReplaceTempView("pnt")
 
@@ -131,7 +130,7 @@ def main():
 
     # point_df.unpersist()
     #
-    # point_df = spark.read.parquet(os.path.join(output_path, "gnaf_with_{}".format("local_government_areas")))
+    # point_df = spark.read.parquet(os.path.join(input_path, "gnaf_with_{}".format("local_government_areas")))
     # # point_df.createOrReplaceTempView("pnt")
     #
     # # bdy_tag(spark, "local_government_wards", "ward_pid")
@@ -156,10 +155,9 @@ def bdy_tag(spark, bdy_name, bdy_id):
     start_time = datetime.now()
 
     # load boundaries and create geoms
-    bdy_df = spark.read.parquet(os.path.join(output_path, bdy_name)) \
-        .withColumn("geom", f.expr("st_geomFromWKT(wkt_geom)")) \
+    bdy_df = spark.read.parquet(os.path.join(input_path, bdy_name)) \
+        .withColumn("geom", f.expr("ST_GeomFromWKB(geom)").alias("geom")) \
         .repartition(192, "state")
-        # .repartitionByRange(100, "partition_id")
     bdy_df.createOrReplaceTempView("bdy")
 
     #         .withColumn("partition_id", f.percent_rank()
@@ -170,6 +168,7 @@ def bdy_tag(spark, bdy_name, bdy_id):
     #   - spatial partitions and indexes for join will be created automatically
     #   - it's an inner join so point records could be lost (left joins not yet supported by Geospark)
     #   - force broadcast of unpartitioned boundaries (to speed up query) using /*+ BROADCAST(bdy) */
+
     sql = """SELECT pnt.gnaf_pid,
                     bdy.{}
              FROM pnt
@@ -178,12 +177,12 @@ def bdy_tag(spark, bdy_name, bdy_id):
     join_df.createOrReplaceTempView("bdy_join")
     join_df.explain()
 
-    # get missing gnaf records due to no left join with a spatial join (above)
-    sql = """SELECT pnt.*,
-                    bdy_join.{}
-             FROM pnt
-             LEFT OUTER JOIN bdy_join ON pnt.gnaf_pid = bdy_join.gnaf_pid""".format(bdy_id)
-    join_df2 = spark.sql(sql)
+    # # get missing gnaf records due to no left join with a spatial join (above)
+    # sql = """SELECT pnt.*,
+    #                 bdy_join.{}
+    #          FROM pnt
+    #          LEFT OUTER JOIN bdy_join ON pnt.gnaf_pid = bdy_join.gnaf_pid""".format(bdy_id)
+    # join_df2 = spark.sql(sql)
 
     # num_joined_points = join_df.count()
 
@@ -191,16 +190,16 @@ def bdy_tag(spark, bdy_name, bdy_id):
     # join_df.show(5)
 
     # output join DataFrame
-    export_to_parquet(join_df2, "gnaf_with_{}".format(bdy_name))
+    export_to_parquet(join_df, "gnaf_with_{}".format(bdy_name))
 
-    join_df2.unpersist()
+    join_df.unpersist()
     join_df.unpersist()
     bdy_df.unpersist()
 
     logger.info("\t - GNAF boundary tagged with {} : {}"
                 .format(bdy_name, datetime.now() - start_time))
 
-    return join_df2
+    return join_df
 
 
 def export_to_parquet(df, name):
