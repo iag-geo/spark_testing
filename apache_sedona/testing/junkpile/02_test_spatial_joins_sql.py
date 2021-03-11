@@ -18,7 +18,7 @@ from pyspark.sql import SparkSession
 from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
-num_processors = cpu_count()
+num_processors = cpu_count() * 2
 
 
 # get postgres parameters from local text file
@@ -65,8 +65,8 @@ def main():
              .builder
              .master("local[*]")
              .appName("Spatial Join Test")
-             .config("spark.sql.session.timeZone", "UTC")
-             .config("spark.sql.debug.maxToStringFields", 100)
+             # .config("spark.sql.session.timeZone", "UTC")
+             # .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
              .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
              # .config("spark.jars.packages",
@@ -75,8 +75,8 @@ def main():
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.executor.cores", 1)
              .config("spark.cores.max", num_processors)
-             .config("spark.driver.memory", "8g")
-             .config("spark.driver.maxResultSize", "1g")
+             .config("spark.driver.memory", "12g")
+             # .config("spark.driver.maxResultSize", "2g")
              .getOrCreate()
              )
 
@@ -117,7 +117,7 @@ def main():
                 .format(point_df.count(), datetime.now() - start_time))
 
     # boundary tag gnaf points
-    bdy_tag(spark, "commonwealth_electorates", "ce_pid")
+    bdy_tag(spark, "commonwealth_electorates_analysis", "ce_pid", 9)
 
     # point_df.unpersist()
 
@@ -153,13 +153,13 @@ def main():
     spark.stop()
 
 
-def bdy_tag(spark, bdy_name, bdy_id):
+def bdy_tag(spark, bdy_name, bdy_id, num_partitions):
     start_time = datetime.now()
 
     # load boundaries and create geoms
     bdy_df = spark.read.parquet(os.path.join(input_path, bdy_name)) \
-        .withColumn("geom", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom")) \
-        .repartition(192, "state")
+        .withColumn("geom", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
+        # .repartition(num_partitions, "state")
     bdy_df.createOrReplaceTempView("bdy")
     # bdy_df.printSchema()
 
@@ -172,10 +172,10 @@ def bdy_tag(spark, bdy_name, bdy_id):
     # run spatial join to boundary tag the points
     # notes:
     #   - spatial partitions and indexes for join will be created automatically
-    #   - it's an inner join so point records could be lost (left joins not yet supported by Geospark)
+    #   - it's an inner join so point records could be lost (left joins not yet supported by sedona)
     #   - force broadcast of unpartitioned boundaries (to speed up query) using /*+ BROADCAST(bdy) */
 
-    sql = """SELECT pnt.gnaf_pid,
+    sql = """SELECT /*+ BROADCAST(bdy) */ pnt.gnaf_pid,
                     bdy.{}
              FROM pnt
              INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
@@ -318,7 +318,7 @@ if __name__ == "__main__":
     # add the handler to the root logger
     logging.getLogger("").addHandler(console)
 
-    task_name = "Geospark testing"
+    task_name = "Sedona testing"
     system_name = "mobility.ai"
 
     logger.info("{} started".format(task_name))

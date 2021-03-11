@@ -11,7 +11,7 @@ from datetime import datetime
 from pyspark.sql import functions as f, types as t  # need to install pyspark package
 from pyspark.sql import SparkSession, Window
 
-from sedona.register import SedonaRegistrator  # need to install geospark package
+from sedona.register import SedonaRegistrator  # need to install Sedona package
 from sedona.utils import KryoSerializer, SedonaKryoRegistrator
 
 # # target records per partition

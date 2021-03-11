@@ -18,8 +18,8 @@ from pyrasterframes import rf_types
 # os.environ["JAVA_HOME"] = "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
 # os.environ["SPARK_HOME"] = "/Users/hugh.saalmans/spark-2.4.6-bin-hadoop2.7"
 # os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
-# os.environ["PYSPARK_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
-# os.environ["PYSPARK_DRIVER_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
+# os.environ["PYSPARK_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/sedona_env/bin/python"
+# os.environ["PYSPARK_DRIVER_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/sedona_env/bin/python"
 # os.environ["PYLIB"] = os.environ["SPARK_HOME"] + "/python/lib"
 
 # input path for parquet files
@@ -149,7 +149,7 @@ if __name__ == "__main__":
     # add the handler to the root logger
     logging.getLogger("").addHandler(console)
 
-    task_name = "Geospark testing"
+    task_name = "Sedona testing"
     system_name = "mobility.ai"
 
     logger.info("{} started".format(task_name))

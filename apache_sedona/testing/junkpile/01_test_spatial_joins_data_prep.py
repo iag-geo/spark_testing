@@ -12,16 +12,16 @@ from pyspark.sql import functions as f, types as t
 from pyspark.sql import SparkSession
 from pyspark.sql.window import Window
 
-from geospark.register import upload_jars, GeoSparkRegistrator  # need to install geospark package
-from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
+from sedona.register import upload_jars, SedonaRegistrator  # need to install sedona package
+from sedona.utils import KryoSerializer, SedonaKryoRegistrator
 
 # # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 # # set Conda environment vars for PySpark
 # os.environ["JAVA_HOME"] = "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
 # os.environ["SPARK_HOME"] = "/Users/hugh.saalmans/spark-2.4.6-bin-hadoop2.7"
 # os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
-# os.environ["PYSPARK_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
-# os.environ["PYSPARK_DRIVER_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/geospark_env/bin/python"
+# os.environ["PYSPARK_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/sedona_env/bin/python"
+# os.environ["PYSPARK_DRIVER_PYTHON"] = "/Users/hugh.saalmans/opt/miniconda3/envs/sedona_env/bin/python"
 # os.environ["PYLIB"] = os.environ["SPARK_HOME"] + "/python/lib"
 
 
@@ -101,7 +101,7 @@ def main():
              .config("spark.sql.session.timeZone", "UTC")
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
-             .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
+             .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
              .config("spark.cores.max", cpu_count())
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.driver.memory", "8g")
@@ -109,7 +109,7 @@ def main():
              )
 
     # Register Apache Sedona (geospark) UDTs and UDFs
-    GeoSparkRegistrator.registerAll(spark)
+    SedonaRegistrator.registerAll(spark)
 
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
@@ -228,7 +228,7 @@ if __name__ == "__main__":
     # add the handler to the root logger
     logging.getLogger("").addHandler(console)
 
-    task_name = "Geospark testing"
+    task_name = "Sedona testing"
     system_name = "mobility.ai"
 
     logger.info("{} started".format(task_name))

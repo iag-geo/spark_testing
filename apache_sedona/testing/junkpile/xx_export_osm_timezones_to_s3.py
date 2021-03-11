@@ -33,8 +33,8 @@ log_file = os.path.abspath(__file__).replace(".py", ".log")
 logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(asctime)s %(message)s",
                     datefmt="%m/%d/%Y %I:%M:%S %p")
 
-# from geospark.register import upload_jars, GeoSparkRegistrator
-# from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
+# from sedona.register import upload_jars, SedonaRegistrator
+# from sedona.utils import KryoSerializer, SedonaKryoRegistrator
 
 # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 # home = "/Users/s57405"
@@ -42,8 +42,8 @@ logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(asctime)s 
 # os.environ["SPARK_HOME"] = home + "/spark-3.0.1-with-sedona"
 # os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
 # os.environ["SPARK_LOCAL_DIRS"] = home + "/tmp/spark"
-# os.environ["PYSPARK_PYTHON"] = home + "/opt/miniconda3/envs/geospark3_env/bin/python"
-# os.environ["PYSPARK_DRIVER_PYTHON"] = home + "/opt/miniconda3/envs/geospark3_env/bin/python"
+# os.environ["PYSPARK_PYTHON"] = home + "/opt/miniconda3/envs/sedona_env/bin/python"
+# os.environ["PYSPARK_DRIVER_PYTHON"] = home + "/opt/miniconda3/envs/sedona_env/bin/python"
 # os.environ["PYLIB"] = os.environ["SPARK_HOME"] + "/python/lib"
 
 # set number of parallel processes (sets number of Spark executors and Postgres concurrent connections)
@@ -112,10 +112,10 @@ def main():
              )
 
     #              .config("spark.serializer", KryoSerializer.getName)
-    #              .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
+    #              .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
 
     # # Register Apache Sedona UDTs and UDFs
-    # GeoSparkRegistrator.registerAll(spark)
+    # SedonaRegistrator.registerAll(spark)
 
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
 

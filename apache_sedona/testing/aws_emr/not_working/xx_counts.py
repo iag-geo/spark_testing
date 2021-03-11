@@ -15,8 +15,8 @@ log_file = os.path.abspath(__file__).replace(".py", ".log")
 logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(asctime)s %(message)s",
                     datefmt="%m/%d/%Y %I:%M:%S %p")
 
-from geospark.register import upload_jars, GeoSparkRegistrator  # need to install geospark package
-from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
+from sedona.register import upload_jars, SedonaRegistrator  # need to install sedona package
+from sedona.utils import KryoSerializer, sedonaKryoRegistrator
 
 s3_bucket = "minus34.com"
 
@@ -50,12 +50,12 @@ def main():
              .config("spark.hadoop.fs.s3.fast.upload", "true")
              .config("spark.sql.adaptive.enabled", "true")  # TODO: does this split one ID into 2 or more partitions?
              .config("spark.serializer", KryoSerializer.getName)
-             .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
+             .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
              .getOrCreate()
              )
 
     # Register Apache Sedona (geospark) UDTs and UDFs
-    GeoSparkRegistrator.registerAll(spark)
+    SedonaRegistrator.registerAll(spark)
 
     sc = spark.sparkContext
     sc.setCheckpointDir("hdfs:///checkpoints")

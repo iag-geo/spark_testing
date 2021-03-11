@@ -18,12 +18,12 @@ log_file = os.path.abspath(__file__).replace(".py", ".log")
 logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(asctime)s %(message)s",
                     datefmt="%m/%d/%Y %I:%M:%S %p")
 
-from geospark.core.enums import GridType, IndexType, FileDataSplitter  # need to install geospark package
-from geospark.core.spatialOperator import JoinQuery
-from geospark.core.SpatialRDD import PointRDD
-from geospark.register import upload_jars, GeoSparkRegistrator
-from geospark.utils import KryoSerializer, GeoSparkKryoRegistrator
-from geospark.utils.adapter import Adapter
+from sedona.core.enums import GridType, IndexType, FileDataSplitter  # need to install sedona package
+from sedona.core.spatialOperator import JoinQuery
+from sedona.core.SpatialRDD import PointRDD
+from sedona.register import SedonaRegistrator
+from sedona.utils import KryoSerializer, SedonaKryoRegistrator
+from sedona.utils.adapter import Adapter
 
 # set number of parallel processes (sets number of Spark executors and Postgres concurrent connections)
 num_processors = cpu_count()
@@ -68,7 +68,7 @@ def rdd_filesave_join():
 
     spark = create_spark_session()
     sc = spark.sparkContext
-    sedona_version = pkg_resources.get_distribution("geospark").version
+    sedona_version = pkg_resources.get_distribution("sedona").version
 
     logger.info("\t - PySpark {} session initiated with Apache Sedona {}: {}"
                 .format(sc.version, sedona_version, datetime.now() - start_time))
@@ -171,7 +171,7 @@ def rdd_flatmap_join():
 
     spark = create_spark_session()
     sc = spark.sparkContext
-    sedona_version = pkg_resources.get_distribution("geospark").version
+    sedona_version = pkg_resources.get_distribution("sedona").version
 
     logger.info("\t - PySpark {} session initiated with Apache Sedona {}: {}"
                 .format(sc.version, sedona_version, datetime.now() - start_time))
@@ -263,8 +263,6 @@ def rdd_flatmap_join():
 
 
 def create_spark_session():
-    # upload Apache Sedona JARs
-    upload_jars()
 
     spark = (SparkSession
              .builder
@@ -273,7 +271,7 @@ def create_spark_session():
              .config("spark.sql.session.timeZone", "UTC")
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
-             .config("spark.kryo.registrator", GeoSparkKryoRegistrator.getName)
+             .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
              .config("spark.cores.max", num_processors)
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.driver.memory", "8g")
@@ -281,13 +279,13 @@ def create_spark_session():
              )
 
     # Register Apache Sedona UDTs and UDFs
-    GeoSparkRegistrator.registerAll(spark)
+    SedonaRegistrator.registerAll(spark)
 
     # # set Sedona spatial indexing and partitioning config in Spark session
     # # (no effect on the "small" spatial join query in this script. May improve bigger queries)
-    # spark.conf.set("geospark.global.index", "true")
-    # spark.conf.set("geospark.global.indextype", "rtree")
-    # spark.conf.set("geospark.join.gridtype", "kdbtree")
+    # spark.conf.set("sedona.global.index", "true")
+    # spark.conf.set("sedona.global.indextype", "rtree")
+    # spark.conf.set("sedona.join.gridtype", "kdbtree")
 
     return spark
 
