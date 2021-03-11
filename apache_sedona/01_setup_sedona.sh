@@ -60,7 +60,7 @@ mkdir ${SPARK_HOME_DIR}
 cd ${SPARK_HOME_DIR}
 
 # download and untar Spark files
-wget https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
+wget https://apache.mirror.digitalpacific.com.au/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
 tar -xzf spark-${SPARK_VERSION}-bin-hadoop3.2.tgz --directory ${SPARK_HOME_DIR} --strip-components=1
 rm spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
 

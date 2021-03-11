@@ -85,12 +85,12 @@ def main():
 
     # # set Sedona spatial indexing and partitioning config in Spark session
     # # (slowed down the "small" spatial join query in this script. Might improve bigger queries)
-    # spark.conf.set("geospark.global.index", "true")
-    # spark.conf.set("geospark.global.indextype", "rtree")
-    # spark.conf.set("geospark.join.gridtype", "kdbtree")
-    # spark.conf.set("ggeospark.join.numpartition", "-1")
-    # spark.conf.set("geospark.join.indexbuildside", "right")
-    # spark.conf.set("geospark.join.spatitionside", "right")
+    # spark.conf.set("sedona.global.index", "true")
+    # spark.conf.set("sedona.global.indextype", "rtree")
+    # spark.conf.set("sedona.join.gridtype", "kdbtree")
+    # spark.conf.set("sedona.join.numpartition", "-1")
+    # spark.conf.set("sedona.join.indexbuildside", "right")
+    # spark.conf.set("sedona.join.spatitionside", "right")
 
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
@@ -106,8 +106,10 @@ def main():
     #     .cache()
 
     point_df = spark.read.parquet(os.path.join(input_path, "address_principals")) \
-        .select("gnaf_pid", "state", f.expr("ST_GeomFromWKB(geom)").alias("geom")) \
+        .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom")) \
         .repartition(192, "state")
+    # point_df.printSchema()
+    # point_df.show()
 
     point_df.createOrReplaceTempView("pnt")
 
@@ -117,7 +119,7 @@ def main():
     # boundary tag gnaf points
     bdy_tag(spark, "commonwealth_electorates", "ce_pid")
 
-    point_df.unpersist()
+    # point_df.unpersist()
 
     # tag_df.printSchema()
 
@@ -156,9 +158,13 @@ def bdy_tag(spark, bdy_name, bdy_id):
 
     # load boundaries and create geoms
     bdy_df = spark.read.parquet(os.path.join(input_path, bdy_name)) \
-        .withColumn("geom", f.expr("ST_GeomFromWKB(geom)").alias("geom")) \
+        .withColumn("geom", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom")) \
         .repartition(192, "state")
     bdy_df.createOrReplaceTempView("bdy")
+    # bdy_df.printSchema()
+
+    logger.info("\t - Loaded {:,} {} polygons: {}"
+                .format(bdy_df.count(), bdy_name, datetime.now() - start_time))
 
     #         .withColumn("partition_id", f.percent_rank()
     #             .over(Window.partitionBy().orderBy(f.expr("st_x(st_centroid(geom))"))) * f.lit(100.0)) \
@@ -174,7 +180,7 @@ def bdy_tag(spark, bdy_name, bdy_id):
              FROM pnt
              INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
     join_df = spark.sql(sql)
-    join_df.createOrReplaceTempView("bdy_join")
+    # join_df.createOrReplaceTempView("bdy_join")
     join_df.explain()
 
     # # get missing gnaf records due to no left join with a spatial join (above)
@@ -189,15 +195,15 @@ def bdy_tag(spark, bdy_name, bdy_id):
     # join_df.printSchema()
     # join_df.show(5)
 
-    # output join DataFrame
-    export_to_parquet(join_df, "gnaf_with_{}".format(bdy_name))
+    # # output join DataFrame
+    # export_to_parquet(join_df, "gnaf_with_{}".format(bdy_name))
 
-    join_df.unpersist()
+    # join_df.unpersist()
     join_df.unpersist()
     bdy_df.unpersist()
 
-    logger.info("\t - GNAF boundary tagged with {} : {}"
-                .format(bdy_name, datetime.now() - start_time))
+    logger.info("\t - {} GNAF records boundary tagged with {} : {}"
+                .format(join_df.count(), bdy_name, datetime.now() - start_time))
 
     return join_df
 
