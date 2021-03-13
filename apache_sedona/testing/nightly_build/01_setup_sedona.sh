@@ -39,7 +39,7 @@ echo " Start time : $(date)"
 #   - edit these if it's now the future and versions have changed
 #
 
-PYTHON_VERSION="3.9"
+PYTHON_VERSION="3.8"
 SPARK_VERSION="3.0.2"
 #MAVEN_VERSION="3.6.3"
 
@@ -54,9 +54,9 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SPARK_HOME_DIR="${HOME}/spark-${SPARK_VERSION}-with-sedona-nightly"
 #MAVEN_HOME_DIR="${HOME}/maven-${MAVEN_VERSION}"
 
-# WARNING - remove existing spark and Sedona installs
-rm -r ${SPARK_HOME_DIR}
-rm -r ${SEDONA_INSTALL_DIR}
+# WARNING - remove existing Spark and Sedona installs
+rm -rf ${SPARK_HOME_DIR}
+rm -rf ${SEDONA_INSTALL_DIR}
 
 #echo "-------------------------------------------------------------------------"
 #echo "Install Maven"
