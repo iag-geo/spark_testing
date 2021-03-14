@@ -75,11 +75,7 @@ bdy_table = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-# max_vertices = [64, 128, 256, 512, 1024]
-max_vertices = [256, 512]
-
-num_partitions = 81
-
+max_vertices_list = [100, 200, 300, 400, 500]
 
 def main():
     start_time = datetime.now()
@@ -135,7 +131,7 @@ def main():
     # export to parquet on local drive after adding geometry field
     export_df = points_df.withColumn("geom", f.expr("ST_GeomFromWKT(wkt_geom)")) \
         .drop("wkt_geom") \
-        .repartition(num_partitions, "state")
+        .repartition(9, "state")
 
     export_to_parquet(export_df, points_table)
 
@@ -157,7 +153,7 @@ def main():
     min_gid = gid_range[0]
     max_gid = gid_range[1]
 
-    for max_vertex in max_vertices:
+    for max_vertex in max_vertices_list:
 
         sql = """SELECT gid, {}, state, 
                      ST_AsText(ST_Subdivide((ST_Dump(ST_Buffer(ST_Transform(geom, 4326), 0.0))).geom, {})) as wkt_geom 
@@ -172,7 +168,7 @@ def main():
         # export to parquet on local drive after adding geometry field
         export_df = bdy_df.withColumn("geom", f.expr("ST_GeomFromWKT(wkt_geom)")) \
             .drop("wkt_geom") \
-            .repartition(num_partitions, "state")
+            .repartition(9, "state")
 
         export_name = "{}_{}".format(bdy_table, max_vertex)
 

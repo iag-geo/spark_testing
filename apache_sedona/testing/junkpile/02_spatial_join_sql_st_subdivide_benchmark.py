@@ -11,7 +11,6 @@ from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
 num_processors = cpu_count()
-num_partitions = 162
 
 # input path for gzipped parquet files
 input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
@@ -21,8 +20,10 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-# max_vertices = [64, 128, 256, 512, 1024]
-max_vertices = [256, 512]
+max_vertices_list = [100, 200, 300, 400, 500]
+
+# number of partitions on both dataframes
+num_partitions_list = [50, 100, 150, 200, 250]
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
@@ -50,35 +51,37 @@ spark = (SparkSession
 # Add Sedona functions and types to Spark
 SedonaRegistrator.registerAll(spark)
 
-# load gnaf points and create geoms
-point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
-            # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-            # .limit(1000000)
-            .repartition(num_partitions, "state")
-            )
-point_df.createOrReplaceTempView("pnt")
+for num_partitions in num_partitions_list:
 
-for max_vertex in max_vertices:
-    start_time = datetime.now()
+    # load gnaf points and create geoms
+    point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
+                # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
+                # .limit(1000000)
+                .repartition(num_partitions, "state")
+                )
+    point_df.createOrReplaceTempView("pnt")
 
-    bdy_vertex_name = "{}_{}".format(bdy_name, max_vertex)
+    for max_vertex in max_vertices_list:
+        start_time = datetime.now()
 
-    # load boundaries and create geoms
-    bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
-              # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-              .repartition(num_partitions, "state")
-              )
-    bdy_df.createOrReplaceTempView("bdy")
+        bdy_vertex_name = "{}_{}".format(bdy_name, max_vertex)
 
-    # run spatial join to boundary tag the points
-    sql = """SELECT pnt.gnaf_pid, bdy.{} FROM pnt INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
-    join_df = spark.sql(sql)
+        # load boundaries and create geoms
+        bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
+                  # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
+                  .repartition(num_partitions, "state")
+                  )
+        bdy_df.createOrReplaceTempView("bdy")
 
-    print("{:,} GNAF records boundary tagged with {} : {}"
-          .format(join_df.count(), bdy_vertex_name, datetime.now() - start_time))
+        # run spatial join to boundary tag the points
+        sql = """SELECT pnt.gnaf_pid, bdy.{} FROM pnt INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
+        join_df = spark.sql(sql)
 
-    join_df.unpersist()
-    bdy_df.unpersist()
+        print("{:,} GNAF records boundary tagged with {} : {} partitions : {}"
+              .format(join_df.count(), bdy_vertex_name, num_partitions, datetime.now() - start_time))
+
+        join_df.unpersist()
+        bdy_df.unpersist()
 
 # cleanup
 spark.stop()
