@@ -65,7 +65,7 @@ spark = (SparkSession
          #         'org.apache.sedona:sedona-python-adapter-3.0_2.12:1.0.0-incubating,'
          #         'org.datasyslab:geotools-wrapper:geotools-24.0')
          .config("spark.sql.adaptive.enabled", "true")
-         .config("spark.executor.cores", 4)
+         # .config("spark.executor.cores", 4)
          .config("spark.cores.max", num_processors)
          .config("spark.driver.memory", "8g")
          # .config("spark.driver.maxResultSize", "2g")
