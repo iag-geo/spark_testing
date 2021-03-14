@@ -177,7 +177,7 @@ def main():
         export_df.unpersist()
         bdy_df.unpersist()
 
-        logger.info("\t - exported {} rows to {}_{} : {}".format(num_rows, bdy_table, export_name, datetime.now() - start_time))
+        logger.info("\t - exported {} rows to {} : {}".format(num_rows, export_name, datetime.now() - start_time))
 
     # cleanup
     pg_cur.close()
