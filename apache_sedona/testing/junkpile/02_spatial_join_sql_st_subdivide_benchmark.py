@@ -5,23 +5,24 @@ import os
 
 from datetime import datetime
 from multiprocessing import cpu_count
-from pyspark.sql import functions as f
+# from pyspark.sql import functions as f
 from pyspark.sql import SparkSession
 from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
-num_processors = cpu_count() * 2
-num_partitions = num_processors * 24
+num_processors = cpu_count()
+num_partitions = 162
 
 # input path for gzipped parquet files
-input_path = "/Users/hugh.saalmans/git/minus34/gnaf-loader/spark/data"
+input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
 
 # boundary info
 bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices = [64, 128, 256, 512, 1024]
+# max_vertices = [64, 128, 256, 512, 1024]
+max_vertices = [256, 512]
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
@@ -53,7 +54,7 @@ SedonaRegistrator.registerAll(spark)
 point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
             # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
             # .limit(1000000)
-            # .repartition(num_partitions, "state")
+            .repartition(num_partitions, "state")
             )
 point_df.createOrReplaceTempView("pnt")
 
@@ -63,9 +64,9 @@ for max_vertex in max_vertices:
     bdy_vertex_name = "{}_{}".format(bdy_name, max_vertex)
 
     # load boundaries and create geoms
-    bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_name))
+    bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
               # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-              # .repartition(num_partitions, "state")
+              .repartition(num_partitions, "state")
               )
     bdy_df.createOrReplaceTempView("bdy")
 

@@ -75,7 +75,10 @@ bdy_table = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices = [64, 128, 256, 512, 1024]
+# max_vertices = [64, 128, 256, 512, 1024]
+max_vertices = [256, 512]
+
+num_partitions = 81
 
 
 def main():
@@ -132,7 +135,7 @@ def main():
     # export to parquet on local drive after adding geometry field
     export_df = points_df.withColumn("geom", f.expr("ST_GeomFromWKT(wkt_geom)")) \
         .drop("wkt_geom") \
-        .repartition(81, "state")
+        .repartition(num_partitions, "state")
 
     export_to_parquet(export_df, points_table)
 
@@ -165,8 +168,6 @@ def main():
         bdy_df = import_table(spark, sql, min_gid, max_gid, 5000)
 
         num_rows = bdy_df.count()
-
-        num_partitions = 54
 
         # export to parquet on local drive after adding geometry field
         export_df = bdy_df.withColumn("geom", f.expr("ST_GeomFromWKT(wkt_geom)")) \
@@ -217,31 +218,6 @@ def export_to_parquet(df, name):
     df.write.option("compression", "gzip") \
         .mode("overwrite") \
         .parquet(os.path.join(output_path, name))
-
-
-def copy_to_s3(schema_name, name):
-
-    # set correct AWS user
-    boto3.setup_default_session(profile_name="default")
-
-    # delete existing files (each time you run this Spark creates new, random parquet file names)
-    s3 = boto3.resource('s3')
-    bucket = s3.Bucket(s3_bucket)
-    bucket.objects.filter(Prefix=os.path.join(s3_folder, schema_name, name)).delete()
-
-    s3_client = boto3.client('s3')
-    config = TransferConfig(multipart_threshold=1024 ** 2)  # 1MB
-
-    # upload one file at a time
-    for root,dirs,files in os.walk(os.path.join(output_path, name)):
-        for file in files:
-            response = s3_client\
-                .upload_file(os.path.join(output_path, name, file), s3_bucket,
-                             os.path.join(s3_folder, schema_name, name, file),
-                             Config=config, ExtraArgs={'ACL': 'public-read'})
-
-            if response is not None:
-                logger.warning("\t\t\t - {} copy to S3 problem : {}".format(name, response))
 
 
 if __name__ == "__main__":
