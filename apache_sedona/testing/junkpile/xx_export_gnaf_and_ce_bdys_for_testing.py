@@ -139,7 +139,6 @@ def main():
     points_df.unpersist()
 
     logger.info("\t - exported {} : {}".format(points_table, datetime.now() - start_time))
-    start_time = datetime.now()
 
     # ----------------------------------------------------------------------------
     # import boundary table in Postgres & export to GZIPped Parquet local files
@@ -154,6 +153,7 @@ def main():
     max_gid = gid_range[1]
 
     for max_vertex in max_vertices_list:
+        start_time = datetime.now()
 
         sql = """SELECT gid, {}, state, 
                      ST_AsText(ST_Subdivide((ST_Dump(ST_Buffer(ST_Transform(geom, 4326), 0.0))).geom, {})) as wkt_geom 
