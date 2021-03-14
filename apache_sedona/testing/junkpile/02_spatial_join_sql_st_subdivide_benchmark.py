@@ -1,6 +1,7 @@
 
 # script to benchmark spatial join performance between gnaf and a national boundary dataset
 
+import logging
 import os
 
 from datetime import datetime
@@ -9,6 +10,29 @@ from multiprocessing import cpu_count
 from pyspark.sql import SparkSession
 from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
+
+# setup logging - code is here to prevent conflict with logging.basicConfig() from one of the imports below
+log_file = os.path.abspath(__file__).replace(".py", ".log")
+logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(asctime)s %(message)s",
+                    datefmt="%m/%d/%Y %I:%M:%S %p")
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# set Spark logging levels
+logging.getLogger("pyspark").setLevel(logging.ERROR)
+logging.getLogger("py4j").setLevel(logging.ERROR)
+
+# setup logger to write to screen as well as writing to log file
+# define a Handler which writes INFO messages or higher to the sys.stderr
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+# set a format which is simpler for console use
+formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
+# tell the handler to use this format
+console.setFormatter(formatter)
+# add the handler to the root logger
+logging.getLogger().addHandler(console)
 
 num_processors = cpu_count()
 
@@ -77,7 +101,7 @@ for num_partitions in num_partitions_list:
         sql = """SELECT pnt.gnaf_pid, bdy.{} FROM pnt INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
         join_df = spark.sql(sql)
 
-        print("{:,} GNAF records boundary tagged with {} : {} partitions : {}"
+        logging.info("{:,} GNAF records boundary tagged with {} : {} partitions : {}"
               .format(join_df.count(), bdy_vertex_name, num_partitions, datetime.now() - start_time))
 
         join_df.unpersist()
