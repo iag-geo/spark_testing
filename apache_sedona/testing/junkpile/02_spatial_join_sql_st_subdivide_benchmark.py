@@ -3,6 +3,7 @@
 
 import logging
 import os
+import platform
 
 from datetime import datetime
 from multiprocessing import cpu_count
@@ -10,6 +11,8 @@ from multiprocessing import cpu_count
 from pyspark.sql import SparkSession
 from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
+
+computer = platform.node()
 
 # setup logging - code is here to prevent conflict with logging.basicConfig() from one of the imports below
 log_file = os.path.abspath(__file__).replace(".py", ".log")
@@ -53,7 +56,7 @@ num_partitions_list = [100, 150, 200, 250, 300, 350, 400, 450, 500]
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
 
 # log header for log file (so results cn be used in Excel/Tableau)
-logger.info("points,max_verticies,partitions,processing_time")
+logger.info("computer,points,max_verticies,partitions,processing_time")
 
 # create spark session object
 spark = (SparkSession
@@ -103,12 +106,13 @@ for num_partitions in num_partitions_list:
         bdy_df.createOrReplaceTempView("bdy")
 
         # run spatial join to boundary tag the points
-        sql = """SELECT pnt.gnaf_pid, bdy.{} FROM pnt INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
+        sql = """SELECT pnt.gnaf_pid, bdy.{} FROM pnt INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)"""\
+            .format(bdy_id)
         join_df = spark.sql(sql)
 
         # log stats
-        logging.info("{},{},{},{}"
-                     .format(join_df.count(), max_vertices, num_partitions, datetime.now() - start_time))
+        logging.info("{},{},{},{},{}"
+                     .format(computer, join_df.count(), max_vertices, num_partitions, datetime.now() - start_time))
 
         join_df.unpersist()
         bdy_df.unpersist()
