@@ -47,10 +47,13 @@ bdy_id = "ce_pid"
 max_vertices_list = [100, 200, 300, 400, 500]
 
 # number of partitions on both dataframes
-num_partitions_list = [50, 100, 150, 200, 250]
+num_partitions_list = [250, 300, 350, 400]
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
+
+# log header for log file (so results cn be used in Excel/Tableau)
+logger.info("points,max_verticies,partitions,processing_time")
 
 # create spark session object
 spark = (SparkSession
@@ -101,8 +104,9 @@ for num_partitions in num_partitions_list:
         sql = """SELECT pnt.gnaf_pid, bdy.{} FROM pnt INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""".format(bdy_id)
         join_df = spark.sql(sql)
 
-        logging.info("{:,} GNAF records boundary tagged with {} : {} partitions : {}"
-              .format(join_df.count(), bdy_vertex_name, num_partitions, datetime.now() - start_time))
+        # log stats
+        logging.info("{},{},{},{}"
+                     .format(join_df.count(), bdy_vertex_name, num_partitions, datetime.now() - start_time))
 
         join_df.unpersist()
         bdy_df.unpersist()
