@@ -123,7 +123,7 @@ def main():
     min_gid = gid_range[0]
     max_gid = gid_range[1]
 
-    sql = "SELECT gid, {}, ST_AsText(ST_Transform(geom, 4326)) as wkt_geom FROM {}.{}" \
+    sql = "SELECT gid, {}, state, ST_AsText(ST_Transform(geom, 4326)) as wkt_geom FROM {}.{}" \
         .format(points_id, points_schema, points_table)
 
     # import to Spark in parallel using JDBC
@@ -131,7 +131,8 @@ def main():
 
     # export to parquet on local drive after adding geometry field
     export_df = points_df.withColumn("geom", f.expr("ST_GeomFromWKT(wkt_geom)")) \
-        .drop("wkt_geom")
+        .drop("wkt_geom") \
+        .repartition(81, "state")
 
     export_to_parquet(export_df, points_table)
 
@@ -155,7 +156,7 @@ def main():
 
     for max_vertex in max_vertices:
 
-        sql = """SELECT gid, {}, 
+        sql = """SELECT gid, {}, state, 
                      ST_AsText(ST_Subdivide((ST_Dump(ST_Buffer(ST_Transform(geom, 4326), 0.0))).geom, {})) as wkt_geom 
                      FROM {}.{}""" \
             .format(bdy_id, max_vertex, bdy_schema, bdy_table)
@@ -163,9 +164,14 @@ def main():
         # import to Spark in parallel using JDBC
         bdy_df = import_table(spark, sql, min_gid, max_gid, 5000)
 
+        num_rows = bdy_df.count()
+
+        num_partitions = 54
+
         # export to parquet on local drive after adding geometry field
         export_df = bdy_df.withColumn("geom", f.expr("ST_GeomFromWKT(wkt_geom)")) \
-            .drop("wkt_geom")
+            .drop("wkt_geom") \
+            .repartition(num_partitions, "state")
 
         export_name = "{}_{}".format(bdy_table, max_vertex)
 
@@ -174,7 +180,7 @@ def main():
         export_df.unpersist()
         bdy_df.unpersist()
 
-        logger.info("\t - exported {}_{} : {}".format(bdy_table, export_name, datetime.now() - start_time))
+        logger.info("\t - exported {} rows to {}_{} : {}".format(num_rows, bdy_table, export_name, datetime.now() - start_time))
 
     # cleanup
     pg_cur.close()
