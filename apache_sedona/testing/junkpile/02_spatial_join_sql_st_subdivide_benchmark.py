@@ -56,7 +56,7 @@ num_partitions_list = [100, 150, 200, 250, 300, 350, 400, 450, 500]
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
 
 # log header for log file (so results cn be used in Excel/Tableau)
-logger.info("computer,points,max_verticies,partitions,processing_time")
+logger.info("computer,points,boundaries,max_vertices,partitions,processing_time")
 
 # create spark session object
 spark = (SparkSession
@@ -112,7 +112,7 @@ for num_partitions in num_partitions_list:
 
         # log stats
         logging.info("{},{},{},{},{}"
-                     .format(computer, join_df.count(), max_vertices, num_partitions, datetime.now() - start_time))
+                     .format(computer, join_df.count(), bdy_df.count(), max_vertices, num_partitions, datetime.now() - start_time))
 
         join_df.unpersist()
         bdy_df.unpersist()
