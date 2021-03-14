@@ -47,7 +47,7 @@ bdy_id = "ce_pid"
 max_vertices_list = [100, 200, 300, 400, 500]
 
 # number of partitions on both dataframes
-num_partitions_list = [250, 300, 350, 400]
+num_partitions_list = [100, 150, 200, 250, 300, 350, 400, 450, 500]
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
@@ -85,18 +85,20 @@ for num_partitions in num_partitions_list:
                 # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
                 # .limit(1000000)
                 .repartition(num_partitions, "state")
+                .cache()
                 )
     point_df.createOrReplaceTempView("pnt")
 
-    for max_vertex in max_vertices_list:
+    for max_vertices in max_vertices_list:
         start_time = datetime.now()
 
-        bdy_vertex_name = "{}_{}".format(bdy_name, max_vertex)
+        bdy_vertex_name = "{}_{}".format(bdy_name, max_vertices)
 
         # load boundaries and create geoms
         bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
                   # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
                   .repartition(num_partitions, "state")
+                  .cache()
                   )
         bdy_df.createOrReplaceTempView("bdy")
 
@@ -106,7 +108,7 @@ for num_partitions in num_partitions_list:
 
         # log stats
         logging.info("{},{},{},{}"
-                     .format(join_df.count(), bdy_vertex_name, num_partitions, datetime.now() - start_time))
+                     .format(join_df.count(), max_vertices, num_partitions, datetime.now() - start_time))
 
         join_df.unpersist()
         bdy_df.unpersist()
