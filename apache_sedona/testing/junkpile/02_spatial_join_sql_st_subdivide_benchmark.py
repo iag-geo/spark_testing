@@ -57,44 +57,44 @@ output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "d
 # log header for log file (so results cn be used in Excel/Tableau)
 logger.info("computer,points,boundaries,max_vertices,partitions,processing_time")
 
-# create spark session object
-spark = (SparkSession
-         .builder
-         .master("local[*]")
-         .appName("Spatial Join SQL Benchmark")
-         .config("spark.sql.session.timeZone", "UTC")
-         .config("spark.sql.debug.maxToStringFields", 100)
-         .config("spark.serializer", KryoSerializer.getName)
-         .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
-         # .config("spark.jars.packages",
-         #         'org.apache.sedona:sedona-python-adapter-3.0_2.12:1.0.0-incubating,'
-         #         'org.datasyslab:geotools-wrapper:geotools-24.0')
-         .config("spark.sql.adaptive.enabled", "true")
-         # .config("spark.executor.cores", 4)
-         .config("spark.cores.max", num_processors)
-         .config("spark.driver.memory", "8g")
-         # .config("spark.driver.maxResultSize", "2g")
-         .getOrCreate()
-         )
-
-# Add Sedona functions and types to Spark
-SedonaRegistrator.registerAll(spark)
-
 for num_partitions in num_partitions_list:
-
-    # load gnaf points and create geoms
-    point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
-                # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-                # .limit(1000000)
-                .repartition(num_partitions, "state")
-                .cache()
-                )
-    point_df.createOrReplaceTempView("pnt")
-
     for max_vertices in max_vertices_list:
-        start_time = datetime.now()
 
         bdy_vertex_name = "{}_{}".format(bdy_name, max_vertices)
+
+        # create spark session object
+        spark = (SparkSession
+                 .builder
+                 .master("local[*]")
+                 .appName("Spatial Join SQL Benchmark")
+                 .config("spark.sql.session.timeZone", "UTC")
+                 .config("spark.sql.debug.maxToStringFields", 100)
+                 .config("spark.serializer", KryoSerializer.getName)
+                 .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
+                 # .config("spark.jars.packages",
+                 #         'org.apache.sedona:sedona-python-adapter-3.0_2.12:1.0.0-incubating,'
+                 #         'org.datasyslab:geotools-wrapper:geotools-24.0')
+                 .config("spark.sql.adaptive.enabled", "true")
+                 # .config("spark.executor.cores", 4)
+                 .config("spark.cores.max", num_processors)
+                 .config("spark.driver.memory", "8g")
+                 # .config("spark.driver.maxResultSize", "2g")
+                 .getOrCreate()
+                 )
+
+        # Add Sedona functions and types to Spark
+        SedonaRegistrator.registerAll(spark)
+
+        start_time = datetime.now()
+
+        # load gnaf points and create geoms
+        point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
+                    # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
+                    # .limit(1000000)
+                    .repartition(num_partitions, "state")
+                    .cache()
+                    )
+        point_df.createOrReplaceTempView("pnt")
 
         # load boundaries and create geoms
         bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
@@ -116,5 +116,5 @@ for num_partitions in num_partitions_list:
         join_df.unpersist()
         bdy_df.unpersist()
 
-# cleanup
-spark.stop()
+        # cleanup
+        spark.stop()
