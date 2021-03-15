@@ -1,4 +1,4 @@
-computer,points,max_verticies,partitions,processing_time
+computer,points,boundaries,max_vertices,partitions,processing_time
 macbook,14263909,28024,200,50,0:07:55.688864
 macbook,14263887,20638,300,50,0:07:15.886446
 macbook,14263876,16905,400,50,0:07:05.943138
