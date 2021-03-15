@@ -15,7 +15,7 @@ from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 computer = platform.node()
 
 # setup logging - code is here to prevent conflict with logging.basicConfig() from one of the imports below
-log_file = os.path.abspath(__file__).replace(".py", ".log")
+log_file = os.path.abspath(__file__).replace(".py", ".csv")
 logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(message)s")
 
 logger = logging.getLogger()
