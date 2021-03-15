@@ -16,8 +16,7 @@ computer = platform.node()
 
 # setup logging - code is here to prevent conflict with logging.basicConfig() from one of the imports below
 log_file = os.path.abspath(__file__).replace(".py", ".log")
-logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(asctime)s %(message)s",
-                    datefmt="%m/%d/%Y %I:%M:%S %p")
+logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(message)s")
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -111,7 +110,7 @@ for num_partitions in num_partitions_list:
         join_df = spark.sql(sql)
 
         # log stats
-        logging.info("{},{},{},{},{}"
+        logging.info("{},{},{},{},{},{}"
                      .format(computer, join_df.count(), bdy_df.count(), max_vertices, num_partitions, datetime.now() - start_time))
 
         join_df.unpersist()
