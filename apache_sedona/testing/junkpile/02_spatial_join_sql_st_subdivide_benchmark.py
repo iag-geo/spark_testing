@@ -49,7 +49,8 @@ bdy_id = "ce_pid"
 max_vertices_list = [200, 250, 300, 350, 400]
 
 # number of partitions on both dataframes
-num_partitions_list = [150, 200, 250, 300, 350, 400, 450]
+# num_partitions_list = [150, 200, 250, 300, 350, 400, 450]
+num_partitions_list = [500, 550, 600]
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
