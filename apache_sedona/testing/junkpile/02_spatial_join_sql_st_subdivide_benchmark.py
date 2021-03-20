@@ -12,7 +12,7 @@ from pyspark.sql import SparkSession
 from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
-computer = "imac4"
+computer = "imac5"
 
 # setup logging - code is here to prevent conflict with logging.basicConfig() from one of the imports below
 log_file = os.path.abspath(__file__).replace(".py", ".csv")
@@ -46,11 +46,11 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [150, 200, 250]
+max_vertices_list = [100, 150, 200, 250]
 
 # number of partitions on both dataframes
 # num_partitions_list = [150, 200, 250, 300, 350, 400, 450]
-num_partitions_list = [1000, 1500, 2000]
+num_partitions_list = [500, 1000, 1500, 2000]
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
