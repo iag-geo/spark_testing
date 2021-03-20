@@ -75,7 +75,7 @@ bdy_table = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [100, 150, 200, 250, 300, 350, 400]
+max_vertices_list = [100, 200, 300, 400]
 
 
 def main():

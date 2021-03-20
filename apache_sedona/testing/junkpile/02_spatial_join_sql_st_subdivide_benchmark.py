@@ -46,11 +46,11 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [100, 200, 300]
+max_vertices_list = [100, 200, 300, 400]
 
 # number of partitions on both dataframes
 # num_partitions_list = [150, 200, 250, 300, 350, 400, 450]
-num_partitions_list = [500, 1000, 1500, 2000]
+num_partitions_list = [250, 500, 750, 1000, 1250, 1500, 2000]
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
