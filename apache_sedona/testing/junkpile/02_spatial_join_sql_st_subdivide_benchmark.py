@@ -46,7 +46,7 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [100, 150, 200, 250]
+max_vertices_list = [100, 200, 300]
 
 # number of partitions on both dataframes
 # num_partitions_list = [150, 200, 250, 300, 350, 400, 450]
@@ -58,64 +58,81 @@ output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "d
 # log header for log file (so results cn be used in Excel/Tableau)
 logger.info("computer,points,boundaries,max_vertices,partitions,processing_time")
 
+
+def run_test(num_partitions, max_vertices):
+
+    # create spark session object
+    spark = (SparkSession
+             .builder
+             .master("local[*]")
+             .appName("Spatial Join SQL Benchmark")
+             .config("spark.sql.session.timeZone", "UTC")
+             .config("spark.sql.debug.maxToStringFields", 100)
+             .config("spark.serializer", KryoSerializer.getName)
+             .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
+             # .config("spark.jars.packages",
+             #         'org.apache.sedona:sedona-python-adapter-3.0_2.12:1.0.0-incubating,'
+             #         'org.datasyslab:geotools-wrapper:geotools-24.0')
+             .config("spark.sql.adaptive.enabled", "true")
+             # .config("spark.executor.cores", 4)
+             .config("spark.cores.max", num_processors)
+             .config("spark.driver.memory", "8g")
+             # .config("spark.driver.maxResultSize", "2g")
+             .getOrCreate()
+             )
+
+    # Add Sedona functions and types to Spark
+    SedonaRegistrator.registerAll(spark)
+
+    start_time = datetime.now()
+
+    # load gnaf points and create geoms
+    point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
+                # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
+                # .limit(1000000)
+                .repartition(num_partitions, "state")
+                .cache()
+                )
+    point_df.createOrReplaceTempView("pnt")
+
+    # load boundaries and create geoms
+    bdy_vertex_name = "{}_{}".format(bdy_name, max_vertices)
+
+    bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
+              # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
+              .repartition(num_partitions, "state")
+              .cache()
+              )
+    bdy_df.createOrReplaceTempView("bdy")
+
+    # run spatial join to boundary tag the points
+    sql = """SELECT pnt.gnaf_pid, bdy.{} FROM pnt INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""" \
+        .format(bdy_id)
+    join_df = spark.sql(sql)
+
+    # output vars
+    join_count = join_df.count()
+    bdy_count = bdy_df.count()
+    time_taken = datetime.now() - start_time
+
+    # cleanup
+    spark.stop()
+
+    return join_count, bdy_count, time_taken
+
+
+# warmup runs
+join_count, bdy_count, time_taken = run_test(min(num_partitions_list), max(max_vertices_list))
+logging.info("{},{},{},{},{},{}"
+             .format("warmup1", join_count, bdy_count, max(max_vertices_list), min(num_partitions_list), time_taken))
+
+join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
+logging.info("{},{},{},{},{},{}"
+             .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
+
+# main test runs
 for num_partitions in num_partitions_list:
     for max_vertices in max_vertices_list:
-
-        bdy_vertex_name = "{}_{}".format(bdy_name, max_vertices)
-
-        # create spark session object
-        spark = (SparkSession
-                 .builder
-                 .master("local[*]")
-                 .appName("Spatial Join SQL Benchmark")
-                 .config("spark.sql.session.timeZone", "UTC")
-                 .config("spark.sql.debug.maxToStringFields", 100)
-                 .config("spark.serializer", KryoSerializer.getName)
-                 .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
-                 # .config("spark.jars.packages",
-                 #         'org.apache.sedona:sedona-python-adapter-3.0_2.12:1.0.0-incubating,'
-                 #         'org.datasyslab:geotools-wrapper:geotools-24.0')
-                 .config("spark.sql.adaptive.enabled", "true")
-                 # .config("spark.executor.cores", 4)
-                 .config("spark.cores.max", num_processors)
-                 .config("spark.driver.memory", "8g")
-                 # .config("spark.driver.maxResultSize", "2g")
-                 .getOrCreate()
-                 )
-
-        # Add Sedona functions and types to Spark
-        SedonaRegistrator.registerAll(spark)
-
-        start_time = datetime.now()
-
-        # load gnaf points and create geoms
-        point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
-                    # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-                    # .limit(1000000)
-                    .repartition(num_partitions, "state")
-                    .cache()
-                    )
-        point_df.createOrReplaceTempView("pnt")
-
-        # load boundaries and create geoms
-        bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
-                  # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-                  .repartition(num_partitions, "state")
-                  .cache()
-                  )
-        bdy_df.createOrReplaceTempView("bdy")
-
-        # run spatial join to boundary tag the points
-        sql = """SELECT pnt.gnaf_pid, bdy.{} FROM pnt INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)"""\
-            .format(bdy_id)
-        join_df = spark.sql(sql)
-
-        # log stats
+        join_count, bdy_count, time_taken = run_test(num_partitions, max_vertices)
         logging.info("{},{},{},{},{},{}"
-                     .format(computer, join_df.count(), bdy_df.count(), max_vertices, num_partitions, datetime.now() - start_time))
-
-        join_df.unpersist()
-        bdy_df.unpersist()
-
-        # cleanup
-        spark.stop()
+                     .format(computer, join_count, bdy_count, max_vertices, num_partitions, time_taken))
