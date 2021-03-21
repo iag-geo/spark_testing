@@ -12,7 +12,7 @@ from pyspark.sql import SparkSession
 from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
-computer = "macbook2-no-cache"
+computer = "macbook2-no-cache-low-bdy-partitions"
 
 # setup logging - code is here to prevent conflict with logging.basicConfig() from one of the imports below
 log_file = os.path.abspath(__file__).replace(".py", ".csv")
@@ -100,7 +100,7 @@ def run_test(num_partitions, max_vertices):
 
     bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
               # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-              .repartition(num_partitions, "state")
+              .repartition(9, "state")
               # .cache()
               )
     bdy_df.createOrReplaceTempView("bdy")
