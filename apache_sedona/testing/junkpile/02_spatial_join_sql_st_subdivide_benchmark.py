@@ -12,7 +12,7 @@ from pyspark.sql import SparkSession
 from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
-computer = "macbook2"
+computer = "macbook2-no-cache"
 
 # setup logging - code is here to prevent conflict with logging.basicConfig() from one of the imports below
 log_file = os.path.abspath(__file__).replace(".py", ".csv")
@@ -56,7 +56,7 @@ num_partitions_list = [250, 500, 750, 1000, 1250, 1500, 2000]
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
 
 # log header for log file (so results cn be used in Excel/Tableau)
-logger.info("computer,points,boundaries,max_vertices,partitions,processing_time")
+# logger.info("computer,points,boundaries,max_vertices,partitions,processing_time")
 
 
 def run_test(num_partitions, max_vertices):
@@ -91,7 +91,7 @@ def run_test(num_partitions, max_vertices):
                 # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
                 # .limit(1000000)
                 .repartition(num_partitions, "state")
-                .cache()
+                # .cache()
                 )
     point_df.createOrReplaceTempView("pnt")
 
@@ -101,7 +101,7 @@ def run_test(num_partitions, max_vertices):
     bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
               # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
               .repartition(num_partitions, "state")
-              .cache()
+              # .cache()
               )
     bdy_df.createOrReplaceTempView("bdy")
 
@@ -123,11 +123,11 @@ def run_test(num_partitions, max_vertices):
 
 # warmup runs
 join_count, bdy_count, time_taken = run_test(min(num_partitions_list), max(max_vertices_list))
-logging.info("{},{},{},{},{},{}"
+print("{},{},{},{},{},{}"
              .format("warmup1", join_count, bdy_count, max(max_vertices_list), min(num_partitions_list), time_taken))
 
 join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
-logging.info("{},{},{},{},{},{}"
+print("{},{},{},{},{},{}"
              .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
 
 # main test runs
