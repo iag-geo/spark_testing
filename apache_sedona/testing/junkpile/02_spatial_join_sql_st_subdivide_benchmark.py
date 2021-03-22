@@ -12,7 +12,7 @@ from pyspark.sql import SparkSession
 from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
-computer = "macbook2-different-partitions"
+computer = "macbook2-no-cache"
 
 num_processors = cpu_count()
 
@@ -27,8 +27,7 @@ bdy_id = "ce_pid"
 max_vertices_list = [100, 200]
 
 # number of partitions on both dataframes
-num_gnaf_partitions_list = [250, 500, 750, 1000]
-num_bdy_partitions_list = [250, 500, 750, 1000]
+num_partitions_list = [250, 500, 750, 1000]
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
@@ -39,29 +38,23 @@ def main():
     logger.info("computer,points,boundaries,max_vertices,gnaf_partitions,bdy_partitions,processing_time")
 
     # warmup runs
-    join_count, bdy_count, time_taken = \
-        run_test(min(num_gnaf_partitions_list), min(num_bdy_partitions_list), max(max_vertices_list))
-    print("{},{},{},{},{},{},{}"
-          .format("warmup1", join_count, bdy_count, max(max_vertices_list),
-                  min(num_gnaf_partitions_list), min(num_bdy_partitions_list), time_taken))
+    join_count, bdy_count, time_taken = run_test(min(num_partitions_list), max(max_vertices_list))
+    print("{},{},{},{},{},{}"
+          .format("warmup1", join_count, bdy_count, max(max_vertices_list), min(num_partitions_list), time_taken))
 
-    join_count, bdy_count, time_taken = \
-        run_test(max(num_gnaf_partitions_list), max(num_bdy_partitions_list), min(max_vertices_list))
-    print("{},{},{},{},{},{},{}"
-          .format("warmup2", join_count, bdy_count, min(max_vertices_list),
-                  max(num_gnaf_partitions_list), max(num_bdy_partitions_list), time_taken))
+    join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
+    print("{},{},{},{},{},{}"
+          .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
 
     # main test runs
-    for num_gnaf_partitions in num_gnaf_partitions_list:
-        for num_bdy_partitions in num_bdy_partitions_list:
-            for max_vertices in max_vertices_list:
-                join_count, bdy_count, time_taken = run_test(num_gnaf_partitions, num_bdy_partitions, max_vertices)
-                logging.info("{},{},{},{},{},{},{}"
-                             .format(computer, join_count, bdy_count, max_vertices,
-                                     num_gnaf_partitions, num_bdy_partitions, time_taken))
+    for num_partitions in num_partitions_list:
+        for max_vertices in max_vertices_list:
+            join_count, bdy_count, time_taken = run_test(num_partitions, max_vertices)
+            logging.info("{},{},{},{},{},{}"
+                         .format(computer, join_count, bdy_count, max_vertices, num_partitions, time_taken))
 
 
-def run_test(num_gnaf_partitions, num_bdy_partitions, max_vertices):
+def run_test(num_partitions, max_vertices):
 
     # create spark session object
     spark = (SparkSession
@@ -92,7 +85,7 @@ def run_test(num_gnaf_partitions, num_bdy_partitions, max_vertices):
     point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
                 # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
                 # .limit(1000000)
-                .repartition(num_gnaf_partitions, "state")
+                .repartition(num_partitions, "state")
                 # .cache()
                 )
     point_df.createOrReplaceTempView("pnt")
@@ -102,7 +95,7 @@ def run_test(num_gnaf_partitions, num_bdy_partitions, max_vertices):
 
     bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
               # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-              .repartition(num_bdy_partitions, "state")
+              .repartition(num_partitions, "state")
               # .cache()
               )
     bdy_df.createOrReplaceTempView("bdy")
