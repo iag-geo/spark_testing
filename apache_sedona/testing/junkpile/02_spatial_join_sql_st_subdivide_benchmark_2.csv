@@ -1,5 +1,4 @@
 computer,points,boundaries,max_vertices,gnaf_partitions,bdy_partitions,processing_time
-computer,points,boundaries,max_vertices,gnaf_partitions,bdy_partitions,processing_time
 macbook2-different-partitions,14263941,50130,100,250,250,0:06:49.554278
 macbook2-different-partitions,14263909,28024,200,250,250,0:06:16.846216
 macbook2-different-partitions,14263941,50130,100,250,500,0:06:45.560022
