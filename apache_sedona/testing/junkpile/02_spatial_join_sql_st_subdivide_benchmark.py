@@ -125,7 +125,7 @@ def run_test(num_gnaf_partitions, num_bdy_partitions, max_vertices):
 
 if __name__ == "__main__":
     # setup logging - code is here to prevent conflict with logging.basicConfig() from one of the imports below
-    log_file = os.path.abspath(__file__).replace(".py", ".csv")
+    log_file = os.path.abspath(__file__).replace(".py", "_2.csv")
     logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(message)s")
 
     logger = logging.getLogger()
