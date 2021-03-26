@@ -11,6 +11,10 @@ from multiprocessing import cpu_count
 # from pyspark.sql import functions as f
 from pyspark.sql import SparkSession
 
+# setup logging - code is here to prevent conflict with logging.basicConfig() from one of the imports below
+log_file = os.path.abspath(__file__).replace(".py", ".csv")
+logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(message)s")
+
 from sedona.core.enums import GridType, IndexType
 from sedona.core.spatialOperator import JoinQueryRaw
 from sedona.register import SedonaRegistrator
@@ -29,7 +33,7 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [100, 200]
+max_vertices_list = [None, 100, 200]
 
 # number of partitions on both dataframes
 num_partitions_list = [250, 500, 750, 1000]
@@ -40,23 +44,23 @@ output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "d
 
 def main():
     # log header for log file (so results cn be used in Excel/Tableau)
-    logger.info("computer,points,boundaries,max_vertices,gnaf_partitions,bdy_partitions,processing_time")
+    logger.info("computer,points,boundaries,max_vertices,partitions,processing_time")
 
     # warmup runs
     join_count, bdy_count, time_taken = run_test(min(num_partitions_list), max(max_vertices_list))
     print("{},{},{},{},{},{}"
           .format("warmup1", join_count, bdy_count, max(max_vertices_list), min(num_partitions_list), time_taken))
 
-    join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
-    print("{},{},{},{},{},{}"
-          .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
-
-    # main test runs
-    for num_partitions in num_partitions_list:
-        for max_vertices in max_vertices_list:
-            join_count, bdy_count, time_taken = run_test(num_partitions, max_vertices)
-            logging.info("{},{},{},{},{},{}"
-                         .format(computer, join_count, bdy_count, max_vertices, num_partitions, time_taken))
+    # join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
+    # print("{},{},{},{},{},{}"
+    #       .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
+    #
+    # # main test runs
+    # for num_partitions in num_partitions_list:
+    #     for max_vertices in max_vertices_list:
+    #         join_count, bdy_count, time_taken = run_test(num_partitions, max_vertices)
+    #         logging.info("{},{},{},{},{},{}"
+    #                      .format(computer, join_count, bdy_count, max_vertices, num_partitions, time_taken))
 
 
 def run_test(num_partitions, max_vertices):
@@ -81,6 +85,8 @@ def run_test(num_partitions, max_vertices):
              .getOrCreate()
              )
 
+    spark.sparkContext.setLogLevel("ERROR")
+
     # Add Sedona functions and types to Spark
     SedonaRegistrator.registerAll(spark)
 
@@ -95,7 +101,10 @@ def run_test(num_partitions, max_vertices):
                 )
 
     # load boundaries and create geoms
-    bdy_vertex_name = "{}_{}".format(bdy_name, max_vertices)
+    if max_vertices is not None:
+        bdy_vertex_name = "{}_{}".format(bdy_name, max_vertices)
+    else:
+        bdy_vertex_name = bdy_name
 
     bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
               # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
@@ -103,7 +112,7 @@ def run_test(num_partitions, max_vertices):
               # .cache()
               )
 
-    # create RDDs, partitiooned and indexed
+    # create RDDs - analysed partitioned and indexed
     point_rdd = Adapter.toSpatialRdd(point_df, "geom")
     bdy_rdd = Adapter.toSpatialRdd(bdy_df, "geom")
 
@@ -119,6 +128,8 @@ def run_test(num_partitions, max_vertices):
     # run join query
     result = JoinQueryRaw.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
     join_df = Adapter.toDf(result, spark)
+    join_df.printSchema()
+    join_df.show()
 
     # output vars
     join_count = join_df.count()
@@ -132,10 +143,6 @@ def run_test(num_partitions, max_vertices):
 
 
 if __name__ == "__main__":
-    # setup logging - code is here to prevent conflict with logging.basicConfig() from one of the imports below
-    log_file = os.path.abspath(__file__).replace(".py", ".csv")
-    logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(message)s")
-
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
