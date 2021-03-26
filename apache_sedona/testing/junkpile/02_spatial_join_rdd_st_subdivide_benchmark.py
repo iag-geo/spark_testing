@@ -33,10 +33,10 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [64, 128]
+max_vertices_list = [64]
 
 # number of partitions on both dataframes
-num_partitions_list = [1000]
+num_partitions_list = [2000]
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
@@ -51,9 +51,9 @@ def main():
     print("{},{},{},{},{},{}"
           .format("warmup1", join_count, bdy_count, min(max_vertices_list), min(num_partitions_list), time_taken))
 
-    join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
-    print("{},{},{},{},{},{}"
-          .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
+    # join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
+    # print("{},{},{},{},{},{}"
+    #       .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
 
     # main test runs
     for num_partitions in num_partitions_list:
@@ -95,7 +95,7 @@ def run_test(num_partitions, max_vertices):
     # load gnaf points and create geoms
     point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
                 # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-                # .limit(2000)
+                # .limit(5000)
                 .repartition(num_partitions, "state")
                 # .cache()
                 )
@@ -133,16 +133,25 @@ def run_test(num_partitions, max_vertices):
     point_rdd.buildIndex(IndexType.RTREE, True)
     # bdy_rdd.buildIndex(IndexType.RTREE, True)
 
+    # print(point_rdd.fieldNames)
+    # print(bdy_rdd.fieldNames)
+
     # run join query
     join_pair_rdd = JoinQueryRaw.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
 
     # convert SedonaPairRDD to dataframe
-    # join_rdd = join_pair_rdd.to_rdd()  # very slow
-    join_df = Adapter.toDf(join_pair_rdd, spark)
+    join_df = Adapter.toDf(join_pair_rdd, bdy_rdd.fieldNames, point_rdd.fieldNames, spark)
     # join_df.printSchema()
     # join_df.show(10)
 
-    # TODO: add column names and drop bdy geometries
+    # | -- leftgeometry: geometry(nullable=true)
+    # | -- gid: string(nullable=true)
+    # | -- ce_pid: string(nullable=true)
+    # | -- state: string(nullable=true)
+    # | -- rightgeometry: geometry(nullable=true)
+    # | -- gid: string(nullable=true)
+    # | -- gnaf_pid: string(nullable=true)
+    # | -- state: string(nullable=true)
 
     # output vars
     join_count = join_df.count()
