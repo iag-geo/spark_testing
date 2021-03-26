@@ -33,10 +33,10 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [64]
+max_vertices_list = [64, 128, 256, 512]
 
 # number of partitions on both dataframes
-num_partitions_list = [2000]
+num_partitions_list = [500, 1000, 1500, 2000, 2500]
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
@@ -85,7 +85,7 @@ def run_test(num_partitions, max_vertices):
              .getOrCreate()
              )
 
-    spark.sparkContext.setLogLevel("ERROR")
+    # spark.sparkContext.setLogLevel("ERROR")
 
     # Add Sedona functions and types to Spark
     SedonaRegistrator.registerAll(spark)
