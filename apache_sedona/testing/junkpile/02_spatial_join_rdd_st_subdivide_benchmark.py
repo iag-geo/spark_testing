@@ -33,10 +33,10 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [None, 100, 200]
+max_vertices_list = [100, 200]
 
 # number of partitions on both dataframes
-num_partitions_list = [250, 500, 750, 1000]
+num_partitions_list = [750, 1000]
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
@@ -47,9 +47,9 @@ def main():
     logger.info("computer,points,boundaries,max_vertices,partitions,processing_time")
 
     # warmup runs
-    join_count, bdy_count, time_taken = run_test(min(num_partitions_list), max(max_vertices_list))
+    join_count, bdy_count, time_taken = run_test(min(num_partitions_list), min(max_vertices_list))
     print("{},{},{},{},{},{}"
-          .format("warmup1", join_count, bdy_count, max(max_vertices_list), min(num_partitions_list), time_taken))
+          .format("warmup1", join_count, bdy_count, min(max_vertices_list), min(num_partitions_list), time_taken))
 
     # join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
     # print("{},{},{},{},{},{}"
@@ -95,7 +95,7 @@ def run_test(num_partitions, max_vertices):
     # load gnaf points and create geoms
     point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
                 # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-                # .limit(1000000)
+                .limit(2000)
                 .repartition(num_partitions, "state")
                 # .cache()
                 )
@@ -119,17 +119,22 @@ def run_test(num_partitions, max_vertices):
     point_rdd.analyze()
     bdy_rdd.analyze()
 
-    bdy_rdd.spatialPartitioning(GridType.KDBTREE)
-    point_rdd.spatialPartitioning(bdy_rdd.getPartitioner())
+    point_rdd.spatialPartitioning(GridType.KDBTREE)
+    bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
 
-    bdy_rdd.buildIndex(IndexType.RTREE, True)
     point_rdd.buildIndex(IndexType.RTREE, True)
+    # bdy_rdd.buildIndex(IndexType.RTREE, True)
 
     # run join query
-    result = JoinQueryRaw.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
-    join_df = Adapter.toDf(result, spark)
+    join_pair_rdd = JoinQueryRaw.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
+    join_rdd = join_pair_rdd.to_rdd()
+    join_rdd.take(1)
+
+    # join_rdd.saveAsTextFile(os.path.join(output_path, "rdd_gnaf_with_{}".format(bdy["name"])))
+
+    join_df = Adapter.toDf(join_rdd, spark)
     join_df.printSchema()
-    join_df.show()
+    join_df.show(10)
 
     # output vars
     join_count = join_df.count()

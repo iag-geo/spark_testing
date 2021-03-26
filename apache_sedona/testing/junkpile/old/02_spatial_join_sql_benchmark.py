@@ -23,7 +23,7 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # output path for gzipped parquet files
-output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data")
+output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../data")
 
 # create spark session object
 spark = (SparkSession
