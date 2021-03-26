@@ -100,6 +100,10 @@ def run_test(num_partitions, max_vertices):
                 # .cache()
                 )
 
+    # get column names
+    point_columns = point_df.schema.names
+    print(point_columns)
+
     # load boundaries and create geoms
     if max_vertices is not None:
         bdy_vertex_name = "{}_{}".format(bdy_name, max_vertices)
@@ -111,6 +115,10 @@ def run_test(num_partitions, max_vertices):
               .repartition(num_partitions, "state")
               # .cache()
               )
+
+    # get column names
+    bdy_columns = bdy_df.schema.names
+    print(bdy_columns)
 
     # create RDDs - analysed partitioned and indexed
     point_rdd = Adapter.toSpatialRdd(point_df, "geom")
@@ -128,9 +136,7 @@ def run_test(num_partitions, max_vertices):
     # run join query
     join_pair_rdd = JoinQueryRaw.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
     join_rdd = join_pair_rdd.to_rdd()
-    join_rdd.take(1)
-
-    # join_rdd.saveAsTextFile(os.path.join(output_path, "rdd_gnaf_with_{}".format(bdy["name"])))
+    # join_rdd.take(1)
 
     join_df = Adapter.toDf(join_rdd, spark)
     join_df.printSchema()

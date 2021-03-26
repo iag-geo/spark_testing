@@ -14,3 +14,5 @@ Found GEOS DLL: <CDLL '/Users/s57405/.local/lib/python3.8/site-packages/shapely/
 computer,points,boundaries,max_vertices,partitions,processing_time
 Found GEOS DLL: <CDLL '/Users/s57405/.local/lib/python3.8/site-packages/shapely/.dylibs/libgeos_c.1.dylib', handle 7ffabbe3fad0 at 0x7ffac02b2b20>, using it.
 computer,points,boundaries,max_vertices,partitions,processing_time
+Found GEOS DLL: <CDLL '/Users/s57405/.local/lib/python3.8/site-packages/shapely/.dylibs/libgeos_c.1.dylib', handle 7fb5ec548d70 at 0x7fb5f1becc40>, using it.
+computer,points,boundaries,max_vertices,partitions,processing_time
