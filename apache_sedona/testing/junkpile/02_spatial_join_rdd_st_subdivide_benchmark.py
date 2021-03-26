@@ -21,7 +21,7 @@ from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 from sedona.utils.adapter import Adapter
 
-computer = "macbook"
+computer = "imac"
 
 num_processors = cpu_count()
 
@@ -33,10 +33,10 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [100, 200]
+max_vertices_list = [100, 200, 300]
 
 # number of partitions on both dataframes
-num_partitions_list = [750, 1000]
+num_partitions_list = [500, 750, 1000]
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
@@ -51,16 +51,16 @@ def main():
     print("{},{},{},{},{},{}"
           .format("warmup1", join_count, bdy_count, min(max_vertices_list), min(num_partitions_list), time_taken))
 
-    # join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
-    # print("{},{},{},{},{},{}"
-    #       .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
-    #
-    # # main test runs
-    # for num_partitions in num_partitions_list:
-    #     for max_vertices in max_vertices_list:
-    #         join_count, bdy_count, time_taken = run_test(num_partitions, max_vertices)
-    #         logging.info("{},{},{},{},{},{}"
-    #                      .format(computer, join_count, bdy_count, max_vertices, num_partitions, time_taken))
+    join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
+    print("{},{},{},{},{},{}"
+          .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
+
+    # main test runs
+    for num_partitions in num_partitions_list:
+        for max_vertices in max_vertices_list:
+            join_count, bdy_count, time_taken = run_test(num_partitions, max_vertices)
+            logging.info("{},{},{},{},{},{}"
+                         .format(computer, join_count, bdy_count, max_vertices, num_partitions, time_taken))
 
 
 def run_test(num_partitions, max_vertices):
@@ -100,9 +100,9 @@ def run_test(num_partitions, max_vertices):
                 # .cache()
                 )
 
-    # get column names
-    point_columns = point_df.schema.names
-    print(point_columns)
+    # # get column names
+    # point_columns = point_df.schema.names
+    # print(point_columns)
 
     # load boundaries and create geoms
     if max_vertices is not None:
@@ -116,9 +116,9 @@ def run_test(num_partitions, max_vertices):
               # .cache()
               )
 
-    # get column names
-    bdy_columns = bdy_df.schema.names
-    print(bdy_columns)
+    # # get column names
+    # bdy_columns = bdy_df.schema.names
+    # print(bdy_columns)
 
     # create RDDs - analysed partitioned and indexed
     point_rdd = Adapter.toSpatialRdd(point_df, "geom")
@@ -135,12 +135,14 @@ def run_test(num_partitions, max_vertices):
 
     # run join query
     join_pair_rdd = JoinQueryRaw.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
-    join_rdd = join_pair_rdd.to_rdd()
-    # join_rdd.take(1)
 
+    # convert SedonaPairRDD to dataframe
+    join_rdd = join_pair_rdd.to_rdd()
     join_df = Adapter.toDf(join_rdd, spark)
-    join_df.printSchema()
-    join_df.show(10)
+    # join_df.printSchema()
+    # join_df.show(10)
+
+    # TODO: add column names and drop bdy geometries
 
     # output vars
     join_count = join_df.count()
