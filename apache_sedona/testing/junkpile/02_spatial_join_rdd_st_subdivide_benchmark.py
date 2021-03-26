@@ -95,7 +95,7 @@ def run_test(num_partitions, max_vertices):
     # load gnaf points and create geoms
     point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
                 # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-                .limit(2000)
+                # .limit(2000)
                 .repartition(num_partitions, "state")
                 # .cache()
                 )
@@ -137,8 +137,8 @@ def run_test(num_partitions, max_vertices):
     join_pair_rdd = JoinQueryRaw.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
 
     # convert SedonaPairRDD to dataframe
-    join_rdd = join_pair_rdd.to_rdd()
-    join_df = Adapter.toDf(join_rdd, spark)
+    # join_rdd = join_pair_rdd.to_rdd()  # very slow
+    join_df = Adapter.toDf(join_pair_rdd, spark)
     # join_df.printSchema()
     # join_df.show(10)
 
