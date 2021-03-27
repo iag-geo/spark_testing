@@ -21,7 +21,7 @@ from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 from sedona.utils.adapter import Adapter
 
-computer = "imac"
+computer = "macbook2"
 
 num_processors = cpu_count()
 
@@ -33,10 +33,10 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [64, 128, 256, 512]
+max_vertices_list = [25, 50, 100, 150]
 
 # number of partitions on both dataframes
-num_partitions_list = [500, 1000, 1500, 2000, 2500]
+num_partitions_list = [500, 1000, 1500]
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
@@ -47,13 +47,13 @@ def main():
     logger.info("computer,points,boundaries,max_vertices,partitions,processing_time")
 
     # warmup runs
-    join_count, bdy_count, time_taken = run_test(min(num_partitions_list), min(max_vertices_list))
+    join_count, bdy_count, time_taken = run_test(min(num_partitions_list), max(max_vertices_list))
     print("{},{},{},{},{},{}"
-          .format("warmup1", join_count, bdy_count, min(max_vertices_list), min(num_partitions_list), time_taken))
+          .format("warmup1", join_count, bdy_count, max(max_vertices_list), min(num_partitions_list), time_taken))
 
-    # join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
-    # print("{},{},{},{},{},{}"
-    #       .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
+    join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
+    print("{},{},{},{},{},{}"
+          .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
 
     # main test runs
     for num_partitions in num_partitions_list:
