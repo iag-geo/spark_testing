@@ -77,9 +77,9 @@ def run_test(num_partitions, max_vertices):
              # .config("spark.jars.packages",
              #         'org.apache.sedona:sedona-python-adapter-3.0_2.12:1.0.0-incubating,'
              #         'org.datasyslab:geotools-wrapper:geotools-24.0')
-             .config("spark.sql.adaptive.enabled", "true")
-             # .config("spark.executor.cores", 4)
-             .config("spark.cores.max", num_processors)
+             # .config("spark.sql.adaptive.enabled", "true")
+             .config("spark.executor.cores", 2)
+             # .config("spark.cores.max", num_processors)
              .config("spark.driver.memory", "8g")
              # .config("spark.driver.maxResultSize", "2g")
              .getOrCreate()
@@ -96,11 +96,11 @@ def run_test(num_partitions, max_vertices):
     point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
                 # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
                 # .limit(5000)
-                # .repartition(num_partitions, "state")
+                .repartition(num_partitions, "state")
                 # .cache()
                 )
 
-    print("point_df : {} partitions".format(point_df.rdd.getNumPartitions()))
+    # print("point_df : {} partitions".format(point_df.rdd.getNumPartitions()))
 
     # # get column names
     # point_columns = point_df.schema.names
@@ -115,11 +115,11 @@ def run_test(num_partitions, max_vertices):
     bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
               # .withColumnRenamed("gid", "id")
               # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-              # .repartition(num_partitions, "state")
+              .repartition(num_partitions, "state")
               # .cache()
               )
 
-    print("bdy_df : {} partitions".format(bdy_df.rdd.getNumPartitions()))
+    # print("bdy_df : {} partitions".format(bdy_df.rdd.getNumPartitions()))
 
     # # get column names
     # bdy_columns = bdy_df.schema.names
@@ -135,12 +135,11 @@ def run_test(num_partitions, max_vertices):
     point_rdd.spatialPartitioning(GridType.KDBTREE)
     bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
 
-    # point_rdd.buildIndex(IndexType.RTREE, True)
+    point_rdd.buildIndex(IndexType.RTREE, True)
     bdy_rdd.buildIndex(IndexType.RTREE, True)
 
     # print("point_rdd : {} partitions".format(point_rdd.getRawJvmSpatialRDD().getNumPartitions()))
     # print("bdy_rdd : {} partitions".format(bdy_rdd.getRawJvmSpatialRDD().getNumPartitions()))
-
 
     # doesn't currently work (Sedona v1.0.1 SNAPSHOT - 2021-03-23)
     # bdy_rdd.indexedRawRDD.saveAsObjectFile(os.path.join(output_path, "{}_rdd".format(bdy_vertex_name)))
