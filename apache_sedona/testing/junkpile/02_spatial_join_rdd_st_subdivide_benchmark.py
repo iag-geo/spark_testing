@@ -31,7 +31,7 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [25, 50]
+max_vertices_list = [25]
 
 # number of partitions on both dataframes
 num_partitions_list = [200]
@@ -45,23 +45,16 @@ def main():
     logger.info("computer,points,boundaries,max_vertices,partitions,processing_time")
 
     # warmup runs
-    join_count, bdy_count, time_taken = run_test(min(num_partitions_list), max(max_vertices_list))
-    print("{},{},{},{},{},{}"
-          .format("warmup1", join_count, bdy_count, max(max_vertices_list), min(num_partitions_list), time_taken))
-
-    # join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
-    # print("{},{},{},{},{},{}"
-    #       .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
+    run_test("warmup1", min(num_partitions_list), max(max_vertices_list))
+    run_test("warmup2", max(num_partitions_list), min(max_vertices_list))
 
     # main test runs
     for num_partitions in num_partitions_list:
         for max_vertices in max_vertices_list:
-            join_count, bdy_count, time_taken = run_test(num_partitions, max_vertices)
-            logging.info("{},{},{},{},{},{}"
-                         .format(computer, join_count, bdy_count, max_vertices, num_partitions, time_taken))
+            run_test(computer, num_partitions, max_vertices)
 
 
-def run_test(num_partitions, max_vertices):
+def run_test(test_name, num_partitions, max_vertices):
 
     # create spark session object
     spark = (SparkSession
@@ -104,7 +97,9 @@ def run_test(num_partitions, max_vertices):
     bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
               .select(bdy_id, "state", "geom")
               .repartition(num_partitions, "state")
+              .cache()
               )
+    bdy_count = bdy_df.count()
 
     # create RDDs - analysed partitioned and indexed
     point_rdd = Adapter.toSpatialRdd(point_df, "geom")
@@ -130,24 +125,40 @@ def run_test(num_partitions, max_vertices):
     # | -- state: string(nullable=true)
     # | -- rightgeometry: geometry(nullable=true)
     # | -- gnaf_pid: string(nullable=true)
-    # | -- state: string(nullable=true)
+    # | -- gnaf_state: string(nullable=true)
 
     join_df2 = (join_df
                 # .filter((join_df["state"] == join_df["gnaf_state"]))
-                .dropDuplicates(["gnaf_pid", bdy_id])
                 .select("gnaf_pid", bdy_id, "state")
+                .dropDuplicates(["gnaf_pid", bdy_id])
+                .cache()
                 )
     # join_df2.printSchema()
 
+    # output to files
+    if "warmup" in test_name:
+        name = "gnaf_rdd_{}_{}_{}".format(bdy_id, max_vertices, num_partitions)
+
+        (join_df2.write
+         .partitionBy("state")
+         .option("compression", "gzip")
+         .mode("overwrite")
+         .parquet(os.path.join(output_path, name))
+         )
+
     # output vars
     join_count = join_df2.count()
-    bdy_count = bdy_df.count()
     time_taken = datetime.now() - start_time
+
+    if "warmup" in test_name:
+       print("{},{},{},{},{},{}"
+             .format(test_name, join_count, bdy_count, max_vertices, num_partitions, time_taken))
+    else:
+        logger.info("{},{},{},{},{},{}"
+                    .format(test_name, join_count, bdy_count, max_vertices, num_partitions, time_taken))
 
     # cleanup
     spark.stop()
-
-    return join_count, bdy_count, time_taken
 
 
 if __name__ == "__main__":
