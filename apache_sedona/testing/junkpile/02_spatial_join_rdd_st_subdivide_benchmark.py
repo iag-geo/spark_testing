@@ -2,18 +2,10 @@
 # script to benchmark spatial join performance between gnaf (14M records) and a national boundary dataset
 # using RDDs instead of dataframes with SQL
 
-import logging
 import os
-# import platform
 
 from datetime import datetime
-from multiprocessing import cpu_count
-# from pyspark.sql import functions as f
 from pyspark.sql import SparkSession
-
-# setup logging - code is here to prevent conflict with logging.basicConfig() from one of the imports below
-log_file = os.path.abspath(__file__).replace(".py", ".csv")
-logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(message)s")
 
 from sedona.core.enums import GridType, IndexType
 from sedona.core.spatialOperator import JoinQueryRaw
@@ -39,11 +31,18 @@ num_partitions_list = [200]
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
 
+# setup test log file using a normal file to avoid Spark errors being written.
+log_file_path = os.path.abspath(__file__).replace(".py", ".csv")
+
+if os.path.isfile(log_file_path):
+    log_file = open(log_file_path, "a")
+else:
+    log_file = open(log_file_path, "w")
+    # log header for log file (so results cn be used in Excel/Tableau)
+    log_file.write("computer,points,boundaries,max_vertices,partitions,processing_time\n")
+
 
 def main():
-    # log header for log file (so results cn be used in Excel/Tableau)
-    logger.info("computer,points,boundaries,max_vertices,partitions,processing_time")
-
     # warmup runs
     run_test("warmup1", min(num_partitions_list), max(max_vertices_list))
     run_test("warmup2", max(num_partitions_list), min(max_vertices_list))
@@ -73,8 +72,6 @@ def run_test(test_name, num_partitions, max_vertices):
              .config("spark.driver.memory", "8g")
              .getOrCreate()
              )
-
-    # spark.sparkContext.setLogLevel("ERROR")
 
     # Add Sedona functions and types to Spark
     SedonaRegistrator.registerAll(spark)
@@ -119,9 +116,10 @@ def run_test(test_name, num_partitions, max_vertices):
 
     # convert SedonaPairRDD to dataframe
     join_df = Adapter.toDf(join_pair_rdd, bdy_rdd.fieldNames, point_rdd.fieldNames, spark)
+    # join_df.printSchema()
 
     # | -- leftgeometry: geometry(nullable=true)
-    # | -- ce_pid: string(nullable=true)
+    # | -- <bdy_id>: string(nullable=true)
     # | -- state: string(nullable=true)
     # | -- rightgeometry: geometry(nullable=true)
     # | -- gnaf_pid: string(nullable=true)
@@ -133,13 +131,13 @@ def run_test(test_name, num_partitions, max_vertices):
                 .dropDuplicates(["gnaf_pid", bdy_id])
                 .cache()
                 )
-    # join_df2.printSchema()
 
     # output to files
     if "warmup" in test_name:
         name = "gnaf_rdd_{}_{}_{}".format(bdy_id, max_vertices, num_partitions)
 
-        (join_df2.write
+        (join_df2.repartition(50)
+         .write
          .partitionBy("state")
          .option("compression", "gzip")
          .mode("overwrite")
@@ -151,33 +149,15 @@ def run_test(test_name, num_partitions, max_vertices):
     time_taken = datetime.now() - start_time
 
     if "warmup" in test_name:
-       print("{},{},{},{},{},{}"
-             .format(test_name, join_count, bdy_count, max_vertices, num_partitions, time_taken))
+        print("{},{},{},{},{},{}"
+              .format(test_name, join_count, bdy_count, max_vertices, num_partitions, time_taken))
     else:
-        logger.info("{},{},{},{},{},{}"
-                    .format(test_name, join_count, bdy_count, max_vertices, num_partitions, time_taken))
+        log_file.write("{},{},{},{},{},{}\n"
+                       .format(test_name, join_count, bdy_count, max_vertices, num_partitions, time_taken))
 
     # cleanup
     spark.stop()
 
 
 if __name__ == "__main__":
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    # set Spark logging levels
-    logging.getLogger("pyspark").setLevel(logging.ERROR)
-    logging.getLogger("py4j").setLevel(logging.ERROR)
-
-    # setup logger to write to screen as well as writing to log file
-    # define a Handler which writes INFO messages or higher to the sys.stderr
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    # set a format which is simpler for console use
-    formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
-    # tell the handler to use this format
-    console.setFormatter(formatter)
-    # add the handler to the root logger
-    logging.getLogger().addHandler(console)
-
     main()
