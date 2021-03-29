@@ -49,3 +49,410 @@ macbook2,14264014,194200,25,700,0:01:29.681950
 macbook2,14264014,194200,25,800,0:01:29.487224
 macbook2,14264014,194200,25,900,0:01:32.232711
 macbook2,14264014,194200,25,1000,0:01:31.883154
+Found GEOS DLL: <CDLL '/Users/s57405/.local/lib/python3.8/site-packages/shapely/.dylibs/libgeos_c.1.dylib', handle 7fb2adc9a8a0 at 0x7fb2aecc9d30>, using it.
+computer,points,boundaries,max_vertices,partitions,processing_time
+Found GEOS DLL: <CDLL '/Users/s57405/.local/lib/python3.8/site-packages/shapely/.dylibs/libgeos_c.1.dylib', handle 7f9c6ed49d10 at 0x7f9c73c8ddc0>, using it.
+computer,points,boundaries,max_vertices,partitions,processing_time
+Found GEOS DLL: <CDLL '/Users/s57405/.local/lib/python3.8/site-packages/shapely/.dylibs/libgeos_c.1.dylib', handle 7fdd864610a0 at 0x7fdd8aab2af0>, using it.
+computer,points,boundaries,max_vertices,partitions,processing_time
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o82.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o82.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o176.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o176.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+macbook2-no-partition,14264014,194200,25,200,0:01:17.336686
+Found GEOS DLL: <CDLL '/Users/s57405/.local/lib/python3.8/site-packages/shapely/.dylibs/libgeos_c.1.dylib', handle 7f90c090feb0 at 0x7f90c0bf0ac0>, using it.
+computer,points,boundaries,max_vertices,partitions,processing_time
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o82.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o82.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o176.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o176.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+macbook2-no-partition,14264014,194200,25,200,0:01:17.057409
+Found GEOS DLL: <CDLL '/Users/s57405/.local/lib/python3.8/site-packages/shapely/.dylibs/libgeos_c.1.dylib', handle 7fd32e004a40 at 0x7fd331baea90>, using it.
+computer,points,boundaries,max_vertices,partitions,processing_time
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o83.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o83.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o178.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o178.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+macbook2-no-partition,14264014,194200,25,200,0:01:13.761710
+Found GEOS DLL: <CDLL '/Users/s57405/.local/lib/python3.8/site-packages/shapely/.dylibs/libgeos_c.1.dylib', handle 7fedf6eb0900 at 0x7fedfc2b0af0>, using it.
+computer,points,boundaries,max_vertices,partitions,processing_time
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o82.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o82.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o176.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o176.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+macbook2-no-partition,14264014,194200,25,200,0:01:13.682203
+Found GEOS DLL: <CDLL '/Users/s57405/.local/lib/python3.8/site-packages/shapely/.dylibs/libgeos_c.1.dylib', handle 7fb290c2ef50 at 0x7fb295bafa90>, using it.
+computer,points,boundaries,max_vertices,partitions,processing_time
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o82.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o82.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o176.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+Failed to get the value of spark.jars from SparkConf: An error occurred while calling o176.get.
+: java.util.NoSuchElementException: spark.jars
+	at org.apache.spark.sql.internal.SQLConf.$anonfun$getConfString$3(SQLConf.scala:3244)
+	at scala.Option.getOrElse(Option.scala:189)
+	at org.apache.spark.sql.internal.SQLConf.getConfString(SQLConf.scala:3244)
+	at org.apache.spark.sql.RuntimeConfig.get(RuntimeConfig.scala:73)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:748)
+
+Trying to get filenames from the $SPARK_HOME/jars directory
+macbook2-no-partition,14264014,194200,25,200,0:01:51.878118
+Found GEOS DLL: <CDLL '/Users/s57405/.local/lib/python3.8/site-packages/shapely/.dylibs/libgeos_c.1.dylib', handle 7ff552633600 at 0x7ff553330ac0>, using it.
+computer,points,boundaries,max_vertices,partitions,processing_time
+Found GEOS DLL: <CDLL '/Users/s57405/.local/lib/python3.8/site-packages/shapely/.dylibs/libgeos_c.1.dylib', handle 7fd388f3bba0 at 0x7fd3892b1ac0>, using it.
+computer,points,boundaries,max_vertices,partitions,processing_time
+Found GEOS DLL: <CDLL '/Users/s57405/.local/lib/python3.8/site-packages/shapely/.dylibs/libgeos_c.1.dylib', handle 7ff13b82cd40 at 0x7ff13db30a60>, using it.
+computer,points,boundaries,max_vertices,partitions,processing_time
+Found GEOS DLL: <CDLL '/Users/s57405/.local/lib/python3.8/site-packages/shapely/.dylibs/libgeos_c.1.dylib', handle 7f89ffb38370 at 0x7f8a032b0a90>, using it.
+computer,points,boundaries,max_vertices,partitions,processing_time

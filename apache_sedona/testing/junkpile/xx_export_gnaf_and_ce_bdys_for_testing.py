@@ -76,7 +76,7 @@ bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
 # max_vertices_list = [None]
-max_vertices_list = [25, 50, 100, 150]
+max_vertices_list = [25, 50, 100]
 
 
 def main():
@@ -112,35 +112,34 @@ def main():
     pg_conn = psycopg2.connect(pg_connect_string)
     pg_cur = pg_conn.cursor()
 
-    # # ----------------------------------------------------------------------------
-    # # import points table in Postgres & export to GZIPped Parquet local files
-    # # ----------------------------------------------------------------------------
-    #
-    # # get min and max gid values to enable parallel import from Postgres to Spark
-    # # add gid field based on row number if missing
-    # sql = """SELECT min(gid), max(gid) FROM {}.{}""".format(points_schema, points_table)
-    # pg_cur.execute(sql)
-    # gid_range = pg_cur.fetchone()
-    # min_gid = gid_range[0]
-    # max_gid = gid_range[1]
-    #
-    # sql = "SELECT gid, {}, state, ST_AsText(ST_Transform(geom, 4326)) as wkt_geom FROM {}.{}" \
-    #     .format(points_id, points_schema, points_table)
-    #
-    # # import to Spark in parallel using JDBC
-    # points_df = import_table(spark, sql, min_gid, max_gid, 500000)
-    #
-    # # export to parquet on local drive after adding geometry field
-    # export_df = points_df.withColumn("geom", f.expr("ST_GeomFromWKT(wkt_geom)")) \
-    #     .drop("wkt_geom") \
-    #     .repartition(9, "state")
-    #
-    # export_to_parquet(export_df, points_table)
-    #
-    # export_df.unpersist()
-    # points_df.unpersist()
-    #
-    # logger.info("\t - exported {} : {}".format(points_table, datetime.now() - start_time))
+    # ----------------------------------------------------------------------------
+    # import points table in Postgres & export to GZIPped Parquet local files
+    # ----------------------------------------------------------------------------
+
+    # get min and max gid values to enable parallel import from Postgres to Spark
+    # add gid field based on row number if missing
+    sql = """SELECT min(gid), max(gid) FROM {}.{}""".format(points_schema, points_table)
+    pg_cur.execute(sql)
+    gid_range = pg_cur.fetchone()
+    min_gid = gid_range[0]
+    max_gid = gid_range[1]
+
+    sql = "SELECT gid, {}, state, ST_AsText(ST_Transform(geom, 4326)) as wkt_geom FROM {}.{}" \
+        .format(points_id, points_schema, points_table)
+
+    # import to Spark in parallel using JDBC
+    points_df = import_table(spark, sql, min_gid, max_gid, 500000)
+
+    # export to parquet on local drive after adding geometry field
+    export_df = points_df.withColumn("geom", f.expr("ST_GeomFromWKT(wkt_geom)")) \
+        .drop("wkt_geom")
+
+    export_to_parquet(export_df, points_table)
+
+    export_df.unpersist()
+    points_df.unpersist()
+
+    logger.info("\t - exported {} : {}".format(points_table, datetime.now() - start_time))
 
     # ----------------------------------------------------------------------------
     # import boundary table in Postgres & export to GZIPped Parquet local files
@@ -175,8 +174,7 @@ def main():
 
         # export to parquet on local drive after adding geometry field
         export_df = bdy_df.withColumn("geom", f.expr("ST_GeomFromWKT(wkt_geom)")) \
-            .drop("wkt_geom") \
-            .repartition(9, "state")
+            .drop("wkt_geom")
 
         if max_vertex is not None:
             export_name = "{}_{}".format(bdy_table, max_vertex)
@@ -222,7 +220,8 @@ def import_table(spark, sql, min_gid, max_gid, partition_size):
 
 # export a dataframe to gz parquet files
 def export_to_parquet(df, name):
-    df.write.option("compression", "gzip") \
+    df.repartition(200, "state") \
+        .write.option("compression", "gzip") \
         .mode("overwrite") \
         .parquet(os.path.join(output_path, name))
 

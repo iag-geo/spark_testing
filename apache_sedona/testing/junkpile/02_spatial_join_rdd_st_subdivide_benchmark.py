@@ -21,7 +21,7 @@ from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 from sedona.utils.adapter import Adapter
 
-computer = "macbook2"
+computer = "macbook2-no-partition"
 
 num_processors = cpu_count()
 
@@ -36,7 +36,7 @@ bdy_id = "ce_pid"
 max_vertices_list = [25]
 
 # number of partitions on both dataframes
-num_partitions_list = [500, 600, 700, 800, 900, 1000]
+num_partitions_list = [200]
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
@@ -51,9 +51,9 @@ def main():
     print("{},{},{},{},{},{}"
           .format("warmup1", join_count, bdy_count, max(max_vertices_list), min(num_partitions_list), time_taken))
 
-    join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
-    print("{},{},{},{},{},{}"
-          .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
+    # join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
+    # print("{},{},{},{},{},{}"
+    #       .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
 
     # main test runs
     for num_partitions in num_partitions_list:
@@ -96,7 +96,7 @@ def run_test(num_partitions, max_vertices):
     point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
                 # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
                 # .limit(5000)
-                .repartition(num_partitions, "state")
+                # .repartition(num_partitions, "state")
                 # .cache()
                 )
 
@@ -111,8 +111,9 @@ def run_test(num_partitions, max_vertices):
         bdy_vertex_name = bdy_name
 
     bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
+              .withColumnRenamed("gid", "id")
               # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-              .repartition(num_partitions, "state")
+              # .repartition(num_partitions, "state")
               # .cache()
               )
 
@@ -130,38 +131,41 @@ def run_test(num_partitions, max_vertices):
     point_rdd.spatialPartitioning(GridType.KDBTREE)
     bdy_rdd.spatialPartitioning(point_rdd.getPartitioner())
 
-    point_rdd.buildIndex(IndexType.RTREE, True)
-    # bdy_rdd.buildIndex(IndexType.RTREE, True)
+    # point_rdd.buildIndex(IndexType.RTREE, True)
+    bdy_rdd.buildIndex(IndexType.RTREE, True)
+
+    # doesn't currently work (Sedona v1.0.1 SNAPSHOT - 2021-03-23)
+    # bdy_rdd.indexedRawRDD.saveAsObjectFile(os.path.join(output_path, "{}_rdd".format(bdy_vertex_name)))
 
     # print(point_rdd.fieldNames)
     # print(bdy_rdd.fieldNames)
 
-    # run join query
-    join_pair_rdd = JoinQueryRaw.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
-
-    # convert SedonaPairRDD to dataframe
-    join_df = Adapter.toDf(join_pair_rdd, bdy_rdd.fieldNames, point_rdd.fieldNames, spark)
-    # join_df.printSchema()
-    # join_df.show(10)
-
-    # | -- leftgeometry: geometry(nullable=true)
-    # | -- gid: string(nullable=true)
-    # | -- ce_pid: string(nullable=true)
-    # | -- state: string(nullable=true)
-    # | -- rightgeometry: geometry(nullable=true)
-    # | -- gid: string(nullable=true)
-    # | -- gnaf_pid: string(nullable=true)
-    # | -- state: string(nullable=true)
-
-    # output vars
-    join_count = join_df.count()
-    bdy_count = bdy_df.count()
-    time_taken = datetime.now() - start_time
+    # # run join query
+    # join_pair_rdd = JoinQueryRaw.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
+    #
+    # # convert SedonaPairRDD to dataframe
+    # join_df = Adapter.toDf(join_pair_rdd, bdy_rdd.fieldNames, point_rdd.fieldNames, spark)
+    # # join_df.printSchema()
+    # # join_df.show(10)
+    #
+    # # | -- leftgeometry: geometry(nullable=true)
+    # # | -- gid: string(nullable=true)
+    # # | -- ce_pid: string(nullable=true)
+    # # | -- state: string(nullable=true)
+    # # | -- rightgeometry: geometry(nullable=true)
+    # # | -- gid: string(nullable=true)
+    # # | -- gnaf_pid: string(nullable=true)
+    # # | -- state: string(nullable=true)
+    #
+    # # output vars
+    # join_count = join_df.count()
+    # bdy_count = bdy_df.count()
+    # time_taken = datetime.now() - start_time
 
     # cleanup
     spark.stop()
 
-    return join_count, bdy_count, time_taken
+    # return join_count, bdy_count, time_taken
 
 
 if __name__ == "__main__":
