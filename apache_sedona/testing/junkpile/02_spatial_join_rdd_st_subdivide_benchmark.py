@@ -23,7 +23,7 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [25]
+max_vertices_list = [None, 25, 50, 100]
 
 # number of partitions on both dataframes
 num_partitions_list = [200]
@@ -45,7 +45,7 @@ else:
 def main():
     # warmup runs
     run_test("warmup1", min(num_partitions_list), max(max_vertices_list))
-    run_test("warmup2", max(num_partitions_list), min(max_vertices_list))
+    # run_test("warmup2", max(num_partitions_list), min(max_vertices_list))   # watch for min = None (very long warmup!)
 
     # main test runs
     for num_partitions in num_partitions_list:
@@ -101,6 +101,9 @@ def run_test(test_name, num_partitions, max_vertices):
     # create RDDs - analysed partitioned and indexed
     point_rdd = Adapter.toSpatialRdd(point_df, "geom")
     bdy_rdd = Adapter.toSpatialRdd(bdy_df, "geom")
+
+    point_df.unpersist()
+    bdy_df.unpersist()
 
     point_rdd.analyze()
     bdy_rdd.analyze()
