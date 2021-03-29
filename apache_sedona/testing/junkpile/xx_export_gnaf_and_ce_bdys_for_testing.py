@@ -132,14 +132,17 @@ def main():
 
     # export to parquet on local drive after adding geometry field
     export_df = points_df.withColumn("geom", f.expr("ST_GeomFromWKT(wkt_geom)")) \
-        .drop("wkt_geom")
+        .drop("wkt_geom") \
+        .cache()
+
+    num_rows = export_df.count()
 
     export_to_parquet(export_df, points_table, "state")
 
     export_df.unpersist()
     points_df.unpersist()
 
-    logger.info("\t - exported {} : {}".format(points_table, datetime.now() - start_time))
+    logger.info("\t - exported {} rows to {} : {}".format(num_rows, points_table, datetime.now() - start_time))
 
     # ----------------------------------------------------------------------------
     # import boundary table in Postgres & export to GZIPped Parquet local files
