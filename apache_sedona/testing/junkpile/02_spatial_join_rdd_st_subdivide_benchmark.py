@@ -44,8 +44,8 @@ else:
 
 def main():
     # warmup runs
-    run_test("warmup1", min(num_partitions_list), max(max_vertices_list))
-    # run_test("warmup2", max(num_partitions_list), min(max_vertices_list))   # watch for min = None (very long warmup!)
+    run_test("warmup1", min(num_partitions_list), 100)
+    run_test("warmup2", max(num_partitions_list), 25)
 
     # main test runs
     for num_partitions in num_partitions_list:
