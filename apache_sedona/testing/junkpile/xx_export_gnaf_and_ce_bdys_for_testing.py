@@ -134,7 +134,7 @@ def main():
     export_df = points_df.withColumn("geom", f.expr("ST_GeomFromWKT(wkt_geom)")) \
         .drop("wkt_geom")
 
-    export_to_parquet(export_df, points_table)
+    export_to_parquet(export_df, points_table, "state")
 
     export_df.unpersist()
     points_df.unpersist()
@@ -157,13 +157,13 @@ def main():
         start_time = datetime.now()
 
         if max_vertex is not None:
-            sql = """SELECT gid, {}, state, 
-                         ST_AsText(ST_Subdivide((ST_Dump(ST_Buffer(ST_Transform(geom, 4326), 0.0))).geom, {})) as wkt_geom 
+            sql = """SELECT gid, {}, state,
+                         ST_AsText(ST_Subdivide((ST_Dump(ST_Buffer(ST_Transform(geom, 4326), 0.0))).geom, {})) as wkt_geom
                          FROM {}.{}""" \
                 .format(bdy_id, max_vertex, bdy_schema, bdy_table)
         else:
-            sql = """SELECT gid, {}, state, 
-                         ST_AsText((ST_Dump(ST_Buffer(ST_Transform(geom, 4326), 0.0))).geom) as wkt_geom 
+            sql = """SELECT gid, {}, state,
+                         ST_AsText((ST_Dump(ST_Buffer(ST_Transform(geom, 4326), 0.0))).geom) as wkt_geom
                          FROM {}.{}""" \
                 .format(bdy_id, bdy_schema, bdy_table)
 
@@ -181,7 +181,7 @@ def main():
         else:
             export_name = bdy_table
 
-        export_to_parquet(export_df, export_name)
+        export_to_parquet(export_df, export_name, "state")
 
         export_df.unpersist()
         bdy_df.unpersist()
@@ -219,11 +219,14 @@ def import_table(spark, sql, min_gid, max_gid, partition_size):
 
 
 # export a dataframe to gz parquet files
-def export_to_parquet(df, name):
-    df.repartition(200, "state") \
-        .write.option("compression", "gzip") \
-        .mode("overwrite") \
-        .parquet(os.path.join(output_path, name))
+def export_to_parquet(df, name, repartition_col):
+    (df.write
+     .partitionBy(repartition_col)
+     # .bucketBy(num_buckets, bucket_col)
+     .option("compression", "gzip")
+     .mode("overwrite")
+     .parquet(os.path.join(output_path, name))
+     )
 
 
 if __name__ == "__main__":

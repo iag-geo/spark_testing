@@ -100,6 +100,8 @@ def run_test(num_partitions, max_vertices):
                 # .cache()
                 )
 
+    print("point_df : {} partitions".format(point_df.rdd.getNumPartitions()))
+
     # # get column names
     # point_columns = point_df.schema.names
     # print(point_columns)
@@ -111,11 +113,13 @@ def run_test(num_partitions, max_vertices):
         bdy_vertex_name = bdy_name
 
     bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
-              .withColumnRenamed("gid", "id")
+              # .withColumnRenamed("gid", "id")
               # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
               # .repartition(num_partitions, "state")
               # .cache()
               )
+
+    print("bdy_df : {} partitions".format(bdy_df.rdd.getNumPartitions()))
 
     # # get column names
     # bdy_columns = bdy_df.schema.names
@@ -134,38 +138,42 @@ def run_test(num_partitions, max_vertices):
     # point_rdd.buildIndex(IndexType.RTREE, True)
     bdy_rdd.buildIndex(IndexType.RTREE, True)
 
+    # print("point_rdd : {} partitions".format(point_rdd.getRawJvmSpatialRDD().getNumPartitions()))
+    # print("bdy_rdd : {} partitions".format(bdy_rdd.getRawJvmSpatialRDD().getNumPartitions()))
+
+
     # doesn't currently work (Sedona v1.0.1 SNAPSHOT - 2021-03-23)
     # bdy_rdd.indexedRawRDD.saveAsObjectFile(os.path.join(output_path, "{}_rdd".format(bdy_vertex_name)))
 
     # print(point_rdd.fieldNames)
     # print(bdy_rdd.fieldNames)
 
-    # # run join query
-    # join_pair_rdd = JoinQueryRaw.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
-    #
-    # # convert SedonaPairRDD to dataframe
-    # join_df = Adapter.toDf(join_pair_rdd, bdy_rdd.fieldNames, point_rdd.fieldNames, spark)
-    # # join_df.printSchema()
-    # # join_df.show(10)
-    #
-    # # | -- leftgeometry: geometry(nullable=true)
-    # # | -- gid: string(nullable=true)
-    # # | -- ce_pid: string(nullable=true)
-    # # | -- state: string(nullable=true)
-    # # | -- rightgeometry: geometry(nullable=true)
-    # # | -- gid: string(nullable=true)
-    # # | -- gnaf_pid: string(nullable=true)
-    # # | -- state: string(nullable=true)
-    #
-    # # output vars
-    # join_count = join_df.count()
-    # bdy_count = bdy_df.count()
-    # time_taken = datetime.now() - start_time
+    # run join query
+    join_pair_rdd = JoinQueryRaw.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
+
+    # convert SedonaPairRDD to dataframe
+    join_df = Adapter.toDf(join_pair_rdd, bdy_rdd.fieldNames, point_rdd.fieldNames, spark)
+    # join_df.printSchema()
+    # join_df.show(10)
+
+    # | -- leftgeometry: geometry(nullable=true)
+    # | -- gid: string(nullable=true)
+    # | -- ce_pid: string(nullable=true)
+    # | -- state: string(nullable=true)
+    # | -- rightgeometry: geometry(nullable=true)
+    # | -- gid: string(nullable=true)
+    # | -- gnaf_pid: string(nullable=true)
+    # | -- state: string(nullable=true)
+
+    # output vars
+    join_count = join_df.count()
+    bdy_count = bdy_df.count()
+    time_taken = datetime.now() - start_time
 
     # cleanup
     spark.stop()
 
-    # return join_count, bdy_count, time_taken
+    return join_count, bdy_count, time_taken
 
 
 if __name__ == "__main__":
