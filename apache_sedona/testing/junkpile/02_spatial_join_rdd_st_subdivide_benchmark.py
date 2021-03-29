@@ -21,9 +21,7 @@ from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 from sedona.utils.adapter import Adapter
 
-computer = "macbook2-no-partition"
-
-num_processors = cpu_count()
+computer = "macbook2-refactored"
 
 # input path for gzipped parquet files
 input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
@@ -77,11 +75,8 @@ def run_test(num_partitions, max_vertices):
              # .config("spark.jars.packages",
              #         'org.apache.sedona:sedona-python-adapter-3.0_2.12:1.0.0-incubating,'
              #         'org.datasyslab:geotools-wrapper:geotools-24.0')
-             # .config("spark.sql.adaptive.enabled", "true")
              .config("spark.executor.cores", 2)
-             # .config("spark.cores.max", num_processors)
              .config("spark.driver.memory", "8g")
-             # .config("spark.driver.maxResultSize", "2g")
              .getOrCreate()
              )
 
@@ -94,17 +89,9 @@ def run_test(num_partitions, max_vertices):
 
     # load gnaf points and create geoms
     point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
-                # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-                # .limit(5000)
+                .select("gnaf_pid", "state", "geom")
                 .repartition(num_partitions, "state")
-                # .cache()
                 )
-
-    # print("point_df : {} partitions".format(point_df.rdd.getNumPartitions()))
-
-    # # get column names
-    # point_columns = point_df.schema.names
-    # print(point_columns)
 
     # load boundaries and create geoms
     if max_vertices is not None:
@@ -113,17 +100,9 @@ def run_test(num_partitions, max_vertices):
         bdy_vertex_name = bdy_name
 
     bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
-              # .withColumnRenamed("gid", "id")
-              # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
+              .select(bdy_id, "state", "geom")
               .repartition(num_partitions, "state")
-              # .cache()
               )
-
-    # print("bdy_df : {} partitions".format(bdy_df.rdd.getNumPartitions()))
-
-    # # get column names
-    # bdy_columns = bdy_df.schema.names
-    # print(bdy_columns)
 
     # create RDDs - analysed partitioned and indexed
     point_rdd = Adapter.toSpatialRdd(point_df, "geom")
@@ -138,29 +117,16 @@ def run_test(num_partitions, max_vertices):
     point_rdd.buildIndex(IndexType.RTREE, True)
     bdy_rdd.buildIndex(IndexType.RTREE, True)
 
-    # print("point_rdd : {} partitions".format(point_rdd.getRawJvmSpatialRDD().getNumPartitions()))
-    # print("bdy_rdd : {} partitions".format(bdy_rdd.getRawJvmSpatialRDD().getNumPartitions()))
-
-    # doesn't currently work (Sedona v1.0.1 SNAPSHOT - 2021-03-23)
-    # bdy_rdd.indexedRawRDD.saveAsObjectFile(os.path.join(output_path, "{}_rdd".format(bdy_vertex_name)))
-
-    # print(point_rdd.fieldNames)
-    # print(bdy_rdd.fieldNames)
-
     # run join query
     join_pair_rdd = JoinQueryRaw.SpatialJoinQueryFlat(point_rdd, bdy_rdd, True, True)
 
     # convert SedonaPairRDD to dataframe
     join_df = Adapter.toDf(join_pair_rdd, bdy_rdd.fieldNames, point_rdd.fieldNames, spark)
-    # join_df.printSchema()
-    # join_df.show(10)
 
     # | -- leftgeometry: geometry(nullable=true)
-    # | -- gid: string(nullable=true)
     # | -- ce_pid: string(nullable=true)
     # | -- state: string(nullable=true)
     # | -- rightgeometry: geometry(nullable=true)
-    # | -- gid: string(nullable=true)
     # | -- gnaf_pid: string(nullable=true)
     # | -- state: string(nullable=true)
 
