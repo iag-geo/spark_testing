@@ -31,7 +31,7 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [25]
+max_vertices_list = [25, 50]
 
 # number of partitions on both dataframes
 num_partitions_list = [200]
@@ -75,6 +75,7 @@ def run_test(num_partitions, max_vertices):
              # .config("spark.jars.packages",
              #         'org.apache.sedona:sedona-python-adapter-3.0_2.12:1.0.0-incubating,'
              #         'org.datasyslab:geotools-wrapper:geotools-24.0')
+             .config("spark.sql.adaptive.enabled", "true")
              .config("spark.executor.cores", 2)
              .config("spark.driver.memory", "8g")
              .getOrCreate()
@@ -90,7 +91,8 @@ def run_test(num_partitions, max_vertices):
     # load gnaf points and create geoms
     point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
                 .select("gnaf_pid", "state", "geom")
-                .repartition(num_partitions, "state")
+                .withColumnRenamed("state", "gnaf_state")
+                .repartition(num_partitions, "gnaf_state")
                 )
 
     # load boundaries and create geoms
@@ -130,8 +132,15 @@ def run_test(num_partitions, max_vertices):
     # | -- gnaf_pid: string(nullable=true)
     # | -- state: string(nullable=true)
 
+    join_df2 = (join_df
+                # .filter((join_df["state"] == join_df["gnaf_state"]))
+                .dropDuplicates(["gnaf_pid", bdy_id])
+                .select("gnaf_pid", bdy_id, "state")
+                )
+    # join_df2.printSchema()
+
     # output vars
-    join_count = join_df.count()
+    join_count = join_df2.count()
     bdy_count = bdy_df.count()
     time_taken = datetime.now() - start_time
 
