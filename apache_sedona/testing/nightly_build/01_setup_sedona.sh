@@ -64,7 +64,7 @@ rm -rf ${SEDONA_INSTALL_DIR}
 #
 #cd ${HOME}
 #
-#wget https://www.strategylions.com.au/mirror/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz
+#curl -O https://www.strategylions.com.au/mirror/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz
 #tar xzf apache-maven-$MAVEN_VERSION-bin.tar.gz
 #rm apache-maven-$MAVEN_VERSION-bin.tar.gz
 
@@ -76,7 +76,7 @@ mkdir ${SPARK_HOME_DIR}
 cd ${SPARK_HOME_DIR}
 
 # download and untar Spark files
-wget https://apache.mirror.digitalpacific.com.au/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
+curl -O https://apache.mirror.digitalpacific.com.au/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
 tar -xzf spark-${SPARK_VERSION}-bin-hadoop3.2.tgz --directory ${SPARK_HOME_DIR} --strip-components=1
 rm spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
 
@@ -90,16 +90,16 @@ echo "-------------------------------------------------------------------------"
 cd ${SPARK_HOME_DIR}/jars
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
-wget https://jdbc.postgresql.org/download/postgresql-42.2.19.jar
+curl -O https://jdbc.postgresql.org/download/postgresql-42.2.19.jar
 
 # get hadoop-aws JAR file (optional - required for accessing AWS S3)
-#wget https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar
+#curl -O https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar
 
 # get aws-java-sdk JAR file (optional - required for accessing AWS S3)
-#wget https://search.maven.org/remotecontent?filepath=com/amazonaws/aws-java-sdk/1.11.880/aws-java-sdk-1.11.880.jar
+#curl -O https://search.maven.org/remotecontent?filepath=com/amazonaws/aws-java-sdk/1.11.880/aws-java-sdk-1.11.880.jar
 
 # get Google Storage connector shaded JAR (optional - required for accessing GCP Storage)
-#wget https://search.maven.org/remotecontent?filepath=com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.2.0/gcs-connector-hadoop3-2.2.0-shaded.jar
+#curl -O https://search.maven.org/remotecontent?filepath=com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.2.0/gcs-connector-hadoop3-2.2.0-shaded.jar
 
 # create folder for Spark temp files
 mkdir -p ${HOME}/tmp/spark

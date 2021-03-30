@@ -55,13 +55,13 @@ mkdir ${SPARK_HOME_DIR}
 cd ${SPARK_HOME_DIR}
 
 # download and untar Spark files
-wget https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
+curl -O https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
 tar -xzf spark-${SPARK_VERSION}-bin-hadoop2.7.tgz --directory ${SPARK_HOME_DIR} --strip-components=1
 rm spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 cd ${SPARK_HOME_DIR}/jars
-wget https://jdbc.postgresql.org/download/postgresql-42.2.18.jar
+curl -O https://jdbc.postgresql.org/download/postgresql-42.2.18.jar
 
 # create folder for Spark temp files
 mkdir -p ${HOME}/tmp/spark

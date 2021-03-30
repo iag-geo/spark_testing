@@ -23,10 +23,13 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [None, 25, 50, 100]
+max_vertices_list = [25]
 
 # number of partitions on both dataframes
 num_partitions_list = [200]
+
+# number of times to repeat test
+test_repeats = 10
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
@@ -44,13 +47,14 @@ else:
 
 def main():
     # warmup runs
-    run_test("warmup1", min(num_partitions_list), 100)
+    run_test("warmup1", min(num_partitions_list), 25)
     run_test("warmup2", max(num_partitions_list), 25)
 
     # main test runs
-    for num_partitions in num_partitions_list:
-        for max_vertices in max_vertices_list:
-            run_test(computer, num_partitions, max_vertices)
+    for test_run in range(test_repeats):
+        for num_partitions in num_partitions_list:
+            for max_vertices in max_vertices_list:
+                run_test(computer, num_partitions, max_vertices)
 
 
 def run_test(test_name, num_partitions, max_vertices):

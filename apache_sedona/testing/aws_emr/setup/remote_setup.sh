@@ -61,7 +61,7 @@ echo "-------------------------------------------------------------------------"
 #</settings>
 #EOF
 
-wget -q https://www.strategylions.com.au/mirror/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz
+curl -O https://www.strategylions.com.au/mirror/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz
 tar xzf apache-maven-$MAVEN_VERSION-bin.tar.gz
 sudo mv apache-maven-$MAVEN_VERSION /usr/lib/apache-maven-$MAVEN_VERSION
 rm apache-maven-$MAVEN_VERSION-bin.tar.gz
@@ -71,7 +71,7 @@ echo " Download Postgres JDBC file"
 echo "-------------------------------------------------------------------------"
 
 # download Postgres JDBC JAR
-wget -q https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}.jar
+curl -O https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}.jar
 sudo mv postgresql-${POSTGRES_JDBC_VERSION}.jar ${SPARK_HOME}/jars/
 
 echo "-------------------------------------------------------------------------"
@@ -79,7 +79,7 @@ echo " Build & install Apache Sedona"
 echo "-------------------------------------------------------------------------"
 
 # download Apache Sedona source code
-wget -q https://github.com/apache/incubator-sedona/archive/1.3.2-spark-3.0.tar.gz
+curl -O https://github.com/apache/incubator-sedona/archive/1.3.2-spark-3.0.tar.gz
 tar xzf 1.3.2-spark-3.0.tar.gz
 rm 1.3.2-spark-3.0.tar.gz
 
