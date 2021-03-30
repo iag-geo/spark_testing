@@ -24,13 +24,13 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [200]
+max_vertices_list = [25]
 
 # number of partitions on both dataframes
-num_partitions_list = [1000]
+num_partitions_list = [200]
 
 # number of times to repeat test
-test_repeats = 10
+test_repeats = 5
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
@@ -48,8 +48,8 @@ else:
 
 def main():
     # warmup runs
-    run_test("warmup1", min(num_partitions_list), 200)
-    run_test("warmup2", max(num_partitions_list), 200)
+    run_test("warmup1", min(num_partitions_list), 25)
+    run_test("warmup2", max(num_partitions_list), 25)
 
     # main test runs
     for test_run in range(test_repeats):
@@ -115,7 +115,7 @@ def run_test(test_name, num_partitions, max_vertices):
     bdy_df.createOrReplaceTempView("bdy")
 
     # run spatial join to boundary tag the points
-    sql = """SELECT pnt.gnaf_pid, bdy.{}, bdy.state FROM bdy INNER JOIN pnt ON ST_Intersects(bdy.geom, pnt.geom)""" \
+    sql = """SELECT pnt.gnaf_pid, bdy.{}, bdy.state FROM bdy, pnt WHERE ST_Intersects(bdy.geom, pnt.geom)""" \
         .format(bdy_id)
     join_df = spark.sql(sql)
 
