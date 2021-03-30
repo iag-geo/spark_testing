@@ -69,9 +69,6 @@ def run_test(test_name, num_partitions, max_vertices):
              .config("spark.sql.debug.maxToStringFields", 100)
              .config("spark.serializer", KryoSerializer.getName)
              .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
-             .config("sedona.global.index", "true")
-             .config("sedona.global.indextype", "rtree")
-             .config("sedona.join.gridtype", "kdbtree")
              # .config("spark.jars.packages",
              #         'org.apache.sedona:sedona-python-adapter-3.0_2.12:1.0.0-incubating,'
              #         'org.datasyslab:geotools-wrapper:geotools-24.0')
@@ -86,6 +83,9 @@ def run_test(test_name, num_partitions, max_vertices):
 
     # set Sedona spatial indexing and partitioning config in Spark session
     # (slowed down the "small" spatial join query in this script. Might improve bigger queries)
+    spark.conf.set("sedona.global.index", "true")
+    spark.conf.set("sedona.global.indextype", "rtree")
+    spark.conf.set("sedona.join.gridtype", "kdbtree")
     # spark.conf.set("sedona.join.numpartition", "-1")
     # spark.conf.set("sedona.join.indexbuildside", "right")
     # spark.conf.set("sedona.join.spatitionside", "right")
@@ -115,7 +115,7 @@ def run_test(test_name, num_partitions, max_vertices):
     bdy_df.createOrReplaceTempView("bdy")
 
     # run spatial join to boundary tag the points
-    sql = """SELECT pnt.gnaf_pid, bdy.{}, bdy.state FROM pnt INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""" \
+    sql = """SELECT pnt.gnaf_pid, bdy.{}, bdy.state FROM bdy INNER JOIN pnt ON ST_Intersects(bdy.geom, pnt.geom)""" \
         .format(bdy_id)
     join_df = spark.sql(sql)
 
