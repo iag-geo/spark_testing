@@ -13,7 +13,7 @@ from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 from sedona.utils.adapter import Adapter
 
-computer = "macbook2-new-build"
+computer = "imac"
 
 # input path for gzipped parquet files
 input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")

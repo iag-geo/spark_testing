@@ -12,7 +12,7 @@ from pyspark.sql import SparkSession
 from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
-computer = "macbook2-comparison"
+computer = "imac"
 
 num_processors = cpu_count()
 
