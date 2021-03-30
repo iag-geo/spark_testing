@@ -12,7 +12,7 @@ from pyspark.sql import SparkSession
 from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
-computer = "macbook2-no-cache"
+computer = "macbook2-comparison"
 
 num_processors = cpu_count()
 
@@ -86,9 +86,9 @@ def run_test(test_name, num_partitions, max_vertices):
     spark.conf.set("sedona.global.index", "true")
     spark.conf.set("sedona.global.indextype", "rtree")
     spark.conf.set("sedona.join.gridtype", "kdbtree")
-    # spark.conf.set("sedona.join.numpartition", "-1")
-    # spark.conf.set("sedona.join.indexbuildside", "right")
-    # spark.conf.set("sedona.join.spatitionside", "right")
+    spark.conf.set("sedona.join.numpartition", num_partitions)
+    spark.conf.set("sedona.join.indexbuildside", "right")
+    spark.conf.set("sedona.join.spatitionside", "right")
 
     start_time = datetime.now()
 
