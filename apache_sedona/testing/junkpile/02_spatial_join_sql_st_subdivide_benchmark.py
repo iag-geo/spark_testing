@@ -24,37 +24,41 @@ bdy_name = "commonwealth_electorates"
 bdy_id = "ce_pid"
 
 # bdy table subdivision vertex limit
-max_vertices_list = [100, 200]
+max_vertices_list = [25]
 
 # number of partitions on both dataframes
-num_partitions_list = [250, 500, 750, 1000]
+num_partitions_list = [200]
+
+# number of times to repeat test
+test_repeats = 10
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
 
+# setup test log file using a normal file to avoid Spark errors being written.
+log_file_path = os.path.abspath(__file__).replace(".py", ".csv")
+
+if os.path.isfile(log_file_path):
+    log_file = open(log_file_path, "a")
+else:
+    log_file = open(log_file_path, "w")
+    # log header for log file (so results cn be used in Excel/Tableau)
+    log_file.write("computer,points,boundaries,max_vertices,partitions,processing_time\n")
+
 
 def main():
-    # log header for log file (so results cn be used in Excel/Tableau)
-    logger.info("computer,points,boundaries,max_vertices,gnaf_partitions,bdy_partitions,processing_time")
-
     # warmup runs
-    join_count, bdy_count, time_taken = run_test(min(num_partitions_list), max(max_vertices_list))
-    print("{},{},{},{},{},{}"
-          .format("warmup1", join_count, bdy_count, max(max_vertices_list), min(num_partitions_list), time_taken))
-
-    join_count, bdy_count, time_taken = run_test(max(num_partitions_list), min(max_vertices_list))
-    print("{},{},{},{},{},{}"
-          .format("warmup2", join_count, bdy_count, min(max_vertices_list), max(num_partitions_list), time_taken))
+    run_test("warmup1", min(num_partitions_list), 25)
+    run_test("warmup2", max(num_partitions_list), 25)
 
     # main test runs
-    for num_partitions in num_partitions_list:
-        for max_vertices in max_vertices_list:
-            join_count, bdy_count, time_taken = run_test(num_partitions, max_vertices)
-            logging.info("{},{},{},{},{},{}"
-                         .format(computer, join_count, bdy_count, max_vertices, num_partitions, time_taken))
+    for test_run in range(test_repeats):
+        for num_partitions in num_partitions_list:
+            for max_vertices in max_vertices_list:
+                run_test(computer, num_partitions, max_vertices)
 
 
-def run_test(num_partitions, max_vertices):
+def run_test(test_name, num_partitions, max_vertices):
 
     # create spark session object
     spark = (SparkSession
@@ -69,10 +73,8 @@ def run_test(num_partitions, max_vertices):
              #         'org.apache.sedona:sedona-python-adapter-3.0_2.12:1.0.0-incubating,'
              #         'org.datasyslab:geotools-wrapper:geotools-24.0')
              .config("spark.sql.adaptive.enabled", "true")
-             # .config("spark.executor.cores", 4)
-             .config("spark.cores.max", num_processors)
+             .config("spark.executor.cores", 2)
              .config("spark.driver.memory", "8g")
-             # .config("spark.driver.maxResultSize", "2g")
              .getOrCreate()
              )
 
@@ -83,60 +85,63 @@ def run_test(num_partitions, max_vertices):
 
     # load gnaf points and create geoms
     point_df = (spark.read.parquet(os.path.join(input_path, "address_principals"))
-                # .select("gnaf_pid", "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
-                # .limit(1000000)
-                .repartition(num_partitions, "state")
-                # .cache()
+                .select("gnaf_pid", "state", "geom")
+                .withColumnRenamed("state", "gnaf_state")
+                .repartition(num_partitions, "gnaf_state")
                 )
     point_df.createOrReplaceTempView("pnt")
 
     # load boundaries and create geoms
-    bdy_vertex_name = "{}_{}".format(bdy_name, max_vertices)
+    if max_vertices is not None:
+        bdy_vertex_name = "{}_{}".format(bdy_name, max_vertices)
+    else:
+        bdy_vertex_name = bdy_name
 
     bdy_df = (spark.read.parquet(os.path.join(input_path, bdy_vertex_name))
-              # .select(bdy_id, "state", f.expr("ST_GeomFromWKT(wkt_geom)").alias("geom"))
+              .select(bdy_id, "state", "geom")
               .repartition(num_partitions, "state")
-              # .cache()
+              .cache()
               )
+    bdy_count = bdy_df.count()
     bdy_df.createOrReplaceTempView("bdy")
 
     # run spatial join to boundary tag the points
-    sql = """SELECT pnt.gnaf_pid, bdy.{} FROM pnt INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""" \
+    sql = """SELECT pnt.gnaf_pid, bdy.{}, bdy.state FROM pnt INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)""" \
         .format(bdy_id)
     join_df = spark.sql(sql)
 
+    join_df2 = (join_df
+                # .filter((join_df["state"] == join_df["gnaf_state"]))
+                .dropDuplicates(["gnaf_pid", bdy_id])
+                .cache()
+                )
+
+    # output to files
+    if "warmup" in test_name:
+        name = "gnaf_sql_{}_{}_{}".format(bdy_id, max_vertices, num_partitions)
+
+        (join_df2.repartition(50)
+         .write
+         .partitionBy("state")
+         .option("compression", "gzip")
+         .mode("overwrite")
+         .parquet(os.path.join(output_path, name))
+         )
+
     # output vars
-    join_count = join_df.count()
-    bdy_count = bdy_df.count()
+    join_count = join_df2.count()
     time_taken = datetime.now() - start_time
+
+    if "warmup" in test_name:
+        print("{},{},{},{},{},{}"
+              .format(test_name, join_count, bdy_count, max_vertices, num_partitions, time_taken))
+    else:
+        log_file.write("{},{},{},{},{},{}\n"
+                       .format(test_name, join_count, bdy_count, max_vertices, num_partitions, time_taken))
 
     # cleanup
     spark.stop()
 
-    return join_count, bdy_count, time_taken
-
 
 if __name__ == "__main__":
-    # setup logging - code is here to prevent conflict with logging.basicConfig() from one of the imports below
-    log_file = os.path.abspath(__file__).replace(".py", "_2.csv")
-    logging.basicConfig(filename=log_file, level=logging.DEBUG, format="%(message)s")
-
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    # set Spark logging levels
-    logging.getLogger("pyspark").setLevel(logging.ERROR)
-    logging.getLogger("py4j").setLevel(logging.ERROR)
-
-    # setup logger to write to screen as well as writing to log file
-    # define a Handler which writes INFO messages or higher to the sys.stderr
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    # set a format which is simpler for console use
-    formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
-    # tell the handler to use this format
-    console.setFormatter(formatter)
-    # add the handler to the root logger
-    logging.getLogger().addHandler(console)
-
     main()
