@@ -130,7 +130,7 @@ echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} pyspark-stubs
 echo "y" | conda install -c conda-forge psycopg2 sqlalchemy geoalchemy2 geopandas pyarrow jupyter matplotlib
 
 ## OPTIONAL - AWS Packages
-#echo "y" | conda install -c conda-forge boto3 awscli
+#echo "y" | conda install -c conda-forge boto3
 
 echo "-------------------------------------------------------------------------"
 echo "Install Apache Sedona"
