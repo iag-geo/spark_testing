@@ -123,9 +123,6 @@ conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 # reactivate for env vars to take effect
 conda activate sedona
 
-# install Pyspark
-echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION}
-
 # install supporting & useful packages
 echo "y" | conda install -c conda-forge psycopg2 sqlalchemy geoalchemy2 geopandas pyarrow jupyter matplotlib
 
@@ -137,6 +134,12 @@ echo "Install Apache Sedona"
 echo "-------------------------------------------------------------------------"
 
 pip install apache-sedona
+
+# fix Sedona 1.0.1 packaging issue (pip install apache-sedona currently reverts pyspark to v3.0.2)
+echo "y" | pip uninstall pyspark
+
+# install Pyspark
+echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION}
 
 echo "-------------------------------------------------------------------------"
 echo "Verify Sedona version"
