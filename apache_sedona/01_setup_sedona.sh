@@ -40,7 +40,7 @@ echo " Start time : $(date)"
 #
 
 PYTHON_VERSION="3.9"
-SPARK_VERSION="3.0.2"
+SPARK_VERSION="3.1.1"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -124,7 +124,7 @@ conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 conda activate sedona
 
 # install Pyspark
-echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} pyspark-stubs
+echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION}
 
 # install supporting & useful packages
 echo "y" | conda install -c conda-forge psycopg2 sqlalchemy geoalchemy2 geopandas pyarrow jupyter matplotlib
