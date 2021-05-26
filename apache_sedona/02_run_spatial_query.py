@@ -47,12 +47,6 @@ def main():
     # Add Sedona functions and types to Spark
     SedonaRegistrator.registerAll(spark)
 
-    # set Sedona spatial indexing and partitioning config in Spark session
-    # (no effect on the "small" spatial join query in this script. Will improve bigger queries)
-    spark.conf.set("sedona.global.index", "true")
-    spark.conf.set("sedona.global.indextype", "rtree")
-    spark.conf.set("sedona.join.gridtype", "kdbtree")
-
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
 
