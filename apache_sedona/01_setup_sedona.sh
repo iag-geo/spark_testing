@@ -40,7 +40,8 @@ echo " Start time : $(date)"
 #
 
 PYTHON_VERSION="3.9"
-SPARK_VERSION="3.1.1"
+SPARK_VERSION="3.1.2"
+POSTGRES_JDBC_VERSION="42.2.21"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -74,7 +75,7 @@ echo "-------------------------------------------------------------------------"
 cd ${SPARK_HOME_DIR}/jars
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
-curl -O https://jdbc.postgresql.org/download/postgresql-42.2.19.jar
+curl -O https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}.jar
 
 # get hadoop-aws JAR file (optional - required for accessing AWS S3)
 #curl -O https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar
