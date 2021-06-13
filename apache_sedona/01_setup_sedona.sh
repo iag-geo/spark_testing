@@ -18,25 +18,26 @@ echo " Start time : $(date)"
 #
 # PRE_REQUISITES:
 #   1. Java 8 OpenJDK is installed
-#        - Install using Homebrew:
+#        a. Install using Homebrew:
 #            brew install openjdk@8
-#        - Add the following lines to your .bash_profile file:
+#        b. Add the following lines to your .bash_profile file:
 #            export PATH="/usr/local/opt/openjdk@8/bin:$PATH"
 #            export JAVA_HOME="/usr/local/opt/openjdk@8"
-#        - Reload .bash_profile:
+#        c. Reload .bash_profile:
 #            source .bash_profile
 #
-#   2. Miniconda installed in default directory ($HOME/opt/miniconda3)
+#   2. Miniconda installed in the default directory ($HOME/opt/miniconda3)
 #        - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
 #
 # ISSUES:
 #   1. Conda environment variables aren't accessible in IntelliJ/Pycharm due to a missing feature
-#        - Sedona python scripts will fail in IntelliJ/Pycharm as Spark env vars aren't set (e.g. $SPARK_HOME)
+#        - Sedona Python scripts will fail in IntelliJ/Pycharm as Spark env vars aren't set (e.g. $SPARK_HOME)
 #
 # --------------------------------------------------------------------------------------------------------------------
 #
 # SETUP:
 #   - edit these if it's now the future and versions have changed
+#   - note: check which Spark versions Sedona supports
 #
 
 PYTHON_VERSION="3.9"
@@ -77,10 +78,8 @@ cd ${SPARK_HOME_DIR}/jars
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 curl -O https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}.jar
 
-# get hadoop-aws JAR file (optional - required for accessing AWS S3)
+# get hadoop-aws & aws-java-sdk JAR files (optional - required for accessing AWS S3)
 #curl -O https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar
-
-# get aws-java-sdk JAR file (optional - required for accessing AWS S3)
 #curl -O https://search.maven.org/remotecontent?filepath=com/amazonaws/aws-java-sdk/1.11.880/aws-java-sdk-1.11.880.jar
 
 # get Google Storage connector shaded JAR (optional - required for accessing GCP Storage)
@@ -136,10 +135,8 @@ echo "-------------------------------------------------------------------------"
 
 pip install apache-sedona
 
-# fix Sedona 1.0.1 packaging issue (pip install apache-sedona currently reverts pyspark to v3.0.2)
+# fix Sedona 1.0.1 packaging issue (uninstall Pyspark 3.0.2 and install required version)
 echo "y" | pip uninstall pyspark
-
-# install Pyspark
 echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION}
 
 echo "-------------------------------------------------------------------------"
