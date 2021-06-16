@@ -19,7 +19,7 @@
 # --------------------------------------------------------------------------------------------------------------------
 #
 # PRE_REQUISITES:
-#   - Install these Python packages: Pyarrow, Pandas, Numpy, Boto3, Psycopg2, SQLAlchemy
+#   - Install these Python packages: pyarrow, geopandas, numpy, boto3, psycopg2, geoalchemy2
 #   - (optional) if exporting S3 files - setup your AWS credentials:
 #      - https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
 #
