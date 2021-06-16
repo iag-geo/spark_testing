@@ -28,15 +28,8 @@
 # NOTES:
 #   - Complex/nested types (aka structs) are supported, these are converted to JSONB in Postgres
 #   - Well Known Text (WKT) and EWKT geometries are converted to PostGIS geometries and spatially indexed
-#   - Not tested with custom binary objects
+#   - Not tested with custom binary objects - you'll most likely have to
 #   - Files will be exported in parallel. Half your CPUs is the default number of processes
-#
-# --------------------------------------------------------------------------------------------------------------------
-#
-# IMPORTANT:
-#   - Currently only accepts 'wkt_geom' and 'ewkt_geom' as input geometry column names
-#      - Column name indicates whether data is WKT or EWKT geometries
-#   - TODO: allow any geometry column name and automatically detect whether the data is WKT or EWKT
 #
 # --------------------------------------------------------------------------------------------------------------------
 #
@@ -51,10 +44,12 @@
 #         The local folder of the parquet file(s)
 #     --json-fields : space delimited string(s)
 #         List of complex/nested type columns that will be converted to jsonb in postgres
-#     --spatial : boolean
-#         Do the input files have a geometry column?
-#     --geometry-type : string
-#         What's the geometry type (if spatial)?
+#     --geom-field : string
+#         The WKT or EWKT geometry column to convert to PostGIS geometries
+#     --geom-format : string
+#         The geometry column format (WKT or EWKT)
+#     --geom-type : string
+#         The WKT geometry type - https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry
 #     --srid : integer
 #         What's the coordinate system EPSG number (if spatial)
 #     --target-table : string
@@ -175,10 +170,9 @@ def main():
     with sql_engine.connect() as conn:
         if settings["is_spatial"] == "true":
             conn.execute("ALTER TABLE {}.{} ADD COLUMN geom geometry({}, {})"
-                         .format(settings["schema_name"], settings["table_name"], settings["geometry_type"], settings["srid"]))
+                         .format(settings["schema_name"], settings["table_name"], settings["geom_type"], settings["srid"]))
             conn.execute("UPDATE {}.{} SET geom = st_geomfromewkt(ewkt_geom)".format(settings["schema_name"], settings["table_name"]))
             conn.execute("ALTER TABLE {}.{} DROP COLUMN ewkt_geom".format(settings["schema_name"], settings["table_name"]))
-            # conn.execute("ALTER TABLE {}.{} RENAME COLUMN geometry TO geom".format(settings["schema_name"], settings["table_name"]))
             conn.execute("CREATE INDEX idx_{1}_geom ON {0}.{1} USING gist (geom)".format(settings["schema_name"], settings["table_name"]))
             conn.execute("ALTER TABLE {0}.{1} CLUSTER ON idx_{1}_geom".format(settings["schema_name"], settings["table_name"]))
 
@@ -201,19 +195,25 @@ def initialize():
     parser.add_argument("--aws-profile",
                         default="default", help="The AWS profile with access to your S3 bucket")
     parser.add_argument("--source-s3-bucket",
-                        default="mobai-sandpit-bucket-compassiot-oem", help="The S3 bucket for the CSV file(s)")
+                        help="The S3 bucket for the CSV file(s)")
     parser.add_argument("--source-s3-folder",
                         help="The S3 folder for the parquet file(s)")
     parser.add_argument("--source-local-folder",
                         help="The local folder for the parquet file(s)")
     parser.add_argument('--json-fields', nargs='+', default=[],
                         help='List of complex object columns that will be converted to jsonb in postgres')
-    parser.add_argument("--spatial",
-                        default="false", help="Do the input files have a geometry column?")
-    parser.add_argument("--geometry-type",
-                        default="GEOMETRY", help="What's the geometry type (if spatial)?")
+    parser.add_argument("--geom-field",
+                        help="WKT or EWKT geometry column to convert to PostGIS geometries")
+    parser.add_argument("--geom-format", choices=["WKT", "EWKT"],
+                        type=str.upper, default="WKT", help="The geometry column format (WKT or EWKT)")
+    parser.add_argument("--geom-type", choices=["GEOMETRYCOLLECTION", "GEOMETRY", "POINT", "MULTIPOINT",
+                                                    "LINESTRING", "MULTILINESTRING", "POLYGON", "MULTIPOLYGON",
+                                                    "GEOMETRYM", "POINTM", "MULTIPOINTM", "LINESTRINGM",
+                                                    "MULTILINESTRINGM", "POLYGONM", "MULTIPOLYGONM",
+                                                    "TIN", "POLYHEDRALSURFACE"],
+                        type=str.upper, default="GEOMETRY", help="The WKT geometry type - https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry")
     parser.add_argument("--srid",
-                        default="4326", help="What's the coordinate system EPSG number (if spatial)")
+                        default="4326", help="The coordinate system EPSG number (if spatial)")
     parser.add_argument("--target-table", required=True,
                         help="The schema and table name (e.g. <schemaname>.<tablename>) for the target Postgres table")
 
@@ -226,10 +226,11 @@ def initialize():
     settings["s3_folder"] = args.source_s3_folder
     settings["local_folder"] = args.source_local_folder
     settings["json_fields"] = args.json_fields
-    settings["is_spatial"] = args.spatial
+    settings["geom_field"] = args.geom_field
+    settings["geom_format"] = args.geom_format
+    settings["geom_type"] = args.geom_type
     settings["schema_name"] = args.target_table.split(".")[0]
     settings["table_name"] = args.target_table.split(".")[1]
-    settings["geometry_type"] = args.geometry_type
     settings["srid"] = args.srid
 
     if settings["s3_folder"] is not None:
