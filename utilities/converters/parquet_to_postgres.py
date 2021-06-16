@@ -164,7 +164,7 @@ def main():
     start_time = datetime.now()
 
     # add indexed geom column to Postgres table (if required) and cluster & analyse table
-    sql_engine = sqlalchemy.create_engine(sql_alchemy_engine_string)
+    sql_engine = sqlalchemy.create_engine(sql_alchemy_engine_string, isolation_level="AUTOCOMMIT")
     with sql_engine.connect() as conn:
         if settings["geom_field"] is not None:
             conn.execute("ALTER TABLE {}.{} ADD COLUMN geom geometry({}, {})"
@@ -286,8 +286,7 @@ def download_and_import(job):
     if settings["geom_field"] is not None:
         srid_string = "SRID={};".format(settings["srid"])
         test_geom = df[settings["geom_field"]][0]
-
-        print(test_geom)
+        # print(test_geom)
 
         # test if field is WKT or EWKT
         if len(test_geom.split(";")) == 1:
@@ -295,7 +294,7 @@ def download_and_import(job):
             df[settings["geom_field"]] = srid_string + df[settings["geom_field"]]
 
     # create database engine
-    sql_engine = sqlalchemy.create_engine(sql_alchemy_engine_string)
+    sql_engine = sqlalchemy.create_engine(sql_alchemy_engine_string, isolation_level="AUTOCOMMIT")
 
     # Export to Postgres
     df.to_sql(settings["table_name"], sql_engine, schema=settings["schema_name"],
