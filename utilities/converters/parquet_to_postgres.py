@@ -46,8 +46,6 @@
 #         List of complex/nested type columns that will be converted to jsonb in postgres
 #     --geom-field : string
 #         The WKT or EWKT geometry column to convert to PostGIS geometries
-#     --geom-format : string
-#         The geometry column format (WKT or EWKT)
 #     --geom-type : string
 #         The WKT geometry type - https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry
 #     --srid : integer
@@ -168,13 +166,19 @@ def main():
     # add indexed geom column to Postgres table (if required) and cluster & analyse table
     sql_engine = sqlalchemy.create_engine(sql_alchemy_engine_string)
     with sql_engine.connect() as conn:
-        if settings["is_spatial"] == "true":
+        if settings["geom_field"] is not None:
             conn.execute("ALTER TABLE {}.{} ADD COLUMN geom geometry({}, {})"
-                         .format(settings["schema_name"], settings["table_name"], settings["geom_type"], settings["srid"]))
-            conn.execute("UPDATE {}.{} SET geom = st_geomfromewkt(ewkt_geom)".format(settings["schema_name"], settings["table_name"]))
-            conn.execute("ALTER TABLE {}.{} DROP COLUMN ewkt_geom".format(settings["schema_name"], settings["table_name"]))
-            conn.execute("CREATE INDEX idx_{1}_geom ON {0}.{1} USING gist (geom)".format(settings["schema_name"], settings["table_name"]))
-            conn.execute("ALTER TABLE {0}.{1} CLUSTER ON idx_{1}_geom".format(settings["schema_name"], settings["table_name"]))
+                         .format(settings["schema_name"], settings["table_name"],
+                                 settings["geom_type"], settings["srid"]))
+            conn.execute("UPDATE {}.{} SET geom = st_geomfromewkt({})"
+                         .format(settings["schema_name"], settings["table_name"], settings["geom_field"]))
+            conn.execute("ALTER TABLE {}.{} DROP COLUMN {}"
+                         .format(settings["schema_name"], settings["table_name"], settings["geom_field"]))
+            conn.execute("CREATE INDEX idx_{1}_geom ON {0}.{1} USING gist (geom)"
+                         .format(settings["schema_name"], settings["table_name"]))
+            conn.execute("ALTER TABLE {0}.{1} CLUSTER ON idx_{1}_geom"
+                         .format(settings["schema_name"], settings["table_name"]))
+            conn.execute("VACUUM FULL {}.{}".format(settings["schema_name"], settings["table_name"]))
 
         conn.execute("ANALYSE {}.{}".format(settings["schema_name"], settings["table_name"]))
 
@@ -204,8 +208,6 @@ def initialize():
                         help='List of complex object columns that will be converted to jsonb in postgres')
     parser.add_argument("--geom-field",
                         help="WKT or EWKT geometry column to convert to PostGIS geometries")
-    parser.add_argument("--geom-format", choices=["WKT", "EWKT"],
-                        type=str.upper, default="WKT", help="The geometry column format (WKT or EWKT)")
     parser.add_argument("--geom-type", choices=["GEOMETRYCOLLECTION", "GEOMETRY", "POINT", "MULTIPOINT",
                                                     "LINESTRING", "MULTILINESTRING", "POLYGON", "MULTIPOLYGON",
                                                     "GEOMETRYM", "POINTM", "MULTIPOINTM", "LINESTRINGM",
@@ -227,7 +229,6 @@ def initialize():
     settings["local_folder"] = args.source_local_folder
     settings["json_fields"] = args.json_fields
     settings["geom_field"] = args.geom_field
-    settings["geom_format"] = args.geom_format
     settings["geom_type"] = args.geom_type
     settings["schema_name"] = args.target_table.split(".")[0]
     settings["table_name"] = args.target_table.split(".")[1]
@@ -282,16 +283,16 @@ def download_and_import(job):
         force_json_dict[field_name] = JSONB
 
     # add SRID to WKT geometry column if needed
-    if settings["is_spatial"] == "true":
-        if "ewkt_geom" in df.columns:
-            pass  # all good
-        elif "wkt_geom" in df.columns:
-            # add SRID to WKT for Postgres import
-            df["ewkt_geom"] = "SRID={};".format(settings["srid"]) + df["wkt_geom"]
-            del df["wkt_geom"]
-        else:
-            print("NO WKT OR EWKT GEOMETRY FIELD FOUND - EXITING...")
-            exit()
+    if settings["geom_field"] is not None:
+        srid_string = "SRID={};".format(settings["srid"])
+        test_geom = df[settings["geom_field"]][0]
+
+        print(test_geom)
+
+        # test if field is WKT or EWKT
+        if len(test_geom.split(";")) == 1:
+            # WKT - add SRID to make EWKT geoms
+            df[settings["geom_field"]] = srid_string + df[settings["geom_field"]]
 
     # create database engine
     sql_engine = sqlalchemy.create_engine(sql_alchemy_engine_string)

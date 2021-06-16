@@ -5,7 +5,7 @@ python3 /Users/s57405/git/iag_geo/spark_testing/utilities/converters/parquet_to_
 --aws-profile minus34 \
 --source-s3-bucket minus34.com \
 --source-s3-folder opendata/geoscape-202105/parquet/abs_2016_mb \
---spatial true \
---geometry-type MULIPOLYGON \
+--geom-field ewkt_geom \
+--geom-type MULIPOLYGON \
 --srid 4283 \
 --target-table testing.abs_2016_mb
