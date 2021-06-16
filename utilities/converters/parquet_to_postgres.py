@@ -1,23 +1,42 @@
 # --------------------------------------------------------------------------------------------------------------------
-# Download S3 parquet files or open local files for exporting to postgres
+#
+# Download S3 parquet files or open local parquet files and export to postgres
+#
+# Supports complex/nested data types and Well Known Text (WKT) geometries
+#
 # --------------------------------------------------------------------------------------------------------------------
 #
 # Author: Hugh Saalmans, IAG Innovation & Ventures
 # Date: 2021-06-16
 #
 # --------------------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------------------------
+#
+# WARNING:
+#   - WILL REPLACE THE TARGET POSTGRES TABLE if it already exists
+#
+# --------------------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------------------------
 #
 # PRE_REQUISITES:
-#   - Install these Python packages: Numpy. Pandas, Boto3, SQLAlchemy
+#   - Install these Python packages: Pyarrow, Pandas, Numpy, Boto3, SQLAlchemy
+#   - (optional) if exporting S3 files - setup your AWS credentials:
+#      - https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
 #
 # --------------------------------------------------------------------------------------------------------------------
 #
 # NOTES:
-#   - The script assumes you are using your default AWS profile and you have AWS credentials setup
-#   - Complex object types (i.e structs) are supported, these are converted to JSONB in Postgres automatically
-#   - Well Known Text (WKT) and EWKT geometries are converted to PostGIS geometries and spatially indexed automatically
+#   - Complex/nested types (aka structs) are supported, these are converted to JSONB in Postgres
+#   - Well Known Text (WKT) and EWKT geometries are converted to PostGIS geometries and spatially indexed
 #   - Not tested with custom binary objects
 #   - Files will be exported in parallel. Half your CPUs is the default number of processes
+#
+# --------------------------------------------------------------------------------------------------------------------
+#
+# IMPORTANT:
+#   - Currently only accepts 'wkt_geom' and 'ewkt_geom' as input geometry column names
+#      - Column name indicates whether data is WKT or EWKT geometries
+#   - TODO: allow any geometry column name and automatically detect whether the data is WKT or EWKT
 #
 # --------------------------------------------------------------------------------------------------------------------
 #
@@ -31,7 +50,7 @@
 #     --source-local-folder : string
 #         The local folder of the parquet file(s)
 #     --json-fields : space delimited string(s)
-#         List of complex object columns that will be converted to jsonb in postgres
+#         List of complex/nested type columns that will be converted to jsonb in postgres
 #     --spatial : boolean
 #         Do the input files have a geometry column?
 #     --geometry-type : string
@@ -45,7 +64,6 @@
 #
 # SETUP:
 #   - edit the postgres connect string
-#   - (optional) edit the AWS profile name if you're not using the default
 #   - (optional) set the number of CPUs to use
 #
 # ---------------------------------------------------------------------------------------------------------------------
@@ -68,7 +86,7 @@ from datetime import datetime
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import JSONB
 
-# -- EDIT -------------------------------------------------------------------------------------------------------------
+# -- START EDIT -------------------------------------------------------------------------------------------------------
 
 # postgres connect string
 sql_alchemy_engine_string = "postgresql+psycopg2://postgres:password@localhost/geo"
@@ -76,7 +94,7 @@ sql_alchemy_engine_string = "postgresql+psycopg2://postgres:password@localhost/g
 # number of parallel process to use (default is half your CPUs)
 cpu_count = math.floor(multiprocessing.cpu_count() / 2)
 
-# ---------------------------------------------------------------------------------------------------------------------
+# -- END EDIT ---------------------------------------------------------------------------------------------------------
 
 # local temp folder for downloading parquet files
 temp_folder = "/Users/s57405/tmp/aws_s3/tmp"
@@ -94,14 +112,14 @@ def main():
     job_list = list()
     i = 0
 
-    # setup for S3 file list
     if settings["s3_folder"] is not None:
+        # setup for S3 file list
         print("\t- importing {}".format(settings["s3_folder"]))
 
         # create directory path if missing
         Path(settings["input_folder"]).mkdir(parents=True, exist_ok=True)
 
-        # delete all existing files
+        # delete local temporary files (if they exist)
         delete_files_in_folder(settings["input_folder"])
 
         # get list of S3 files to process
@@ -117,29 +135,26 @@ def main():
                 job_list.append((settings, i, key, os.path.join(temp_folder, key)))
                 i += 1
 
-        # config = TransferConfig(multipart_threshold=1024 ** 2)  # 1MB
-        # print(job_list)
-
     else:
         # setup for local file list
         print("\t- importing {}".format(settings["input_folder"]))
 
-        file_list = glob.glob(os.path.join(settings["input_folder"], "*.gz.parquet"))
+        file_list = glob.glob(os.path.join(settings["input_folder"], "*.parquet"))
 
         for file_name in file_list:
             job_list.append((settings, i, None, file_name))
             i += 1
 
-    print("{} files to load: {}".format(len(job_list), datetime.now() - start_time))
+    print("\t- {} files to load: {}".format(len(job_list), datetime.now() - start_time))
     start_time = datetime.now()
 
-    # download, process and export to new Postgres table
+    # download, process and export the first file to new Postgres table - this will create the table structure
     download_and_import(job_list[0])
 
     # remove first file from job list
     job_list.pop(0)
 
-    print("\t- created table based on first file's schema: {}".format(datetime.now() - start_time))
+    print("\t\t\t- created table based on first file's schema: {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
     # make a process pool and download, process and append all remaining files in parallel
@@ -148,14 +163,15 @@ def main():
     pool.close()
     pool.join()
 
+    # check parallel processing results
     for result in results:
         if result is not None:
             print("WARNING: multiprocessing error : {}".format(result))
 
-    print("Processed {} files : {}".format(i, datetime.now() - start_time))
+    print("\t- processed {} files : {}".format(i, datetime.now() - start_time))
     start_time = datetime.now()
 
-    # add indexed geom column to Postgres table and analyse & cluster table
+    # add indexed geom column to Postgres table (if required) and cluster & analyse table
     sql_engine = sqlalchemy.create_engine(sql_alchemy_engine_string)
     with sql_engine.connect() as conn:
         if settings["is_spatial"] == "true":
@@ -169,15 +185,16 @@ def main():
 
         conn.execute("ANALYSE {}.{}".format(settings["schema_name"], settings["table_name"]))
 
-    print("Geometries added & table optimised : {}".format(datetime.now() - start_time))
+    print("\t- geometries (optionally) added & table optimised : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
-    # delete temp files if source was S3
+    # delete temporary files if source was S3
     if settings["s3_folder"] is not None:
         delete_files_in_folder(settings["input_folder"])
         print("Files deleted : {}".format(datetime.now() - start_time))
 
 
+# get user parameters - outputs a dictionary of parameters
 def initialize():
     parser = argparse.ArgumentParser(
         description="downloads S3 parquet files or loads local files, and imports them into postgres")
@@ -217,7 +234,7 @@ def initialize():
     settings["srid"] = args.srid
 
     if settings["s3_folder"] is not None:
-        # remove leading slash if present - stuffs up os.path.join
+        # remove leading slash if present - stuffs up path join
         if settings["s3_folder"][0] == "/":
             settings["s3_folder"] = settings["s3_folder"][1:]
 
@@ -233,6 +250,7 @@ def initialize():
     return settings
 
 
+# download a file (if in S3), open file as a Pandas dataframe, using Pyarrow, and export to Postgres
 def download_and_import(job):
     start_time = datetime.now()
 
@@ -256,7 +274,7 @@ def download_and_import(job):
 
     force_json_dict = dict()
 
-    # convert list and dict columns to JSON columns
+    # convert list and dict (i.e Parquet complex types) columns to JSON columns
     for field_name in settings["json_fields"]:
         df[field_name] = list(map(lambda x: json.dumps(x, cls=NumpyArrayEncoder), df[field_name]))
 
@@ -282,7 +300,7 @@ def download_and_import(job):
     df.to_sql(settings["table_name"], sql_engine, schema=settings["schema_name"],
               if_exists=table_mode, index=False, dtype=force_json_dict)
 
-    print("\t- imported {} into Postgres : {}"
+    print("\t\t- imported {} into Postgres : {}"
           .format(os.path.basename(file_name), datetime.now() - start_time))
 
 
