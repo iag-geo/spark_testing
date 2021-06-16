@@ -63,6 +63,7 @@
 
 import argparse
 import boto3
+import geopandas
 import glob
 import json
 import multiprocessing
@@ -167,18 +168,22 @@ def main():
     sql_engine = sqlalchemy.create_engine(sql_alchemy_engine_string, isolation_level="AUTOCOMMIT")
     with sql_engine.connect() as conn:
         if settings["geom_field"] is not None:
-            conn.execute("ALTER TABLE {}.{} ADD COLUMN geom geometry({}, {})"
-                         .format(settings["schema_name"], settings["table_name"],
-                                 settings["geom_type"], settings["srid"]))
-            conn.execute("UPDATE {}.{} SET geom = st_geomfromewkt({})"
-                         .format(settings["schema_name"], settings["table_name"], settings["geom_field"]))
-            conn.execute("ALTER TABLE {}.{} DROP COLUMN {}"
-                         .format(settings["schema_name"], settings["table_name"], settings["geom_field"]))
-            conn.execute("CREATE INDEX idx_{1}_geom ON {0}.{1} USING gist (geom)"
+            # conn.execute("ALTER TABLE {}.{} ADD COLUMN geom geometry({}, {})"
+            #              .format(settings["schema_name"], settings["table_name"],
+            #                      settings["geom_type"], settings["srid"]))
+            # conn.execute("UPDATE {}.{} SET geom = st_geomfromewkt({})"
+            #              .format(settings["schema_name"], settings["table_name"], settings["geom_field"]))
+            # conn.execute("ALTER TABLE {}.{} DROP COLUMN {}"
+            #              .format(settings["schema_name"], settings["table_name"], settings["geom_field"]))
+            # conn.execute("CREATE INDEX idx_{1}_geom ON {0}.{1} USING gist (geom)"
+            #              .format(settings["schema_name"], settings["table_name"]))
+            # conn.execute("ALTER TABLE {0}.{1} CLUSTER ON idx_{1}_geom"
+            #              .format(settings["schema_name"], settings["table_name"]))
+            # conn.execute("VACUUM FULL {}.{}".format(settings["schema_name"], settings["table_name"]))
+            conn.execute("ALTER TABLE {0}.{1} CLUSTER ON idx_{1}_geometry"
                          .format(settings["schema_name"], settings["table_name"]))
-            conn.execute("ALTER TABLE {0}.{1} CLUSTER ON idx_{1}_geom"
+            conn.execute("ALTER TABLE {}.{} RENAME COLUMN geometry TO geom"
                          .format(settings["schema_name"], settings["table_name"]))
-            conn.execute("VACUUM FULL {}.{}".format(settings["schema_name"], settings["table_name"]))
 
         conn.execute("ANALYSE {}.{}".format(settings["schema_name"], settings["table_name"]))
 
@@ -284,21 +289,28 @@ def download_and_import(job):
 
     # add SRID to WKT geometry column if needed
     if settings["geom_field"] is not None:
-        srid_string = "SRID={};".format(settings["srid"])
-        test_geom = df[settings["geom_field"]][0]
-        # print(test_geom)
+        output_df = geopandas.GeoDataFrame(df,
+                                           geometry=geopandas.GeoSeries.from_wkt(df[settings["geom_field"]].str.replace("SRID={};".format(settings["srid"]), "")),
+                                           crs="EPSG:{}".format(settings["srid"])) \
+            .drop(settings["geom_field"], axis=1)
+    else:
+        output_df = df
 
-        # test if field is WKT or EWKT
-        if len(test_geom.split(";")) == 1:
-            # WKT - add SRID to make EWKT geoms
-            df[settings["geom_field"]] = srid_string + df[settings["geom_field"]]
+        # srid_string = "SRID={};".format(settings["srid"])
+        # test_geom = df[settings["geom_field"]][0]
+        # # print(test_geom)
+        #
+        # # test if field is WKT or EWKT
+        # if len(test_geom.split(";")) == 1:
+        #     # WKT - add SRID to make EWKT geoms
+        #     df[settings["geom_field"]] = srid_string + df[settings["geom_field"]]
 
     # create database engine
     sql_engine = sqlalchemy.create_engine(sql_alchemy_engine_string, isolation_level="AUTOCOMMIT")
 
     # Export to Postgres
-    df.to_sql(settings["table_name"], sql_engine, schema=settings["schema_name"],
-              if_exists=table_mode, index=False, dtype=force_json_dict)
+    output_df.to_postgis(settings["table_name"], sql_engine, schema=settings["schema_name"],
+                         if_exists=table_mode, index=False, dtype=force_json_dict)
 
     print("\t\t- imported {} into Postgres : {}"
           .format(os.path.basename(file_name), datetime.now() - start_time))
