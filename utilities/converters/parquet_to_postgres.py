@@ -11,14 +11,15 @@
 #
 # --------------------------------------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------------------------------------------
-# WARNING:
-#   - WILL REPLACE THE TARGET POSTGRES TABLE if it already exists
+#
+# WARNING: WILL REPLACE THE TARGET POSTGRES TABLE if it already exists
+#
 # --------------------------------------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------------------------------------------
 #
 # PRE_REQUISITES:
-#   - Install these Python packages: pyarrow, geopandas, numpy, boto3, psycopg2, geoalchemy2
-#   - (optional) if exporting S3 files - setup your AWS credentials:
+#   1. Install these Python packages: pyarrow, pandas, numpy, boto3, psycopg2, sqlalchemy
+#   2. (optional) if exporting S3 files - setup your AWS credentials:
 #      - https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
 #
 # --------------------------------------------------------------------------------------------------------------------
@@ -39,7 +40,7 @@
 #     --geom-type : string
 #         The WKT geometry type - https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry
 #     --srid : integer
-#         What's the coordinate system EPSG number (if spatial)
+#         The geometry column's coordinate system EPSG number (if spatial)
 #     --target-table : string
 #         The schema and table name (e.g. <schemaname>.<tablename>) for the target Postgres table
 #
