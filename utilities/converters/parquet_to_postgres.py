@@ -19,7 +19,7 @@
 # --------------------------------------------------------------------------------------------------------------------
 #
 # PRE_REQUISITES:
-#   - Install these Python packages: Pyarrow, Pandas, Numpy, Boto3, SQLAlchemy
+#   - Install these Python packages: Pyarrow, Pandas, Numpy, Boto3, Psycopg2, SQLAlchemy
 #   - (optional) if exporting S3 files - setup your AWS credentials:
 #      - https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
 #
@@ -81,20 +81,19 @@ import shutil
 import sqlalchemy
 import sys
 
-# from boto3.s3.transfer import TransferConfig
 from datetime import datetime
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import JSONB
 
-# -- START EDIT -------------------------------------------------------------------------------------------------------
+# -- START EDIT SETTINGS ----------------------------------------------------------------------------------------------
 
-# postgres connect string
-sql_alchemy_engine_string = "postgresql+psycopg2://postgres:password@localhost/geo"
+# postgres connect string - format: "postgresql+psycopg2://<username>:<password>@<host>:<port>/<database>"
+sql_alchemy_engine_string = "postgresql+psycopg2://postgres:password@localhost:5432/geo"
 
 # number of parallel process to use (default is half your CPUs)
 cpu_count = math.floor(multiprocessing.cpu_count() / 2)
 
-# -- END EDIT ---------------------------------------------------------------------------------------------------------
+# -- END EDIT SETTINGS ------------------------------------------------------------------------------------------------
 
 # local temp folder for downloading parquet files
 temp_folder = "/Users/s57405/tmp/aws_s3/tmp"
