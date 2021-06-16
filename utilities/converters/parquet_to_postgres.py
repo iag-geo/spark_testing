@@ -11,10 +11,8 @@
 #
 # --------------------------------------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------------------------------------------
-#
 # WARNING:
 #   - WILL REPLACE THE TARGET POSTGRES TABLE if it already exists
-#
 # --------------------------------------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------------------------------------------
 #
@@ -22,14 +20,6 @@
 #   - Install these Python packages: pyarrow, geopandas, numpy, boto3, psycopg2, geoalchemy2
 #   - (optional) if exporting S3 files - setup your AWS credentials:
 #      - https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
-#
-# --------------------------------------------------------------------------------------------------------------------
-#
-# NOTES:
-#   - Complex/nested types (aka structs) are supported, these are converted to JSONB in Postgres
-#   - Well Known Text (WKT) and EWKT geometries are converted to PostGIS geometries and spatially indexed
-#   - Not tested with custom binary objects - you'll most likely have to
-#   - Files will be exported in parallel. Half your CPUs is the default number of processes
 #
 # --------------------------------------------------------------------------------------------------------------------
 #
@@ -52,6 +42,15 @@
 #         What's the coordinate system EPSG number (if spatial)
 #     --target-table : string
 #         The schema and table name (e.g. <schemaname>.<tablename>) for the target Postgres table
+#
+# --------------------------------------------------------------------------------------------------------------------
+#
+# NOTES:
+#   - Complex/nested types (aka structs) are supported, these are converted to JSONB in Postgres
+#   - Well Known Text (WKT) and EWKT geometries are converted to PostGIS geometries and spatially indexed
+#   - If you have mixed geometries (e.g. points and lines) - choose the GEOMETRY or GEOMETRYM type
+#   - Not tested with custom binary objects - you'll most likely have to
+#   - Files will be exported in parallel. Half your CPUs is the default number of processes
 #
 # --------------------------------------------------------------------------------------------------------------------
 #
