@@ -10,4 +10,5 @@ python3 /Users/s57405/git/iag_geo/spark_testing/utilities/converters/parquet_to_
 --geom-field wkt_geom \
 --geom-type POLYGON \
 --srid 4283 \
+--primary-key mb_16code \
 --target-table testing.abs_2016_mb

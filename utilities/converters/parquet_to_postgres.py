@@ -180,6 +180,10 @@ def main():
                          .format(settings["schema_name"], settings["table_name"]))
             conn.execute("VACUUM FULL {}.{}".format(settings["schema_name"], settings["table_name"]))
 
+        if settings["primary_key"] is not None:
+            conn.execute("ALTER TABLE {0}.{1} ADD CONSTRAINT {1}_pkey PRIMARY KEY ({2})"
+                         .format(settings["schema_name"], settings["table_name"], settings["primary_key"]))
+
         conn.execute("ANALYSE {}.{}".format(settings["schema_name"], settings["table_name"]))
 
     print("\t- geometries (optionally) added & table optimised : {}".format(datetime.now() - start_time))
@@ -216,6 +220,8 @@ def initialize():
                         type=str.upper, default="GEOMETRY", help="The WKT geometry type - https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry")
     parser.add_argument("--srid",
                         default="4326", help="The coordinate system EPSG number (if spatial)")
+    parser.add_argument("--primary-key",
+                        help="The field(s) to create the primary key with (comma delimited with no spaces if more than 1 field")
     parser.add_argument("--target-table", required=True,
                         help="The schema and table name (e.g. <schemaname>.<tablename>) for the target Postgres table")
 
@@ -233,6 +239,7 @@ def initialize():
     settings["schema_name"] = args.target_table.split(".")[0]
     settings["table_name"] = args.target_table.split(".")[1]
     settings["srid"] = args.srid
+    settings["primary_key"] = args.primary_key
 
     if settings["s3_folder"] is not None:
         # remove leading slash if present - stuffs up path join
