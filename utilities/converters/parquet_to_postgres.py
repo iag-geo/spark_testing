@@ -70,6 +70,7 @@ import math
 import numpy
 import os
 import pandas
+import pathlib
 import shutil
 import sqlalchemy
 import sys
@@ -89,7 +90,7 @@ cpu_count = math.floor(multiprocessing.cpu_count() / 2)
 # -- END EDIT SETTINGS ------------------------------------------------------------------------------------------------
 
 # local temp folder for downloading parquet files
-temp_folder = "/Users/s57405/tmp/aws_s3/tmp"
+temp_folder =  os.path.join(pathlib.Path.home(), "tmp", "aws_s3", "tmp")
 
 
 def main():
@@ -186,6 +187,10 @@ def main():
 
         conn.execute("ANALYSE {}.{}".format(settings["schema_name"], settings["table_name"]))
 
+        row_count = conn.execute("SELECT count(*) FROM {}.{}".format(settings["schema_name"], settings["table_name"]))\
+            .scalar()
+
+    print("\t- {} rows imported : {}".format(row_count, datetime.now() - start_time))
     print("\t- geometries (optionally) added & table optimised : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
