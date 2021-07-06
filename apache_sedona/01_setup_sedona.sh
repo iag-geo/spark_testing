@@ -17,10 +17,10 @@ echo " Start time : $(date)"
 #   - Removes existing 'sedona' Conda environment
 #
 # PRE_REQUISITES:
-#   1. Java 8 OpenJDK is installed using Homebrew: brew install openjdk@11
+#   1. Java 11 OpenJDK is installed using Homebrew: brew install openjdk@11
 #
 #   2. Miniconda is installed in the default directory ($HOME/opt/miniconda3)
-#        - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
+#        - Mac Intel installer: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
 #
 # ISSUES:
 #   1. Conda environment variables aren't accessible in IntelliJ/Pycharm due to a missing feature
@@ -133,10 +133,11 @@ echo "y" | pip uninstall pyspark
 echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION}
 
 echo "-------------------------------------------------------------------------"
-echo "Verify Sedona version"
+echo "Verify Apache Spark and Sedona versions"
 echo "-------------------------------------------------------------------------"
 
 # confirm version of Sedona installed
+pip list | grep "spark"
 pip list | grep "sedona"
 
 echo "-------------------------------------------------------------------------"
