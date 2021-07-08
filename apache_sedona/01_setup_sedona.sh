@@ -17,17 +17,10 @@ echo " Start time : $(date)"
 #   - Removes existing 'sedona' Conda environment
 #
 # PRE_REQUISITES:
-#   1. Java 8 OpenJDK is installed
-#        a. Install using Homebrew:
-#            brew install openjdk@8
-#        b. Add the following lines to your .bash_profile file:
-#            export PATH="/usr/local/opt/openjdk@8/bin:$PATH"
-#            export JAVA_HOME="/usr/local/opt/openjdk@8"
-#        c. Reload .bash_profile:
-#            source .bash_profile
+#   1. Java 11 OpenJDK is installed using Homebrew: brew install openjdk@11
 #
-#   2. Miniconda installed in the default directory ($HOME/opt/miniconda3)
-#        - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
+#   2. Miniconda is installed in the default directory ($HOME/opt/miniconda3)
+#        - Mac Intel installer: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
 #
 # ISSUES:
 #   1. Conda environment variables aren't accessible in IntelliJ/Pycharm due to a missing feature
@@ -42,7 +35,7 @@ echo " Start time : $(date)"
 
 PYTHON_VERSION="3.9"
 SPARK_VERSION="3.1.2"
-POSTGRES_JDBC_VERSION="42.2.21"
+POSTGRES_JDBC_VERSION="42.2.22"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -112,7 +105,7 @@ conda config --env --add channels conda-forge
 conda config --env --set channel_priority strict
 
 # add environment variables for Pyspark
-conda env config vars set JAVA_HOME="/usr/local/opt/openjdk@8"
+conda env config vars set JAVA_HOME="/usr/local/opt/openjdk@11"
 conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
 conda env config vars set SPARK_LOCAL_DIRS="${HOME}/tmp/spark"
@@ -140,10 +133,13 @@ echo "y" | pip uninstall pyspark
 echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION}
 
 echo "-------------------------------------------------------------------------"
-echo "Verify Sedona version"
+echo "Verify Apache Spark and Sedona versions"
 echo "-------------------------------------------------------------------------"
 
-# confirm version of Sedona installed
+spark-submit --version
+echo "------------------------------------------------------"
+pip list | grep "spark"
+echo "------------------------------------------------------"
 pip list | grep "sedona"
 
 echo "-------------------------------------------------------------------------"
