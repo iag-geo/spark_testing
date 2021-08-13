@@ -35,7 +35,9 @@ echo " Start time : $(date)"
 
 PYTHON_VERSION="3.9"
 SPARK_VERSION="3.1.2"
-POSTGRES_JDBC_VERSION="42.2.22"
+POSTGRES_JDBC_VERSION="42.2.23"
+SEDONA_VERSION="1.0.1"
+GEOTOOLS_VERSION="24.1"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -70,6 +72,10 @@ cd ${SPARK_HOME_DIR}/jars
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 curl -O https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}.jar
+
+# add Apache Sedona Python shaded JAR and GeoTools
+curl -O https://repo1.maven.org/maven2/org/apache/sedona/sedona-python-adapter-3.0_2.12/${SEDONA_VERSION}-incubating/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar
+curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/geotools-${GEOTOOLS_VERSION}/geotools-wrapper-geotools-${GEOTOOLS_VERSION}.jar
 
 # get hadoop-aws & aws-java-sdk JAR files (optional - required for accessing AWS S3)
 #curl -O https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar
@@ -126,7 +132,7 @@ echo "-------------------------------------------------------------------------"
 echo "Install Apache Sedona"
 echo "-------------------------------------------------------------------------"
 
-pip install apache-sedona
+pip install apache-sedona==${SEDONA_VERSION}
 
 # fix Sedona 1.0.1 packaging issue (uninstall Pyspark 3.0.2 and install required version)
 echo "y" | pip uninstall pyspark
