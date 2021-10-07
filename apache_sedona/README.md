@@ -5,20 +5,16 @@ Tested on **macOS only**. Should work on Linux with some minor tweaking.
 
 ## Getting Started
 
-Open Terminal and run *01_setup_sedona.sh* to download & install Spark 3.0.x and create a self-contained Python 3.9 Conda environment with PySpark and Apache Sedona installed.
+Open Terminal and run *01_setup_sedona.sh* to create a self-contained Python 3.9 Conda environment with PySpark 3.1.x and Apache Sedona installed.
 
-The script will finish by running *02_run_spatial_query.py* to confirm Sedona is working. The test script takes ~1 min to run.
+The script will finish by running *02_run_spatial_query.py* to confirm both Apache Spark & Sedona is working. The test script takes ~1 min to run.
 
 ## Pre-requisites
 
-1. Java 8 OpenJDK is installed
-     - Install using Homebrew: ```brew install openjdk@8```
-     - Add the following lines to your .bash_profile file:
-         - *export PATH="/usr/local/opt/openjdk@8/bin:$PATH"*
-         - *export JAVA_HOME="/usr/local/opt/openjdk@8"*
-     - Reload .bash_profile: ```source .bash_profile```
+1. Java 11 OpenJDK is installed
+     - Install using Homebrew: brew install openjdk@11
 
-2. Miniconda installed in default directory ($HOME/opt/miniconda3)
+2. Miniconda is installed in the default directory ($HOME/opt/miniconda3)
      - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
 
 ## Running the Notebook
