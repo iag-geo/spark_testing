@@ -33,8 +33,8 @@ echo " Start time : $(date)"
 
 PYTHON_VERSION="3.9"
 SEDONA_VERSION="1.1.0"
-GEOTOOLS_VERSION="24.1"
-POSTGRES_JDBC_VERSION="42.2.23"
+GEOTOOLS_VERSION="25.2"
+POSTGRES_JDBC_VERSION="42.2.24"
 
 # --------------------------------------------------------------------------------------------------------------------
 
