@@ -32,9 +32,10 @@ echo " Start time : $(date)"
 #
 
 PYTHON_VERSION="3.9"
-SEDONA_VERSION="1.1.0"
+SEDONA_VERSION="1.1.1"
+SCALA_VERSION="2.13"
 GEOTOOLS_VERSION="25.2"
-POSTGRES_JDBC_VERSION="42.2.24"
+POSTGRES_JDBC_VERSION="42.3.1"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -87,7 +88,7 @@ echo "-------------------------------------------------------------------------"
 echo "Install Pyspark with Apache Sedona"
 echo "-------------------------------------------------------------------------"
 
-# includes full ApacheSpark install
+# includes full Apache Spark install
 pip install apache-sedona[spark]
 
 # create folder for Spark temp files
@@ -100,7 +101,7 @@ echo "-------------------------------------------------------------------------"
 cd ${SPARK_HOME_DIR}/jars
 
 # add Apache Sedona Python shaded JAR and GeoTools
-curl -O https://repo1.maven.org/maven2/org/apache/sedona/sedona-python-adapter-3.0_2.12/${SEDONA_VERSION}-incubating/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}-incubating.jar
+curl -O https://repo1.maven.org/maven2/org/apache/sedona/sedona-python-adapter-3.0_${SCALA_VERSION}/${SEDONA_VERSION}-incubating/sedona-python-adapter-3.0_${SCALA_VERSION}-${SEDONA_VERSION}-incubating.jar
 curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${SEDONA_VERSION}-${GEOTOOLS_VERSION}/geotools-wrapper-${SEDONA_VERSION}-${GEOTOOLS_VERSION}.jar
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
