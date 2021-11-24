@@ -33,7 +33,7 @@ echo " Start time : $(date)"
 
 PYTHON_VERSION="3.9"
 SEDONA_VERSION="1.1.1"
-SCALA_VERSION="2.13"
+SCALA_VERSION="2.12"
 GEOTOOLS_VERSION="25.2"
 POSTGRES_JDBC_VERSION="42.3.1"
 
@@ -102,7 +102,9 @@ cd ${SPARK_HOME_DIR}/jars
 
 # add Apache Sedona Python shaded JAR and GeoTools
 curl -O https://repo1.maven.org/maven2/org/apache/sedona/sedona-python-adapter-3.0_${SCALA_VERSION}/${SEDONA_VERSION}-incubating/sedona-python-adapter-3.0_${SCALA_VERSION}-${SEDONA_VERSION}-incubating.jar
-curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${SEDONA_VERSION}-${GEOTOOLS_VERSION}/geotools-wrapper-${SEDONA_VERSION}-${GEOTOOLS_VERSION}.jar
+#curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${SEDONA_VERSION}-${GEOTOOLS_VERSION}/geotools-wrapper-${SEDONA_VERSION}-${GEOTOOLS_VERSION}.jar
+# temporary workaround ot missing wrapper JAR
+curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/1.1.0-${GEOTOOLS_VERSION}/geotools-wrapper-1.1.0-${GEOTOOLS_VERSION}.jar
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 curl -O https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}.jar
