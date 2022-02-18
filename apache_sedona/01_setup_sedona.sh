@@ -32,10 +32,11 @@ echo " Start time : $(date)"
 #
 
 PYTHON_VERSION="3.9"
+#SPARK_VERSION="3.1.1"  # uncomment to install specific version of Spark
 SEDONA_VERSION="1.1.1"
 SCALA_VERSION="2.12"
 GEOTOOLS_VERSION="25.2"
-POSTGRES_JDBC_VERSION="42.3.1"
+POSTGRES_JDBC_VERSION="42.3.3"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -88,8 +89,14 @@ echo "-------------------------------------------------------------------------"
 echo "Install Pyspark with Apache Sedona"
 echo "-------------------------------------------------------------------------"
 
-# includes full Apache Spark install
-pip install apache-sedona[spark]
+if [ -z ${SPARK_VERSION+x} ];
+  then
+     # includes full Apache Spark install -- latest version of Sedona and supported version of Spark
+     pip install apache-sedona[spark];
+  else
+    # install specific version of Spark with the latest Sedona
+    pip install pyspark==${SPARK_VERSION} apache-sedona;
+fi
 
 # create folder for Spark temp files
 mkdir -p ${HOME}/tmp/spark
