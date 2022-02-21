@@ -123,6 +123,9 @@ curl -O https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}
 # get Google Storage connector shaded JAR (optional - required for accessing GCP Storage)
 #curl -O https://search.maven.org/remotecontent?filepath=com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.2.0/gcs-connector-hadoop3-2.2.0-shaded.jar
 
+## copy Greenplum JDBC driver (must be downloaded manually after logging into VMWare site)
+#cp ${HOME}/Downloads/greenplum-connector-apache-spark-scala_2.12-2.1.0/greenplum-connector-apache-spark-scala_2.12-2.1.0.jar .
+
 echo "-------------------------------------------------------------------------"
 echo "Verify Apache Spark and Sedona versions"
 echo "-------------------------------------------------------------------------"
