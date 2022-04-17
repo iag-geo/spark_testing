@@ -31,9 +31,9 @@ echo " Start time : $(date)"
 #   - edit these if it's now the future and versions have changed
 #
 
-PYTHON_VERSION="3.9"
-#SPARK_VERSION="3.1.1"  # uncomment to install specific version of Spark
-SEDONA_VERSION="1.1.1"
+PYTHON_VERSION="3.10"
+#SPARK_VERSION="3.2.1"  # uncomment to install specific version of Spark
+SEDONA_VERSION="1.2.0"
 SCALA_VERSION="2.12"
 GEOTOOLS_VERSION="25.2"
 POSTGRES_JDBC_VERSION="42.3.3"
