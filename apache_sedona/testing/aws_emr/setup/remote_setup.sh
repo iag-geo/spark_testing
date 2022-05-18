@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# TODO: create version of this to install release version of Sedona
+
 SECONDS=0*
 
 echo "-------------------------------------------------------------------------"
@@ -9,7 +11,7 @@ echo "-------------------------------------------------------------------------"
 echo " Set temp local environment vars"
 echo "-------------------------------------------------------------------------"
 
-POSTGRES_JDBC_VERSION="42.2.18"
+POSTGRES_JDBC_VERSION="42.3.3"
 #HADOOP_AWS_VERSION="3.2.1"
 MAVEN_VERSION=3.6.3
 
