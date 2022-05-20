@@ -7,6 +7,9 @@ echo " Start time : $(date)"
 
 # --------------------------------------------------------------------------------------------------------------------
 # Script installs Apache Sedona & Apache Spark locally on a Mac, self-contained in a Conda environment
+#
+# Takes ~25 mins with an empty Maven repo; ~15 mins on subsequent runs (due to Maven caching)
+#
 # --------------------------------------------------------------------------------------------------------------------
 #
 # Author: Hugh Saalmans, IAG Strategy & Innovation
@@ -35,10 +38,6 @@ echo " Start time : $(date)"
 
 PYTHON_VERSION="3.10"
 MAVEN_VERSION="3.8.5"
-#SPARK_VERSION="3.2.1"  # uncomment to install specific version of Spark
-#SEDONA_VERSION="1.2.0"
-#SCALA_VERSION="2.12"
-GEOTOOLS_VERSION="25.2"
 POSTGRES_JDBC_VERSION="42.3.3"
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -60,7 +59,7 @@ echo "-------------------------------------------------------------------------"
 conda deactivate
 
 # WARNING - remove existing environment
-conda env remove --name sedona_nightly --all
+conda env remove --name sedona_nightly
 
 # update Conda platform
 conda update -y conda
