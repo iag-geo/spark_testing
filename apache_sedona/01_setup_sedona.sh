@@ -6,7 +6,7 @@ echo "-------------------------------------------------------------------------"
 echo " Start time : $(date)"
 
 # --------------------------------------------------------------------------------------------------------------------
-# Script installs Apache Sedona (formerly Geospark) locally on a Mac with Spark in standalone mode
+# Script installs Apache Sedona & Apache Spark locally on a Mac, self-contained in a Conda environment
 # --------------------------------------------------------------------------------------------------------------------
 #
 # Author: Hugh Saalmans, IAG Strategy & Innovation
