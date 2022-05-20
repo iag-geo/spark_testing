@@ -34,9 +34,10 @@ echo " Start time : $(date)"
 #
 
 PYTHON_VERSION="3.10"
+MAVEN_VERSION="3.8.5"
 #SPARK_VERSION="3.2.1"  # uncomment to install specific version of Spark
-SEDONA_VERSION="1.2.0"
-SCALA_VERSION="2.12"
+#SEDONA_VERSION="1.2.0"
+#SCALA_VERSION="2.12"
 GEOTOOLS_VERSION="25.2"
 POSTGRES_JDBC_VERSION="42.3.3"
 
@@ -82,6 +83,10 @@ conda env config vars set PYSPARK_PYTHON="${HOME}/opt/miniconda3/envs/sedona_nig
 conda env config vars set PYSPARK_DRIVER_PYTHON="${HOME}/opt/miniconda3/envs/sedona_nightly/bin/ipython3"
 conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 
+# add environment variables for Maven
+conda env config vars set MAVEN_HOME="${HOME}/apache-maven-${MAVEN_VERSION}"
+conda env config vars set PATH="${MAVEN_HOME}/bin:${PATH}"
+
 # reactivate for env vars to take effect
 conda activate sedona_nightly
 
@@ -109,19 +114,22 @@ mkdir ${SEDONA_INSTALL_DIR}
 cd ${SEDONA_INSTALL_DIR}
 
 # download GitHub repo
-curl -O https://github.com/apache/incubator-sedona/archive/refs/heads/master.zip
+curl -L -o master.zip https://github.com/apache/incubator-sedona/zipball/master/
 unzip master.zip
 rm master.zip
+cd apache-incubator-sedona-*
+
+# build Sedona (8 mins)
+mvn clean install -DskipTests -Dgeotools
 
 
-## download and untar Spark files
-#curl -O https://apache.mirror.digitalpacific.com.au/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
-#tar -xzf spark-${SPARK_VERSION}-bin-hadoop3.2.tgz --directory ${SPARK_HOME_DIR} --strip-components=1
-#rm spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
-#
-## create log4j properties file (based on Spark template)
-#cp ${SPARK_HOME_DIR}/conf/log4j.properties.template ${SPARK_HOME_DIR}/conf/log4j.properties
-#
+
+
+
+
+
+
+
 #echo "-------------------------------------------------------------------------"
 #echo "Downloading additional JAR files"
 #echo "-------------------------------------------------------------------------"
