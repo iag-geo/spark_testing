@@ -48,10 +48,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # this assumes miniconda is installed in the default directory on linux/MacOS
 SPARK_HOME_DIR="${HOME}/opt/miniconda3/envs/sedona_nightly/lib/python${PYTHON_VERSION}/site-packages/pyspark"
-SEDONA_INSTALL_DIR="${HOME}/opt/miniconda3/envs/sedona_nightly/apache-sedona"
-
-# WARNING - remove existing Sedona source code directory
-rm -rf ${SEDONA_INSTALL_DIR}
+INSTALL_DIR="${HOME}/opt/miniconda3/envs/sedona_nightly"
 
 cd ${HOME}
 
@@ -63,7 +60,7 @@ echo "-------------------------------------------------------------------------"
 conda deactivate
 
 # WARNING - remove existing environment
-conda env remove --name sedona_nightly
+conda env remove --name sedona_nightly --all
 
 # update Conda platform
 conda update -y conda
@@ -79,13 +76,13 @@ conda env config vars set JAVA_HOME="/usr/local/opt/openjdk@11"
 conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
 conda env config vars set SPARK_LOCAL_DIRS="${HOME}/tmp/spark"
-conda env config vars set PYSPARK_PYTHON="${HOME}/opt/miniconda3/envs/sedona_nightly/bin/python${PYTHON_VERSION}"
-conda env config vars set PYSPARK_DRIVER_PYTHON="${HOME}/opt/miniconda3/envs/sedona_nightly/bin/ipython3"
+conda env config vars set PYSPARK_PYTHON="${INSTALL_DIR}/bin/python${PYTHON_VERSION}"
+conda env config vars set PYSPARK_DRIVER_PYTHON="${INSTALL_DIR}/bin/ipython3"
 conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 
-# add environment variables for Maven
-conda env config vars set MAVEN_HOME="${HOME}/apache-maven-${MAVEN_VERSION}"
-conda env config vars set PATH="${MAVEN_HOME}/bin:${PATH}"
+## add environment variables for Maven
+#conda env config vars set MAVEN_HOME="${HOME}/apache-maven-${MAVEN_VERSION}"
+#conda env config vars set PATH="${MAVEN_HOME}/bin:${PATH}"
 
 # reactivate for env vars to take effect
 conda activate sedona_nightly
@@ -96,22 +93,19 @@ conda install -y -c conda-forge pyspark psycopg2 sqlalchemy geoalchemy2 geopanda
 ## OPTIONAL - AWS Packages
 #conda install -y -c conda-forge boto3 s3fs
 
-#echo "-------------------------------------------------------------------------"
-#echo "Install Maven"
-#echo "-------------------------------------------------------------------------"
-#
-#cd ${HOME}
-#
-#curl -O https://www.strategylions.com.au/mirror/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz
-#tar xzf apache-maven-$MAVEN_VERSION-bin.tar.gz
-#rm apache-maven-$MAVEN_VERSION-bin.tar.gz
-
 echo "-------------------------------------------------------------------------"
-echo "Download, Build and Install Apache Spark"
+echo "Installing Maven"
 echo "-------------------------------------------------------------------------"
 
-mkdir ${SEDONA_INSTALL_DIR}
-cd ${SEDONA_INSTALL_DIR}
+cd ${INSTALL_DIR}
+
+curl -O "https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz"
+tar xzf apache-maven-${MAVEN_VERSION}-bin.tar.gz
+rm apache-maven-${MAVEN_VERSION}-bin.tar.gz
+
+echo "-------------------------------------------------------------------------"
+echo "Downloading, Building and Installing Apache Spark"
+echo "-------------------------------------------------------------------------"
 
 # download GitHub repo
 curl -L -o master.zip https://github.com/apache/incubator-sedona/zipball/master/
@@ -120,111 +114,58 @@ rm master.zip
 cd apache-incubator-sedona-*
 
 # build Sedona (8 mins)
-mvn clean install -DskipTests -Dgeotools
+../apache-maven-${MAVEN_VERSION}/bin/mvn clean install -DskipTests -Dgeotools
+
+# copy the JAR to Spark
+cp python-adapter/target/sedona-python-adapter-*.jar ${SPARK_HOME_DIR}/jars/
+
+# install Python module
+cd python
+python setup.py install
+
+# create folder for Spark temp files
+mkdir -p ${HOME}/tmp/spark
+
+echo "-------------------------------------------------------------------------"
+echo "Downloading additional JAR files"
+echo "-------------------------------------------------------------------------"
+
+cd ${SPARK_HOME_DIR}/jars
 
 
+# add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
+curl -O https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}.jar
 
+# get hadoop-aws & aws-java-sdk JAR files (optional - required for accessing AWS S3)
+#curl -O https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar
+#curl -O https://search.maven.org/remotecontent?filepath=com/amazonaws/aws-java-sdk/1.11.880/aws-java-sdk-1.11.880.jar
 
+# get Google Storage connector shaded JAR (optional - required for accessing GCP Storage)
+#curl -O https://search.maven.org/remotecontent?filepath=com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.2.0/gcs-connector-hadoop3-2.2.0-shaded.jar
 
+## copy Greenplum JDBC driver (must be downloaded manually after logging into VMWare site)
+#cp ${HOME}/Downloads/greenplum-connector-apache-spark-scala_2.12-2.1.0/greenplum-connector-apache-spark-scala_2.12-2.1.0.jar .
 
+echo "-------------------------------------------------------------------------"
+echo "Verify Apache Spark and Sedona versions"
+echo "-------------------------------------------------------------------------"
 
+${SPARK_HOME_DIR}/bin/spark-submit --version
 
+echo "---------------------------------------"
+pip list | grep "spark"
+echo "---------------------------------------"
+pip list | grep "sedona"
+echo "---------------------------------------"
+echo ""
 
-#echo "-------------------------------------------------------------------------"
-#echo "Downloading additional JAR files"
-#echo "-------------------------------------------------------------------------"
-#
-#cd ${SPARK_HOME_DIR}/jars
-#
-## add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
-#curl -O https://jdbc.postgresql.org/download/postgresql-42.2.19.jar
-#
-## get hadoop-aws JAR file (optional - required for accessing AWS S3)
-##curl -O https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar
-#
-## get aws-java-sdk JAR file (optional - required for accessing AWS S3)
-##curl -O https://search.maven.org/remotecontent?filepath=com/amazonaws/aws-java-sdk/1.11.880/aws-java-sdk-1.11.880.jar
-#
-## get Google Storage connector shaded JAR (optional - required for accessing GCP Storage)
-##curl -O https://search.maven.org/remotecontent?filepath=com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.2.0/gcs-connector-hadoop3-2.2.0-shaded.jar
-#
-## create folder for Spark temp files
-#mkdir -p ${HOME}/tmp/spark
-#
-#cd ${HOME}
-#
-#echo "-------------------------------------------------------------------------"
-#echo "Creating new Conda Environment 'sedona-nightly'"
-#echo "-------------------------------------------------------------------------"
-#
-## stop the Conda environment currently running
-#conda deactivate
-#
-## WARNING - remove existing environment
-#conda env remove --name sedona-nightly
-#
-## update Conda platform
-#echo "y" | conda update conda
-#
-## Create Conda environment
-#echo "y" | conda create -n sedona-nightly python=${PYTHON_VERSION}
-#
-## activate and setup env
-#conda activate sedona-nightly
-#conda config --env --add channels conda-forge
-#conda config --env --set channel_priority strict
-#
-## add environment variables for Pyspark
-#conda env config vars set JAVA_HOME="/usr/local/opt/openjdk@8"
-##conda env config vars set MAVEN_HOME="${HOME}/apache-maven-${MAVEN_VERSION}"
-#conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
-#conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
-#conda env config vars set SPARK_LOCAL_DIRS="${HOME}/tmp/spark"
-#conda env config vars set PYSPARK_PYTHON="${HOME}/opt/miniconda3/envs/sedona-nightly/bin/python"
-#conda env config vars set PYSPARK_DRIVER_PYTHON="${HOME}/opt/miniconda3/envs/sedona-nightly/bin/ipython"
-#conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
-#
-## reactivate for env vars to take effect
-#conda activate sedona-nightly
-#
-## install conda packages for Sedona
-#echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} pyspark-stubs psycopg2 geopandas jupyter matplotlib boto3
-#
-#echo "-------------------------------------------------------------------------"
-#echo "Build & Install Apache Sedona"
-#echo "-------------------------------------------------------------------------"
-#
-## download it
-#cd ${HOME}
-#git clone https://github.com/apache/incubator-sedona.git
-#
-## Build it
-#cd ${SEDONA_INSTALL_DIR}
-#mvn clean install -DskipTests -Dgeotools
-#
-## install it
-#
-## Copy Sedona JARs to Spark install
-#cp ${SEDONA_INSTALL_DIR}/python-adapter/target/sedona-python-adapter-3.0_2.12-${SEDONA_VERSION}.jar ${SPARK_HOME}/jars
-#
-## install Sedona in Python from local setup.py
-#cd ${SEDONA_INSTALL_DIR}/python
-#python setup.py install
-#
-#echo "-------------------------------------------------------------------------"
-#echo "Verify Sedona version"
-#echo "-------------------------------------------------------------------------"
-#
-## confirm version of Sedona installed
-#pip list | grep "sedona"
-#
-#echo "-------------------------------------------------------------------------"
-#echo "Run test Sedona script to prove everything is working"
-#echo "-------------------------------------------------------------------------"
-#
-#python ${SCRIPT_DIR}/02_run_spatial_query.py
-#
-#echo "----------------------------------------------------------------------------------------------------------------"
+echo "-------------------------------------------------------------------------"
+echo "Run test Sedona script to prove everything is working"
+echo "-------------------------------------------------------------------------"
+
+python ${SCRIPT_DIR}/../../02_run_spatial_query.py
+
+echo "----------------------------------------------------------------------------------------------------------------"
 
 cd ${SCRIPT_DIR}
 
