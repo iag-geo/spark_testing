@@ -4,14 +4,16 @@
 # NOTE: as of 20220520 - geometry field currently loads as binary type; should be geometry type when supported
 #
 
+import json
 import logging
 import os
+import pyarrow.parquet as pq
 import sys
 
 from datetime import datetime
 from multiprocessing import cpu_count
 
-from pyspark import SparkFiles
+# from pyspark import SparkFiles
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 
@@ -19,10 +21,15 @@ from sedona.register import SedonaRegistrator
 from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
 # input path for parquet file
-input_url = "https://storage.googleapis.com/open-geodata/linz-examples/nz-buildings-outlines.parquet"
+# input_url = "https://storage.googleapis.com/open-geodata/linz-examples/nz-buildings-outlines.parquet"
+# input_path = "/Users/s57405/tmp/nz-building-outlines.parquet"
+input_path = "/Users/s57405/tmp/example.parquet"
 
 # number of CPUs to use in processing (defaults to number of local CPUs)
 num_processors = cpu_count()
+
+# don't know why this has to be set... IntelliJ doesn't seem to read the Conda env vars
+os.environ["SPARK_HOME"] = "/Users/s57405/opt/miniconda3/envs/sedona_nightly/lib/python3.10/site-packages/pyspark"
 
 
 def main():
@@ -52,17 +59,48 @@ def main():
     start_time = datetime.now()
 
     # load sample file
-    spark.sparkContext.addFile(input_url)
 
-    logger.info(f"\t - Sample file downloaded: {datetime.now() - start_time}")
-    start_time = datetime.now()
+    # spark.sparkContext.addFile(input_url)
+    # logger.info(f"\t - Sample file downloaded: {datetime.now() - start_time}")
+    # start_time = datetime.now()
 
-    df = spark.read.parquet(SparkFiles.get(os.path.basename(input_url)))
+    df = (spark.read.parquet(input_path)
+          .withColumn("geom", f.expr("ST_GeomFromWKB(geometry)"))
+          .drop("geometry")
+          )
+    # df = spark.read.parquet(SparkFiles.get(os.path.basename(input_url)))
+
+    # print(df.schema)
+
+    # get basic info
     num_rows = df.count()
     df.printSchema()
     df.show(5)
-
     logger.info(f"\t - created dataframe with {num_rows} rows: {datetime.now() - start_time}")
+
+    # # print(df.columns[13].metadata)
+    # print(df.metadata)
+
+    # try to convert binary type geom field to geometry type
+
+
+    # # open parquet file using pyarrow
+    # parquet_file = pq.ParquetFile(input_path)
+    #
+    # # get Geoparquet metadata
+    # # fred = json.dumps(parquet_file.metadata.metadata)
+    #
+    # metadata =  parquet_file.metadata.metadata
+    # geo_metadata = None
+    #
+    # for key in metadata.keys():
+    #     if key == b"geo":
+    #         geo_metadata = json.loads(metadata[key].decode("utf-8"))
+    #
+    # # print(json.dumps(geo_metadata, indent=2, sort_keys=False))
+    #
+    # schema = parquet_file.schema
+    # print(schema)
 
     # cleanup
     spark.stop()
