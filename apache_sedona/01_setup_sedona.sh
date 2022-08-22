@@ -60,6 +60,7 @@ conda env remove --name sedona
 
 # update Conda platform
 conda update -y conda
+conda update -y -n base conda
 
 # create Conda environment
 conda create -y -n sedona python=${PYTHON_VERSION}
