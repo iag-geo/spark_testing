@@ -36,7 +36,7 @@ def main():
              .config("spark.sql.adaptive.enabled", "true")
              .config("spark.executor.cores", 1)
              .config("spark.cores.max", num_processors)
-             .config("spark.driver.memory", "8g")
+             .config("spark.driver.memory", "2g")
              .config("spark.driver.maxResultSize", "1g")
              .getOrCreate()
              )

@@ -33,10 +33,10 @@ echo " Start time : $(date)"
 
 PYTHON_VERSION="3.10"
 #SPARK_VERSION="3.2.1"  # uncomment to install specific version of Spark
-SEDONA_VERSION="1.2.0"
+SEDONA_VERSION="1.2.1"
 SCALA_VERSION="2.12"
 GEOTOOLS_VERSION="25.2"
-POSTGRES_JDBC_VERSION="42.3.3"
+POSTGRES_JDBC_VERSION="42.5.0"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -61,6 +61,7 @@ conda env remove --name sedona
 # update Conda platform
 conda update -y conda
 conda update -y -n base conda
+conda install -y -n base -c conda-forge mamba
 
 # create Conda environment
 conda create -y -n sedona python=${PYTHON_VERSION}
@@ -81,10 +82,10 @@ conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 conda activate sedona
 
 # install supporting & useful packages
-conda install -y -c conda-forge psycopg2 sqlalchemy geoalchemy2 geopandas pyarrow jupyter matplotlib
+mamba install -y -c conda-forge psycopg2 sqlalchemy geoalchemy2 geopandas pyarrow jupyter matplotlib
 
 ## OPTIONAL - AWS Packages
-#conda install -y -c conda-forge boto3 s3fs
+#mamba install -y -c conda-forge boto3 s3fs
 
 echo "-------------------------------------------------------------------------"
 echo "Install Pyspark with Apache Sedona"
