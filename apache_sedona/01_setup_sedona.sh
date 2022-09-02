@@ -31,6 +31,8 @@ echo " Start time : $(date)"
 #   - edit these if it's now the future and versions have changed
 #
 
+ENV_NAME=sedona
+
 PYTHON_VERSION="3.10"
 #SPARK_VERSION="3.2.1"  # uncomment to install specific version of Spark
 SEDONA_VERSION="1.2.1"
@@ -44,42 +46,44 @@ POSTGRES_JDBC_VERSION="42.5.0"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # this assumes miniconda is installed in the default directory on linux/MacOS
-SPARK_HOME_DIR="${HOME}/opt/miniconda3/envs/sedona/lib/python${PYTHON_VERSION}/site-packages/pyspark"
+SPARK_HOME_DIR="${HOME}/opt/miniconda3/envs/${ENV_NAME}/lib/python${PYTHON_VERSION}/site-packages/pyspark"
 
 cd ${HOME}
 
 echo "-------------------------------------------------------------------------"
-echo "Creating new Conda Environment 'sedona'"
+echo "Creating new Conda Environment '${ENV_NAME}'"
 echo "-------------------------------------------------------------------------"
 
-# stop the current Conda environment (if any running)
+# deactivate current environment and start base env (in case you just deactivated it) - lazy method
 conda deactivate
+conda activate base
 
-# WARNING - remove existing environment
-conda env remove --name sedona
+# WARNING - removes existing environment
+conda env remove --name ${ENV_NAME}
 
-# update Conda platform
+# update Conda base environment
 conda update -y conda
-conda update -y -n base conda
-conda install -y -n base -c conda-forge mamba
 
-# create Conda environment
-conda create -y -n sedona python=${PYTHON_VERSION}
+# Create Conda environment
+conda create -y -n ${ENV_NAME} python=${PYTHON_VERSION}
 
-# activate env
-conda activate sedona
+# activate and setup env
+conda activate ${ENV_NAME}
 
 # add environment variables for Pyspark
 conda env config vars set JAVA_HOME="/usr/local/opt/openjdk@11"
 conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
 conda env config vars set SPARK_LOCAL_DIRS="${HOME}/tmp/spark"
-conda env config vars set PYSPARK_PYTHON="${HOME}/opt/miniconda3/envs/sedona/bin/python${PYTHON_VERSION}"
-conda env config vars set PYSPARK_DRIVER_PYTHON="${HOME}/opt/miniconda3/envs/sedona/bin/ipython3"
+conda env config vars set PYSPARK_PYTHON="${HOME}/opt/miniconda3/envs/${ENV_NAME}/bin/python${PYTHON_VERSION}"
+conda env config vars set PYSPARK_DRIVER_PYTHON="${HOME}/opt/miniconda3/envs/${ENV_NAME}/bin/ipython3"
 conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 
 # reactivate for env vars to take effect
-conda activate sedona
+conda activate ${ENV_NAME}
+
+# install Mamba (faster package installer)
+conda install -y -c conda-forge mamba
 
 # install supporting & useful packages
 mamba install -y -c conda-forge psycopg2 sqlalchemy geoalchemy2 geopandas pyarrow jupyter matplotlib
