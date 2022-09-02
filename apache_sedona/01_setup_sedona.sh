@@ -18,7 +18,7 @@ echo " Start time : $(date)"
 # PRE_REQUISITES:
 #   1. Java 11 OpenJDK is installed using Homebrew: brew install openjdk@11
 #
-#   2. Miniconda is installed in the default directory ($HOME/opt/miniconda3)
+#   2. Miniconda is installed in the default directory ($HOME/miniconda3)
 #        - Mac Intel installer: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
 #
 # ISSUES:
@@ -46,7 +46,7 @@ POSTGRES_JDBC_VERSION="42.5.0"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # this assumes miniconda is installed in the default directory on linux/MacOS
-SPARK_HOME_DIR="${HOME}/opt/miniconda3/envs/${ENV_NAME}/lib/python${PYTHON_VERSION}/site-packages/pyspark"
+SPARK_HOME_DIR="${HOME}/miniconda3/envs/${ENV_NAME}/lib/python${PYTHON_VERSION}/site-packages/pyspark"
 
 cd ${HOME}
 
@@ -75,8 +75,8 @@ conda env config vars set JAVA_HOME="/usr/local/opt/openjdk@11"
 conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
 conda env config vars set SPARK_LOCAL_DIRS="${HOME}/tmp/spark"
-conda env config vars set PYSPARK_PYTHON="${HOME}/opt/miniconda3/envs/${ENV_NAME}/bin/python${PYTHON_VERSION}"
-conda env config vars set PYSPARK_DRIVER_PYTHON="${HOME}/opt/miniconda3/envs/${ENV_NAME}/bin/ipython3"
+conda env config vars set PYSPARK_PYTHON="${HOME}/miniconda3/envs/${ENV_NAME}/bin/python${PYTHON_VERSION}"
+conda env config vars set PYSPARK_DRIVER_PYTHON="${HOME}/miniconda3/envs/${ENV_NAME}/bin/ipython3"
 conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 
 # reactivate for env vars to take effect
