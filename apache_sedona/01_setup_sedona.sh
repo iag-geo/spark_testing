@@ -86,7 +86,7 @@ conda activate ${ENV_NAME}
 conda install -y -c conda-forge mamba
 
 # install supporting & useful packages
-mamba install -y -c conda-forge psycopg2 sqlalchemy geoalchemy2 geopandas pyarrow jupyter matplotlib
+mamba install -y -c conda-forge psycopg sqlalchemy geoalchemy2 geopandas pyarrow jupyter matplotlib
 
 ## OPTIONAL - AWS Packages
 #mamba install -y -c conda-forge boto3 s3fs

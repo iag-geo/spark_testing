@@ -4,14 +4,14 @@
 import glob
 import logging
 import os
-import psycopg2
+import psycopg
 import shutil
 import sys
 
 from datetime import datetime
 from itertools import repeat
 from multiprocessing import Pool, cpu_count
-from psycopg2 import pool
+from psycopg import pool
 
 from pyspark import StorageLevel
 from pyspark.sql import functions as f, types as t
@@ -47,11 +47,11 @@ pg_settings = {'HOST': 'localhost', 'DB': 'geo', 'PORT': '5432', 'USER': 'postgr
 # create Postgres JDBC url
 jdbc_url = "jdbc:postgresql://{HOST}:{PORT}/{DB}".format(**pg_settings)
 
-# get connect string for psycopg2
+# get connect string for psycopg
 local_pg_connect_string = "dbname={DB} host={HOST} port={PORT} user={USER} password={PASS}".format(**pg_settings)
 
 # create Postgres connection pool
-pg_pool = psycopg2.pool.SimpleConnectionPool(1, num_processors, local_pg_connect_string)
+pg_pool = psycopg.pool.SimpleConnectionPool(1, num_processors, local_pg_connect_string)
 
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data")
@@ -410,7 +410,7 @@ def execute_copy(file_name, table_name):
     pg_conn.autocommit = True
     pg_cur = pg_conn.cursor()
 
-    # Use a SQL statement. The Psycopg2 copy_from function has issues with quotes in CSV files
+    # Use a SQL statement. The psycopg copy_from function has issues with quotes in CSV files
     sql = """COPY {}
              FROM '{}'
              WITH (DELIMITER ',', FORMAT CSV, NULL '')""". format(table_name, file_name)

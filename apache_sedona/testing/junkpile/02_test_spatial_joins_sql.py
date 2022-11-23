@@ -4,13 +4,13 @@
 import glob
 import logging
 import os
-import psycopg2
+import psycopg
 import sys
 
 from datetime import datetime
 from itertools import repeat
 from multiprocessing import cpu_count, Pool
-from psycopg2 import pool
+from psycopg import pool
 
 from pyspark.sql import functions as f, types as t
 from pyspark.sql import SparkSession
@@ -43,11 +43,11 @@ local_pg_settings = get_password("localhost_super")
 # # create postgres JDBC url
 # jdbc_url = "jdbc:postgresql://{HOST}:{PORT}/{DB}".format(**local_pg_settings)
 
-# get connect string for psycopg2
+# get connect string for psycopg
 local_pg_connect_string = "dbname={DB} host={HOST} port={PORT} user={USER} password={PASS}".format(**local_pg_settings)
 
 # create Postgres connection pool
-pg_pool = psycopg2.pool.SimpleConnectionPool(1, num_processors, local_pg_connect_string)
+pg_pool = psycopg.pool.SimpleConnectionPool(1, num_processors, local_pg_connect_string)
 
 # inpout path for reference data
 input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -281,7 +281,7 @@ def execute_copy(file_name, table_name):
     pg_conn.autocommit = True
     pg_cur = pg_conn.cursor()
 
-    # Use a SQL statement. The Psycopg2 copy_from function has issues with quotes in CSV files
+    # Use a SQL statement. The psycopg copy_from function has issues with quotes in CSV files
     sql = """COPY {}
              FROM '{}'
              WITH (DELIMITER ',', FORMAT CSV, NULL '')""". format(table_name, file_name)

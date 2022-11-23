@@ -10,7 +10,7 @@ import glob
 import logging
 import os
 import pandas
-import psycopg2
+import psycopg
 import shutil
 import sqlalchemy
 import sys
@@ -19,7 +19,7 @@ from datetime import datetime
 from itertools import repeat
 from multiprocessing import Pool, cpu_count
 
-from psycopg2 import pool
+from psycopg import pool
 
 from pyspark.sql import functions as f
 from pyspark.sql import SparkSession
@@ -35,10 +35,10 @@ num_processors = cpu_count()
 
 # create Postgres connection pool
 local_pg_connect_string = "dbname=geo host=localhost port=5432 user=postgres password=pssword"
-pg_pool = psycopg2.pool.SimpleConnectionPool(1, num_processors + 1, local_pg_connect_string)
+pg_pool = psycopg.pool.SimpleConnectionPool(1, num_processors + 1, local_pg_connect_string)
 
 # postgres connect string for SQL Alchemy (script uses Pandas to create table without having to know the data schema)
-sql_alchemy_engine_string = "postgresql+psycopg2://postgres:password@localhost/geo"
+sql_alchemy_engine_string = "postgresql+psycopg://postgres:password@localhost/geo"
 
 # target Postgres schema
 schema_name = "testing"
@@ -187,7 +187,7 @@ def execute_copy(file_name, schema_name, table_name):
     pg_conn.autocommit = True
     pg_cur = pg_conn.cursor()
 
-    # Use a SQL statement. The Psycopg2 copy_from function has issues with quotes in CSV files
+    # Use a SQL statement. The psycopg copy_from function has issues with quotes in CSV files
     sql = """COPY {}.{} FROM '{}' WITH (DELIMITER ',', FORMAT CSV, NULL '')""" \
         .format(schema_name, table_name, file_name)
     pg_cur.execute(sql)

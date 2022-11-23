@@ -87,7 +87,7 @@ conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 conda activate sedona_nightly
 
 # install supporting & useful packages
-conda install -y -c conda-forge pyspark psycopg2 sqlalchemy geoalchemy2 geopandas pyarrow jupyter matplotlib
+conda install -y -c conda-forge pyspark psycopg sqlalchemy geoalchemy2 geopandas pyarrow jupyter matplotlib
 
 ## OPTIONAL - AWS Packages
 #conda install -y -c conda-forge boto3 s3fs

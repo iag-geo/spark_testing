@@ -18,7 +18,7 @@
 # --------------------------------------------------------------------------------------------------------------------
 #
 # PRE_REQUISITES:
-#   1. Install these Python packages: pyarrow, pandas, numpy, boto3, psycopg2, sqlalchemy
+#   1. Install these Python packages: pyarrow, pandas, numpy, boto3, psycopg, sqlalchemy
 #   2. (optional) if exporting S3 files - setup your AWS credentials:
 #      - https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
 #
@@ -81,8 +81,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 # -- START EDIT SETTINGS ----------------------------------------------------------------------------------------------
 
-# postgres connect string - format: "postgresql+psycopg2://<username>:<password>@<host>:<port>/<database>"
-sql_alchemy_engine_string = "postgresql+psycopg2://postgres:password@localhost:5432/geo"
+# postgres connect string - format: "postgresql+psycopg://<username>:<password>@<host>:<port>/<database>"
+sql_alchemy_engine_string = "postgresql+psycopg://postgres:password@localhost:5432/geo"
 
 # number of parallel process to use (default is half your CPUs)
 cpu_count = math.floor(multiprocessing.cpu_count() / 2)

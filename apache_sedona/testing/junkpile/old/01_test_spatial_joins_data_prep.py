@@ -3,7 +3,7 @@
 
 import logging
 import os
-import psycopg2
+import psycopg
 import sys
 
 from datetime import datetime
@@ -47,7 +47,7 @@ local_pg_settings = get_password("localhost_super")
 # create postgres JDBC url
 jdbc_url = "jdbc:postgresql://{HOST}:{PORT}/{DB}".format(**local_pg_settings)
 
-# get connect string for psycopg2
+# get connect string for psycopg
 local_pg_connect_string = "dbname={DB} host={HOST} port={PORT} user={USER} password={PASS}".format(**local_pg_settings)
 
 # output path for gzipped parquet files
@@ -61,7 +61,7 @@ def main():
     start_time = datetime.now()
 
     # copy gnaf tables to CSV
-    pg_conn = psycopg2.connect(local_pg_connect_string)
+    pg_conn = psycopg.connect(local_pg_connect_string)
     pg_cur = pg_conn.cursor()
 
     sql = """COPY (

@@ -102,7 +102,7 @@ conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 conda activate pyrasterframes_env
 
 # install packages for PyRasterFrames
-echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} gdal=${GDAL_VERSION} psycopg2 jupyter matplotlib
+echo "y" | conda install -c conda-forge pyspark=${SPARK_VERSION} gdal=${GDAL_VERSION} psycopg jupyter matplotlib
 pip install pyrasterframes
 
 echo "-------------------------------------------------------------------------"
