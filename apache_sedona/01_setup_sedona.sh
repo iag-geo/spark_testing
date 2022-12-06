@@ -36,7 +36,7 @@ ENV_NAME=sedona
 PYTHON_VERSION="3.10"
 #SPARK_VERSION="3.2.1"  # uncomment to install specific version of Spark
 SEDONA_VERSION="1.3.0"
-SCALA_VERSION="2.13"
+SCALA_VERSION="2.12"  # leave at 2.12 until PySpark in PyPi moves to 2.13
 GEOTOOLS_VERSION="27.2"
 POSTGRES_JDBC_VERSION="42.5.1"
 
@@ -118,11 +118,11 @@ curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${SEDONA_
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 curl -O https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}.jar
 
-# get hadoop-aws & aws-java-sdk JAR files (optional - required for accessing AWS S3)
+# get hadoop-aws & aws-java-sdk JAR files (optional - required for accessing AWS S3) -- versions may need updating
 #curl -O https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar
 #curl -O https://search.maven.org/remotecontent?filepath=com/amazonaws/aws-java-sdk/1.11.880/aws-java-sdk-1.11.880.jar
 
-# get Google Storage connector shaded JAR (optional - required for accessing GCP Storage)
+# get Google Storage connector shaded JAR (optional - required for accessing GCP Storage) -- versions may need updating
 #curl -O https://search.maven.org/remotecontent?filepath=com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.2.0/gcs-connector-hadoop3-2.2.0-shaded.jar
 
 ## copy Greenplum JDBC driver (must be downloaded manually after logging into VMWare site)
