@@ -35,10 +35,10 @@ ENV_NAME=sedona
 
 PYTHON_VERSION="3.10"
 #SPARK_VERSION="3.2.1"  # uncomment to install specific version of Spark
-SEDONA_VERSION="1.2.1"
-SCALA_VERSION="2.12"
-GEOTOOLS_VERSION="25.2"
-POSTGRES_JDBC_VERSION="42.5.0"
+SEDONA_VERSION="1.3.0"
+SCALA_VERSION="2.13"
+GEOTOOLS_VERSION="27.2"
+POSTGRES_JDBC_VERSION="42.5.1"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -67,29 +67,27 @@ conda update -y conda
 # Create Conda environment
 conda create -y -n ${ENV_NAME} python=${PYTHON_VERSION}
 
-# activate and setup env
-conda activate ${ENV_NAME}
-
 # add environment variables for Pyspark
 conda env config vars set JAVA_HOME="/usr/local/opt/openjdk@11"
 conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
 conda env config vars set SPARK_LOCAL_DIRS="${HOME}/tmp/spark"
-conda env config vars set PYSPARK_PYTHON="${HOME}/miniconda3/envs/${ENV_NAME}/bin/python${PYTHON_VERSION}"
+conda env config vars set PYTHONPATH="${HOME}/miniconda3/envs/${ENV_NAME}/bin/python${PYTHON_VERSION}"
+conda env config vars set PYSPARK_PYTHON="${PYTHONPATH}"
 conda env config vars set PYSPARK_DRIVER_PYTHON="${HOME}/miniconda3/envs/${ENV_NAME}/bin/ipython3"
 conda env config vars set PYLIB="${SPARK_HOME_DIR}/python/lib"
 
 # reactivate for env vars to take effect
 conda activate ${ENV_NAME}
 
-# install Mamba (faster package installer)
-conda install -y -c conda-forge mamba
+## install Mamba (faster package installer)
+#conda install -y -c conda-forge mamba
 
 # install supporting & useful packages
-mamba install -y -c conda-forge psycopg sqlalchemy geoalchemy2 geopandas pyarrow jupyter matplotlib
+conda install -y -c conda-forge psycopg sqlalchemy geoalchemy2 geopandas pyarrow jupyter matplotlib
 
 ## OPTIONAL - AWS Packages
-#mamba install -y -c conda-forge boto3 s3fs
+#conda install -y -c conda-forge boto3 s3fs
 
 echo "-------------------------------------------------------------------------"
 echo "Install Pyspark with Apache Sedona"
@@ -115,9 +113,7 @@ cd ${SPARK_HOME_DIR}/jars
 
 # add Apache Sedona Python shaded JAR and GeoTools
 curl -O https://repo1.maven.org/maven2/org/apache/sedona/sedona-python-adapter-3.0_${SCALA_VERSION}/${SEDONA_VERSION}-incubating/sedona-python-adapter-3.0_${SCALA_VERSION}-${SEDONA_VERSION}-incubating.jar
-#curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${SEDONA_VERSION}-${GEOTOOLS_VERSION}/geotools-wrapper-${SEDONA_VERSION}-${GEOTOOLS_VERSION}.jar
-# temporary workaround ot missing wrapper JAR
-curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/1.1.0-${GEOTOOLS_VERSION}/geotools-wrapper-1.1.0-${GEOTOOLS_VERSION}.jar
+curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${SEDONA_VERSION}-${GEOTOOLS_VERSION}/geotools-wrapper-${SEDONA_VERSION}-${GEOTOOLS_VERSION}.jar
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 curl -O https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}.jar
@@ -130,11 +126,15 @@ curl -O https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}
 #curl -O https://search.maven.org/remotecontent?filepath=com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.2.0/gcs-connector-hadoop3-2.2.0-shaded.jar
 
 ## copy Greenplum JDBC driver (must be downloaded manually after logging into VMWare site)
-#cp ${HOME}/Downloads/greenplum-connector-apache-spark-scala_2.12-2.1.0/greenplum-connector-apache-spark-scala_2.12-2.1.0.jar .
+#cp ${HOME}/Downloads/greenplum-connector-apache-spark-scala_2.13-2.1.0/greenplum-connector-apache-spark-scala_2.13-2.1.0.jar .
 
 echo "-------------------------------------------------------------------------"
 echo "Verify Apache Spark and Sedona versions"
 echo "-------------------------------------------------------------------------"
+
+# bug in current miniconda? - requires env reactivation now
+conda deactivate
+conda activate ${ENV_NAME}
 
 ${SPARK_HOME_DIR}/bin/spark-submit --version
 
