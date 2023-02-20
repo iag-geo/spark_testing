@@ -39,7 +39,7 @@ SEDONA_VERSION="1.3.1"
 SCALA_VERSION="2.12"  # leave at 2.12 until PySpark in Pypi moves to 2.13
 TEMP_WRAPPER_VERSION="1.3.0"  # required when GeoTools Wrapper points to an old version of Sedona
 GEOTOOLS_VERSION="27.2"
-POSTGRES_JDBC_VERSION="42.5.1"
+POSTGRES_JDBC_VERSION="42.5.4"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -69,7 +69,7 @@ conda update -y conda
 conda create -y -n ${ENV_NAME} python=${PYTHON_VERSION}
 
 # add environment variables for Pyspark
-conda env config vars set JAVA_HOME="/usr/local/opt/openjdk@11"
+conda env config vars set JAVA_HOME="/opt/homebrew/opt/openjdk@11"
 conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
 conda env config vars set SPARK_LOCAL_DIRS="${HOME}/tmp/spark"
