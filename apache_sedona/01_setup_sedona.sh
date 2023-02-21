@@ -154,6 +154,9 @@ python ${SCRIPT_DIR}/02_run_spatial_query.py
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
+# clear cache (builds over time)
+conda clean -y --all
+
 cd ${SCRIPT_DIR}
 
 duration=$SECONDS
