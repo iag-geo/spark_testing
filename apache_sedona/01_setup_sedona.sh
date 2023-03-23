@@ -34,12 +34,12 @@ echo " Start time : $(date)"
 ENV_NAME=sedona
 
 PYTHON_VERSION="3.10"
-#SPARK_VERSION="3.2.1"  # uncomment to install specific version of Spark
-SEDONA_VERSION="1.3.1"
+#SPARK_VERSION="3.3.2"  # uncomment to install specific version of Spark
+SEDONA_VERSION="1.4.0"
 SCALA_VERSION="2.12"  # leave at 2.12 until PySpark in Pypi moves to 2.13
-TEMP_WRAPPER_VERSION="1.3.0"  # required when GeoTools Wrapper points to an old version of Sedona
-GEOTOOLS_VERSION="27.2"
-POSTGRES_JDBC_VERSION="42.5.4"
+#TEMP_WRAPPER_VERSION="1.3.0"  # required when GeoTools Wrapper points to an old version of Sedona
+GEOTOOLS_VERSION="28.2"
+POSTGRES_JDBC_VERSION="42.6.0"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -113,8 +113,8 @@ echo "-------------------------------------------------------------------------"
 cd ${SPARK_HOME_DIR}/jars
 
 # add Apache Sedona Python shaded JAR and GeoTools
-curl -O https://repo1.maven.org/maven2/org/apache/sedona/sedona-python-adapter-3.0_${SCALA_VERSION}/${SEDONA_VERSION}-incubating/sedona-python-adapter-3.0_${SCALA_VERSION}-${SEDONA_VERSION}-incubating.jar
-curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${TEMP_WRAPPER_VERSION}-${GEOTOOLS_VERSION}/geotools-wrapper-${TEMP_WRAPPER_VERSION}-${GEOTOOLS_VERSION}.jar
+curl -O https://repo1.maven.org/maven2/org/apache/sedona/sedona-spark-shaded-3.0_${SCALA_VERSION}/${SEDONA_VERSION}/sedona-spark-shaded-3.0_${SCALA_VERSION}-${SEDONA_VERSION}.jar
+curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${SEDONA_VERSION}-${GEOTOOLS_VERSION}/geotools-wrapper-${SEDONA_VERSION}-${GEOTOOLS_VERSION}.jar
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 curl -O https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}.jar
