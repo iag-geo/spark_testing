@@ -16,8 +16,9 @@ The script will finish by running *02_run_spatial_query.py* to confirm both Apac
 
 2. JAVA_HOME is set as an environment variable: export JAVA_HOME=/opt/homebrew/opt/openjdk@11 (if installed via brew)
 
-3. Miniconda is installed in the default directory ($HOME/opt/miniconda3)
-     - Get the installer here: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
+3. Miniconda is installed in the default directory ($HOME/opt/miniconda3). Get the installer here:
+     -  Intel: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
+     -  M1/M2: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.pkg 
 
 ## Running the Notebook
 

@@ -18,8 +18,9 @@ echo " Start time : $(date)"
 # PRE_REQUISITES:
 #   1. Java 11 OpenJDK is installed using Homebrew: brew install openjdk@11
 #   2. JAVA_HOME is set as an environment variable: export JAVA_HOME=/opt/homebrew/opt/openjdk@11 (if installed via brew)
-#   3. Miniconda is installed in the default directory ($HOME/miniconda3)
-#        - Mac Intel installer: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
+#   3. Miniconda is installed in the default directory ($HOME/opt/miniconda3). Get the installer here:
+#        - Intel: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
+#        - M1/M2: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.pkg
 #
 # ISSUES:
 #   1. Conda environment variables aren't accessible in IntelliJ/Pycharm due to a missing feature
