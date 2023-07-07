@@ -8,11 +8,13 @@ import sys
 from datetime import datetime
 from multiprocessing import cpu_count
 
-from pyspark.sql import SparkSession
+# from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 
-from sedona.register import SedonaRegistrator
-from sedona.utils import SedonaKryoRegistrator, KryoSerializer
+from sedona.spark import *
+
+# from sedona.register import SedonaRegistrator
+# from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
 # input path for parquet files
 input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "./data")
@@ -25,24 +27,22 @@ def main():
     start_time = datetime.now()
 
     # create spark session object
-    spark = (SparkSession
-             .builder
-             .master("local[*]")
-             .appName("Spatial Join Test")
-             .config("spark.sql.session.timeZone", "UTC")
-             .config("spark.sql.debug.maxToStringFields", 100)
-             .config("spark.serializer", KryoSerializer.getName)
-             .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
-             .config("spark.sql.adaptive.enabled", "true")
-             .config("spark.executor.cores", 1)
-             .config("spark.cores.max", num_processors)
-             .config("spark.driver.memory", "2g")
-             .config("spark.driver.maxResultSize", "1g")
-             .getOrCreate()
-             )
+    config = (SedonaContext
+              .builder()
+              .config("spark.sql.session.timeZone", "UTC")
+              .config("spark.sql.debug.maxToStringFields", 100)
+              .config("spark.sql.adaptive.enabled", "true")
+              .config("spark.serializer", KryoSerializer.getName)
+              .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
+              .config("spark.executor.cores", 1)
+              .config("spark.cores.max", num_processors)
+              .config("spark.driver.memory", "2g")
+              .config("spark.driver.maxResultSize", "1g")
+              .getOrCreate()
+              )
 
     # Add Sedona functions and types to Spark
-    SedonaRegistrator.registerAll(spark)
+    spark = SedonaContext.create(config)
 
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
