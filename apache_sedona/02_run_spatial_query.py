@@ -8,13 +8,8 @@ import sys
 from datetime import datetime
 from multiprocessing import cpu_count
 
-# from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
-
 from sedona.spark import *
-
-# from sedona.register import SedonaRegistrator
-# from sedona.utils import SedonaKryoRegistrator, KryoSerializer
 
 # input path for parquet files
 input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "./data")
@@ -29,6 +24,8 @@ def main():
     # create spark session object
     config = (SedonaContext
               .builder()
+              .master("local[*]")
+              .appName("Sedona Test")
               .config("spark.sql.session.timeZone", "UTC")
               .config("spark.sql.debug.maxToStringFields", 100)
               .config("spark.sql.adaptive.enabled", "true")
