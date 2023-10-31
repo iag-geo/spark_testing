@@ -7,8 +7,10 @@ import sys
 
 from datetime import datetime
 from multiprocessing import cpu_count
-from pyspark.sql import SparkSession, Window
+
 from pyspark.sql import functions as f
+from pyspark.sql import Window
+from sedona.spark import *
 
 # # REQUIRED FOR DEBUGGING IN IntelliJ/Pycharm ONLY - comment out if running from command line
 # # set Conda environment vars for PySpark
@@ -45,30 +47,39 @@ jdbc_url = "jdbc:postgresql://{HOST}:{PORT}/{DB}".format(**local_pg_settings)
 # output path for gzipped parquet files
 output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
+# number of CPUs to use in processing (defaults to number of local CPUs)
+num_processors = cpu_count()
+
 
 def main():
     start_time = datetime.now()
 
-    spark = SparkSession \
-        .builder \
-        .master("local[*]") \
-        .appName("query") \
-        .config("spark.sql.session.timeZone", "UTC") \
-        .config("spark.sql.debug.maxToStringFields", 100) \
-        .config("spark.sql.adaptive.enabled", "true") \
-        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
-        .config("spark.executor.cores", 1) \
-        .config("spark.cores.max", cpu_count() * 2) \
-        .config("spark.driver.memory", "8g") \
-        .config("spark.driver.maxResultSize", "1g") \
-        .getOrCreate()
+    # create spark session object
+    config = (SedonaContext
+              .builder()
+              .master("local[*]")
+              .appName("Sedona Test")
+              .config("spark.sql.session.timeZone", "UTC")
+              .config("spark.sql.debug.maxToStringFields", 100)
+              .config("spark.sql.adaptive.enabled", "true")
+              .config("spark.serializer", KryoSerializer.getName)
+              .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
+              .config("spark.executor.cores", 1)
+              .config("spark.cores.max", num_processors)
+              .config("spark.driver.memory", "4g")
+              .config("spark.driver.maxResultSize", "2g")
+              .getOrCreate()
+              )
+
+    # Add Sedona functions and types to Spark
+    spark = SedonaContext.create(config)
 
     logger.info("\t - PySpark {} session initiated: {}".format(spark.sparkContext.version, datetime.now() - start_time))
     start_time = datetime.now()
 
     # load ABS remoteness areas
-    sql = """select ra_code16 as bdy_id, ra_name16 as bdy_type, ste_name16 as state, st_astext(st_subdivide(geom, 512)) as wkt_geom
-             from census_2016_bdys.ra_2016_aust
+    sql = """select ra_code_2021 as bdy_id, ra_name_2021 as bdy_type, state_name_2021 as state, st_astext(st_subdivide(geom, 512)) as wkt_geom
+             from census_2021_bdys_gda94.ra_2021_aust_gda94
              where geom is not null"""
     ra_df = get_dataframe_from_postgres(spark, sql)
 
@@ -76,23 +87,24 @@ def main():
     export_to_parquet(ra_df, "boundaries")
 
     # load meshblock centroid coordinates (not geoms)
-    sql = """select mb_code16 as point_id, ste_name16 as state, st_y(st_centroid(geom)) as latitude, st_x(st_centroid(geom)) as longitude 
-             from census_2016_bdys.mb_2016_aust
+    sql = """select mb_code_2021 as point_id, state_name_2021 as state, st_y(st_centroid(geom)) as latitude, st_x(st_centroid(geom)) as longitude 
+             from census_2021_bdys_gda94.mb_2021_aust_gda94
              where geom is not null"""
     mb_df = get_dataframe_from_postgres(spark, sql)
 
-    # filter to get every 4th row (to speed up the tutorial/demo code)
-    w = Window.orderBy(mb_df["point_id"])
-
-    filtered_mb_df = mb_df.withColumn("row_number", f.row_number().over(w)) \
-        .filter(f.col("row_number") % f.lit(4) == 0) \
-        .drop("row_number")
+    # # filter to get every 4th row (to speed up the tutorial/demo code)
+    # w = Window.orderBy(mb_df["point_id"])
+    #
+    # filtered_mb_df = mb_df.withColumn("row_number", f.row_number().over(w)) \
+    #     .filter(f.col("row_number") % f.lit(4) == 0) \
+    #     .drop("row_number")
     # filtered_mb_df.printSchema()
     # filtered_mb_df.show()
     # print(filtered_mb_df.count())
 
     # write meshblock coords to gzipped parquet
-    export_to_parquet(filtered_mb_df, "points")
+    export_to_parquet(mb_df, "points")
+    # export_to_parquet(filtered_mb_df, "points")
 
     # cleanup
     spark.stop()
