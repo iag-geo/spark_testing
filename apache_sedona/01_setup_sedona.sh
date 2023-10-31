@@ -3,7 +3,7 @@
 SECONDS=0*
 
 echo "-------------------------------------------------------------------------"
-echo " Start time : $(date)"
+echo "Start time : $(date)"
 
 # --------------------------------------------------------------------------------------------------------------------
 # Script installs Apache Sedona & Apache Spark locally on a Mac, self-contained in a Conda environment
@@ -36,9 +36,9 @@ ENV_NAME=sedona
 
 PYTHON_VERSION="3.11"
 #SPARK_VERSION="3.3.2"  # uncomment to install specific version of Spark
-SEDONA_VERSION="1.4.1"
+SEDONA_VERSION="1.5.0"
 SCALA_VERSION="2.12"  # leave at 2.12 until PySpark in Pypi moves to 2.13
-TEMP_WRAPPER_VERSION="1.4.0"  # required when GeoTools Wrapper points to an old version of Sedona
+#TEMP_WRAPPER_VERSION="1.5.0"  # required when GeoTools Wrapper points to an old version of Sedona
 GEOTOOLS_VERSION="28.2"
 POSTGRES_JDBC_VERSION="42.6.0"
 
@@ -87,8 +87,8 @@ conda activate ${ENV_NAME}
 # install supporting & useful packages
 conda install -y -c conda-forge psycopg sqlalchemy geoalchemy2 geopandas pyarrow jupyter matplotlib
 
-## OPTIONAL - AWS Packages
-#conda install -y -c conda-forge boto3 s3fs
+# OPTIONAL - AWS Packages
+conda install -y -c conda-forge boto3 s3fs
 
 echo "-------------------------------------------------------------------------"
 echo "Install Pyspark with Apache Sedona"
@@ -97,10 +97,10 @@ echo "-------------------------------------------------------------------------"
 if [ -z ${SPARK_VERSION+x} ];
   then
      # includes full Apache Spark install -- latest version of Sedona and latest supported version of Spark
-     pip install apache-sedona[spark];
+     pip install apache-sedona[spark] pydeck keplergl;
   else
     # install specific version of Spark with the latest Sedona
-    pip install pyspark==${SPARK_VERSION} apache-sedona;
+    pip install pyspark==${SPARK_VERSION} apache-sedona pydeck keplergl;
 fi
 
 # create folder for Spark temp files
@@ -114,14 +114,17 @@ cd ${SPARK_HOME_DIR}/jars
 
 # add Apache Sedona Python shaded JAR and GeoTools
 curl -O https://repo1.maven.org/maven2/org/apache/sedona/sedona-spark-shaded-3.0_${SCALA_VERSION}/${SEDONA_VERSION}/sedona-spark-shaded-3.0_${SCALA_VERSION}-${SEDONA_VERSION}.jar
-curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${TEMP_WRAPPER_VERSION}-${GEOTOOLS_VERSION}/geotools-wrapper-${TEMP_WRAPPER_VERSION}-${GEOTOOLS_VERSION}.jar
+curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${SEDONA_VERSION}-${GEOTOOLS_VERSION}/geotools-wrapper-${SEDONA_VERSION}-${GEOTOOLS_VERSION}.jar
+
+## required when GeoTools Wrapper points to an old version of Sedona
+#curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${TEMP_WRAPPER_VERSION}-${GEOTOOLS_VERSION}/geotools-wrapper-${TEMP_WRAPPER_VERSION}-${GEOTOOLS_VERSION}.jar
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 curl -O https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}.jar
 
 # get hadoop-aws & aws-java-sdk JAR files (optional - required for accessing AWS S3) -- versions may need updating
-#curl -O https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar
-#curl -O https://search.maven.org/remotecontent?filepath=com/amazonaws/aws-java-sdk/1.11.880/aws-java-sdk-1.11.880.jar
+curl -O https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.6/hadoop-aws-3.3.6.jar
+curl -O https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk/1.12.576/aws-java-sdk-1.12.576.jar
 
 # get Google Storage connector shaded JAR (optional - required for accessing GCP Storage) -- versions may need updating
 #curl -O https://search.maven.org/remotecontent?filepath=com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.2.0/gcs-connector-hadoop3-2.2.0-shaded.jar
@@ -155,12 +158,15 @@ python ${SCRIPT_DIR}/02_run_spatial_query.py
 echo "----------------------------------------------------------------------------------------------------------------"
 
 # clear cache (builds over time)
+echo "Conda Cleanup"
 conda clean -y --all
+
+echo "----------------------------------------------------------------------------------------------------------------"
 
 cd ${SCRIPT_DIR}
 
 duration=$SECONDS
 
-echo " End time : $(date)"
-echo " it took $((duration / 60)) mins"
+echo "End time : $(date)"
+echo "  - it took $((duration / 60)) mins"
 echo "----------------------------------------------------------------------------------------------------------------"

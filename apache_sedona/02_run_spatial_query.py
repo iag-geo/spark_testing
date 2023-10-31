@@ -33,8 +33,8 @@ def main():
               .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
               .config("spark.executor.cores", 1)
               .config("spark.cores.max", num_processors)
-              .config("spark.driver.memory", "2g")
-              .config("spark.driver.maxResultSize", "1g")
+              .config("spark.driver.memory", "4g")
+              .config("spark.driver.maxResultSize", "2g")
               .getOrCreate()
               )
 
