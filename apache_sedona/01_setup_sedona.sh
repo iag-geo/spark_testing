@@ -116,6 +116,9 @@ cd ${SPARK_HOME_DIR}/jars
 curl -O https://repo1.maven.org/maven2/org/apache/sedona/sedona-spark-shaded-3.0_${SCALA_VERSION}/${SEDONA_VERSION}/sedona-spark-shaded-3.0_${SCALA_VERSION}-${SEDONA_VERSION}.jar
 curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${SEDONA_VERSION}-${GEOTOOLS_VERSION}/geotools-wrapper-${SEDONA_VERSION}-${GEOTOOLS_VERSION}.jar
 
+## missing additional logging JAR
+#curl -O https://repo1.maven.org/maven2/org/slf4j/slf4j-simple/2.0.9/slf4j-simple-2.0.9.jar
+
 ## required when GeoTools Wrapper points to an old version of Sedona
 #curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${TEMP_WRAPPER_VERSION}-${GEOTOOLS_VERSION}/geotools-wrapper-${TEMP_WRAPPER_VERSION}-${GEOTOOLS_VERSION}.jar
 
