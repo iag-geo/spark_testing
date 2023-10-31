@@ -116,21 +116,26 @@ cd ${SPARK_HOME_DIR}/jars
 curl -O https://repo1.maven.org/maven2/org/apache/sedona/sedona-spark-shaded-3.0_${SCALA_VERSION}/${SEDONA_VERSION}/sedona-spark-shaded-3.0_${SCALA_VERSION}-${SEDONA_VERSION}.jar
 curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${SEDONA_VERSION}-${GEOTOOLS_VERSION}/geotools-wrapper-${SEDONA_VERSION}-${GEOTOOLS_VERSION}.jar
 
-## missing additional logging JAR
-#curl -O https://repo1.maven.org/maven2/org/slf4j/slf4j-simple/2.0.9/slf4j-simple-2.0.9.jar
-
 ## required when GeoTools Wrapper points to an old version of Sedona
 #curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${TEMP_WRAPPER_VERSION}-${GEOTOOLS_VERSION}/geotools-wrapper-${TEMP_WRAPPER_VERSION}-${GEOTOOLS_VERSION}.jar
+
+## missing additional logging JAR - doesn't fix logging warning on Spark startup
+#curl -O https://repo1.maven.org/maven2/org/slf4j/slf4j-simple/2.0.9/slf4j-simple-2.0.9.jar
 
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 curl -O https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}.jar
 
-# get hadoop-aws & aws-java-sdk JAR files (optional - required for accessing AWS S3) -- versions may need updating
-curl -O https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.6/hadoop-aws-3.3.6.jar
-curl -O https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk/1.12.576/aws-java-sdk-1.12.576.jar
+## get hadoop & aws-java-sdk JAR files (optional - required for accessing AWS S3) -- versions may need updating
+#curl -O https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk/1.12.576/aws-java-sdk-1.12.576.jar  # usually the latest version
+#curl -O https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar  # must match Spark's current supported version (se JARs folder)
+#curl -O https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-common/3.3.4/hadoop-common-3.3.4.jar  # must match Spark's current supported version (se JARs folder)
+#curl -O https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-client/3.3.4/hadoop-client-3.3.4.jar  # must match Spark's current supported version (se JARs folder)
 
 # get Google Storage connector shaded JAR (optional - required for accessing GCP Storage) -- versions may need updating
 #curl -O https://search.maven.org/remotecontent?filepath=com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.2.0/gcs-connector-hadoop3-2.2.0-shaded.jar
+
+## Snowflake JDBC driver
+#curl -O https://repo1.maven.org/maven2/net/snowflake/snowflake-jdbc/3.14.2/snowflake-jdbc-3.14.2.jar
 
 ## copy Greenplum JDBC driver (must be downloaded manually after logging into VMWare site)
 #cp ${HOME}/Downloads/greenplum-connector-apache-spark-scala_2.13-2.1.0/greenplum-connector-apache-spark-scala_2.13-2.1.0.jar .
