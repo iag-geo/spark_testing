@@ -82,15 +82,28 @@ def main():
              from census_2021_bdys_gda94.ra_2021_aust_gda94
              where geom is not null"""
     ra_df = get_dataframe_from_postgres(spark, sql)
+    ra_df.createOrReplaceTempView("bdy")
+
+    # order by geohash for faster querying
+    ra_df_ordered = spark.sql("select bdy_id, bdy_type, state, ST_GeomFromWKT(wkt_geom) as geom from bdy order by ST_GeoHash(ST_GeomFromWKT(wkt_geom), 5)")
+    ra_df_ordered.printSchema()
+    # print(ra_df_ordered.count())
+    # ra_df_ordered.show()
 
     # write remoteness areas to gzipped parquet
-    export_to_parquet(ra_df, "boundaries")
+    export_to_parquet(ra_df_ordered, "boundaries")
 
     # load meshblock centroid coordinates (not geoms)
     sql = """select mb_code_2021 as point_id, state_name_2021 as state, st_y(st_centroid(geom)) as latitude, st_x(st_centroid(geom)) as longitude 
              from census_2021_bdys_gda94.mb_2021_aust_gda94
              where geom is not null"""
     mb_df = get_dataframe_from_postgres(spark, sql)
+    mb_df.createOrReplaceTempView("pnt")
+
+    # order by geohash for faster querying
+    mb_df_ordered = spark.sql("select point_id, state, ST_MakePoint(longitude, latitude) as geom from pnt order by ST_GeoHash(ST_MakePoint(longitude, latitude), 5)")
+    mb_df_ordered.printSchema()
+    # print(mb_df_ordered.count())
 
     # # filter to get every 4th row (to speed up the tutorial/demo code)
     # w = Window.orderBy(mb_df["point_id"])
@@ -103,13 +116,12 @@ def main():
     # print(filtered_mb_df.count())
 
     # write meshblock coords to gzipped parquet
-    export_to_parquet(mb_df, "points")
-    # export_to_parquet(filtered_mb_df, "points")
+    export_to_parquet(mb_df_ordered, "points")
 
     # cleanup
     spark.stop()
 
-    logger.info("\t - Point and boundary data exported to gzipped parquet files: {}"
+    logger.info("\t - Point and boundary data exported to gzipped geoparquet files: {}"
                 .format(datetime.now() - start_time))
 
 
@@ -125,9 +137,15 @@ def get_dataframe_from_postgres(spark, sql):
 
 
 def export_to_parquet(df, name):
-    df.write.option("compression", "gzip") \
-        .mode("overwrite") \
-        .parquet(os.path.join(output_path, name))
+
+    output_file = os.path.join(output_path, name, f"fred.parquet")
+    # print(output_file)
+
+    df.write.format("geoparquet").save(output_file)
+
+    # df.write.option("compression", "gzip") \
+    #     .mode("overwrite") \
+    #     .parquet(os.path.join(output_path, name))
 
 
 if __name__ == "__main__":
@@ -158,7 +176,7 @@ if __name__ == "__main__":
     logging.getLogger("").addHandler(console)
 
     task_name = "Sedona testing"
-    system_name = "mobility.ai"
+    system_name = "Rollin"
 
     logger.info("{} started".format(task_name))
     logger.info("Running on Python {}".format(sys.version.replace("\n", " ")))
