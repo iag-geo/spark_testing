@@ -45,19 +45,19 @@ def main():
     start_time = datetime.now()
 
     # load boundaries (geometries are Well Known Text strings)
-    bdy_df = spark.read.parquet(os.path.join(input_path, "boundaries"))
+    bdy_wkt_df = spark.read.parquet(os.path.join(input_path, "boundaries"))
+    # bdy_df = spark.read.format("geoparquet").load(os.path.join(input_path, "boundaries"))
     # bdy_wkt_df.printSchema()
     # bdy_wkt_df.show(5)
 
-    # # create view to enable SQL queries
-    # bdy_wkt_df.createOrReplaceTempView("bdy_wkt")
-    #
-    # # create geometries from WKT strings into new DataFrame
-    # # new DF will be spatially indexed automatically
-    # sql = "select bdy_id, state, ST_GeomFromWKT(wkt_geom) as geometry from bdy_wkt"
-    # bdy_df = spark.sql(sql).repartition(96, "state")
+    # create view to enable SQL queries
+    bdy_wkt_df.createOrReplaceTempView("bdy_wkt")
 
-    bdy_df = bdy_df.repartition(96, "state")
+    # create geometries from WKT strings into new DataFrame
+    # new DF will be spatially indexed automatically
+    sql = "select bdy_id, state, ST_GeomFromWKT(wkt_geom) as geometry from bdy_wkt"
+    bdy_df = spark.sql(sql).repartition(96, "state")
+    # bdy_df = bdy_df.repartition(96, "state")
 
     # repartition and cache for performance (no effect on the "small" spatial join query here)
     # bdy_df.repartition(spark.sparkContext.defaultParallelism).cache().count()
@@ -72,20 +72,19 @@ def main():
     start_time = datetime.now()
 
     # load points (spatial data is lat/long fields)
-    # point_df = spark.read.parquet(os.path.join(input_path, "points"))
-    point_df = spark.read.format("geoparquet").load(os.path.join(input_path, "points"))
+    point_wkt_df = spark.read.parquet(os.path.join(input_path, "points"))
+    # point_df = spark.read.format("geoparquet").load(os.path.join(input_path, "points"))
     # point_wkt_df.printSchema()
     # point_wkt_df.show(5)
 
-    # # create view to enable SQL queries
-    # point_wkt_df.createOrReplaceTempView("point_wkt")
-    #
-    # # create geometries from lat/long fields into new DataFrame
-    # # new DF will be spatially indexed automatically
-    # sql = "select point_id, state, ST_Point(longitude, latitude) as geometry from point_wkt"
-    # point_df = spark.sql(sql).repartition(96, "state")
+    # create view to enable SQL queries
+    point_wkt_df.createOrReplaceTempView("point_wkt")
 
-    point_df = point_df.repartition(96, "state")
+    # create geometries from lat/long fields into new DataFrame
+    # new DF will be spatially indexed automatically
+    sql = "select point_id, state, ST_Point(longitude, latitude) as geometry from point_wkt"
+    point_df = spark.sql(sql).repartition(96, "state")
+    # point_df = point_df.repartition(96, "state")
 
     # repartition and cache for performance (no effect on the "small" spatial join query here)
     # point_df.repartition(spark.sparkContext.defaultParallelism).cache().count()
@@ -108,7 +107,7 @@ def main():
                     bdy.state,
                     pnt.geometry
              FROM pnt
-             INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)"""
+             INNER JOIN bdy ON ST_Intersects(pnt.geometry, bdy.geometry)"""
     join_df = spark.sql(sql)
     # join_df.explain()
 
