@@ -35,7 +35,7 @@ echo "Start time : $(date)"
 ENV_NAME=sedona
 
 PYTHON_VERSION="3.11"
-#SPARK_VERSION="3.4.1"  # uncomment to install specific version of Spark
+SPARK_VERSION="3.4.1"  # uncomment to install specific version of Spark
 SPARK_MINOR_VERSION="3.4"  # required to get the correct Sedona Spark shaded JAR (must match latest version here: https://repo1.maven.org/maven2/org/apache/sedona/)
 SEDONA_VERSION="1.5.0"
 SCALA_VERSION="2.12"  # leave at 2.12 until PySpark in Pypi moves to 2.13
