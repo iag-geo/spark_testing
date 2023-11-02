@@ -1,11 +1,11 @@
 # Apache Sedona Quick Start
 Scripts for running geospatial analysis using Apache Sedona on Pyspark locally in a Jupyter notebook.
 
-Tested on **macOS Intel & M1/M2**. Should work on Linux with some minor tweaking.
+Tested on **macOS Intel & Apple Silicon**. Should work on Linux with some minor tweaking.
 
 ## Getting Started
 
-Open Terminal and run *01_setup_sedona.sh* to create a self-contained Python 3.10 Conda environment with PySpark 3.3.x and Apache Sedona installed.
+Open Terminal and run *01_setup_sedona.sh* to create a self-contained Python 3.11 Conda environment with PySpark 3.4.x and Apache Sedona installed.
 
 The script will finish by running *02_run_spatial_query.py* to confirm both Apache Spark & Sedona is working. The test script takes <1 min to run.
 
@@ -18,7 +18,7 @@ The script will finish by running *02_run_spatial_query.py* to confirm both Apac
 
 3. Miniconda is installed in the default directory ($HOME/opt/miniconda3). Get the installer here:
      -  Intel: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
-     -  M1/M2: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.pkg 
+     -  Apple Silicon: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.pkg 
 
 ## Running the Notebook
 
