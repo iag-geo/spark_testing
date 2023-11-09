@@ -58,6 +58,7 @@ def main():
               # .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
               .config("spark.hadoop.fs.s3a.access.key", aws_access_key)
               .config("spark.hadoop.fs.s3a.secret.key", aws_secret_key)
+              # .config("spark.hadoop.fs.s3a.session.token", aws_session_token)
               .config("spark.hadoop.fs.s3a.aws.credentials.provider",
                       "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
               .getOrCreate()
@@ -71,7 +72,7 @@ def main():
 
     # load boundaries (geometries are Well Known Text strings)
     # bdy_wkt_df = spark.read.parquet(os.path.join(input_path, "boundaries"))
-    bdy_df = spark.read.format("geoparquet").load(os.path.join(s3_path, "local_government_areas"))
+    bdy_df = spark.read.format("geoparquet").load(os.path.join(s3_path, "local_government_areas/"))
     # bdy_df = bdy_df.repartition(96, "state")
     bdy_df.printSchema()
     bdy_df.show(5)
