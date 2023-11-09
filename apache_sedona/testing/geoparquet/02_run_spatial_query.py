@@ -54,7 +54,8 @@ def main():
               .config("spark.cores.max", num_processors)
               .config("spark.driver.memory", "4g")
               .config("spark.driver.maxResultSize", "2g")
-              .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
+              .config("spark.hadoop.fs.s3a.endpoint", "s3.ap-southeast-2.amazonaws.com")
+              # .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
               .config("spark.hadoop.fs.s3a.access.key", aws_access_key)
               .config("spark.hadoop.fs.s3a.secret.key", aws_secret_key)
               .config("spark.hadoop.fs.s3a.aws.credentials.provider",
