@@ -126,11 +126,11 @@ curl -O https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/${SEDONA_
 # add Postgres JDBC driver to Spark (optional - included for running xx_prep_abs_boundaries.py)
 curl -O https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JDBC_VERSION}.jar
 
-## get hadoop & aws-java-sdk JAR files (optional - required for accessing AWS S3) -- versions may need updating
-#curl -O https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk/1.12.576/aws-java-sdk-1.12.576.jar  # usually the latest version
-#curl -O https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar  # must match Spark's current supported version (se JARs folder)
-#curl -O https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-common/3.3.4/hadoop-common-3.3.4.jar  # must match Spark's current supported version (se JARs folder)
-#curl -O https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-client/3.3.4/hadoop-client-3.3.4.jar  # must match Spark's current supported version (se JARs folder)
+# get hadoop & aws-java-sdk JAR files (optional - required for accessing AWS S3) -- versions may need updating
+curl -O https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar  # has to be the version used to compile the Hadoop JARs below (check with Maven)
+curl -O https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar  # must match Spark's current supported version (see Spark JARs folder)
+curl -O https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-common/3.3.4/hadoop-common-3.3.4.jar  # must match Spark's current supported version (see Spark JARs folder)
+curl -O https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-client/3.3.4/hadoop-client-3.3.4.jar  # must match Spark's current supported version (see Spark JARs folder)
 
 # get Google Storage connector shaded JAR (optional - required for accessing GCP Storage) -- versions may need updating
 #curl -O https://search.maven.org/remotecontent?filepath=com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.2.0/gcs-connector-hadoop3-2.2.0-shaded.jar
