@@ -54,16 +54,14 @@ def main():
               .config("spark.cores.max", num_processors)
               .config("spark.driver.memory", "4g")
               .config("spark.driver.maxResultSize", "2g")
-              .config("spark.executor.extraJavaOptions", "-Dcom.amazonaws.services.s3.enableV4=true")
-              .config("spark.driver.extraJavaOptions", "-Dcom.amazonaws.services.s3.enableV4=true")
-              .config("spark.hadoop.fs.s3a.endpoint", "s3.ap-southeast-2.amazonaws.com")
-              .config("spark.hadoop.fs.s3a.access.key", aws_access_key)
-              .config("spark.hadoop.fs.s3a.secret.key", aws_secret_key)
-              # .config("spark.hadoop.fs.s3a.session.token", aws_session_token)
               .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
               .config("spark.hadoop.fs.s3a.aws.credentials.provider",
                       "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
               .config("spark.hadoop.fs.s3a.path.style.access", "true")
+              .config("spark.hadoop.fs.s3a.endpoint", "s3.ap-southeast-2.amazonaws.com")
+              .config("spark.hadoop.fs.s3a.access.key", aws_access_key)
+              .config("spark.hadoop.fs.s3a.secret.key", aws_secret_key)
+              # .config("spark.hadoop.fs.s3a.session.token", aws_session_token)
               .getOrCreate()
               )
 
@@ -75,28 +73,11 @@ def main():
 
     # load boundaries (geometries are Well Known Text strings)
     # bdy_wkt_df = spark.read.parquet(os.path.join(input_path, "boundaries"))
-    bdy_df = spark.read.format("geoparquet").load(os.path.join(s3_path, "local_government_areas/"))
+    bdy_df = spark.read.format("geoparquet").load(os.path.join(s3_path, "local_government_areas"))
     # bdy_df = bdy_df.repartition(96, "state")
-    bdy_df.printSchema()
-    bdy_df.show(5)
-    # bdy_df.count()
-
-    # address_aliases
-
-
-
-    # # create view to enable SQL queries
-    # bdy_wkt_df.createOrReplaceTempView("bdy_wkt")
-    #
-    # # create geometries from WKT strings into new DataFrame
-    # # new DF will be spatially indexed automatically
-    # sql = "select bdy_id, state, ST_GeomFromWKT(wkt_geom) as geometry from bdy_wkt"
-    # bdy_df = spark.sql(sql).repartition(96, "state")
-    #
-    # # repartition and cache for performance (no effect on the "small" spatial join query here)
-    # # bdy_df.repartition(spark.sparkContext.defaultParallelism).cache().count()
     # bdy_df.printSchema()
     # bdy_df.show(5)
+    # print(bdy_df.count())
 
     # create view to enable SQL queries
     bdy_df.createOrReplaceTempView("bdy")
@@ -105,58 +86,46 @@ def main():
                 .format(bdy_df.count(), datetime.now() - start_time))
     start_time = datetime.now()
 
-    # # load points (spatial data is lat/long fields)
-    # # point_wkt_df = spark.read.parquet(os.path.join(input_path, "points"))
-    # point_df = spark.read.format("geoparquet").load(os.path.join(input_path, "points"))
+    # load points (spatial data is lat/long fields)
+    # point_wkt_df = spark.read.parquet(os.path.join(input_path, "points"))
+    point_df = spark.read.format("geoparquet").load(os.path.join(s3_path, "address_aliases"))
     # point_df = point_df.repartition(96, "state")
-    # # point_wkt_df.printSchema()
-    # # point_wkt_df.show(5)
-    #
-    # # # create view to enable SQL queries
-    # # point_wkt_df.createOrReplaceTempView("point_wkt")
-    # #
-    # # # create geometries from lat/long fields into new DataFrame
-    # # # new DF will be spatially indexed automatically
-    # # sql = "select point_id, state, ST_Point(longitude, latitude) as geometry from point_wkt"
-    # # point_df = spark.sql(sql).repartition(96, "state")
-    # #
-    # # # repartition and cache for performance (no effect on the "small" spatial join query here)
-    # # # point_df.repartition(spark.sparkContext.defaultParallelism).cache().count()
-    # # point_df.printSchema()
-    # # point_df.show(5)
-    #
-    # # create view to enable SQL queries
-    # point_df.createOrReplaceTempView("pnt")
-    #
-    # logger.info("\t - Loaded and spatially enabled {:,} points: {}"
-    #             .format(point_df.count(), datetime.now() - start_time))
-    # start_time = datetime.now()
-    #
-    # # run spatial join to boundary tag the points
-    # # notes:
-    # #   - spatial partitions and indexes for join will be created automatically
-    # #   - it's an inner join so point records could be lost
-    # sql = """SELECT pnt.point_id,
-    #                 bdy.bdy_id,
-    #                 bdy.state,
-    #                 pnt.geom
-    #          FROM pnt
-    #          INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)"""
-    # join_df = spark.sql(sql)
-    # # join_df.explain()
-    #
-    # # # output join DataFrame
-    # # join_df.write.option("compression", "gzip") \
-    # #     .mode("overwrite") \
-    # #     .parquet(os.path.join(input_path, "output"))
-    #
-    # num_joined_points = join_df.count()
-    #
-    # join_df.printSchema()
-    # join_df.orderBy(f.rand()).show(5, False)
-    #
-    # logger.info("\t - {:,} points were boundary tagged: {}"
-    #             .format(num_joined_points, datetime.now() - start_time))
+    # point_df.printSchema()
+    # point_df.show(5)
+    # print(bdy_df.count())
+
+    # create view to enable SQL queries
+    point_df.createOrReplaceTempView("pnt")
+
+    logger.info("\t - Loaded and spatially enabled {:,} points: {}"
+                .format(point_df.count(), datetime.now() - start_time))
+    start_time = datetime.now()
+
+    # run spatial join to boundary tag the points
+    # notes:
+    #   - spatial partitions and indexes for join will be created automatically
+    #   - it's an inner join so point records could be lost
+    sql = """SELECT pnt.gnaf_pid,
+                    bdy.name,
+                    bdy.state,
+                    pnt.geom
+             FROM pnt
+             INNER JOIN bdy ON ST_Intersects(pnt.geom, bdy.geom)"""
+    join_df = spark.sql(sql)
+    # join_df.explain()
+
+    # # output join DataFrame
+    # join_df.write.option("compression", "gzip") \
+    #     .mode("overwrite") \
+    #     .parquet(os.path.join(input_path, "output"))
+
+    num_joined_points = join_df.count()
+
+    join_df.printSchema()
+    join_df.orderBy(f.rand()).show(5, False)
+
+    logger.info("\t - {:,} points were boundary tagged: {}"
+                .format(num_joined_points, datetime.now() - start_time))
 
     # cleanup
     spark.stop()
