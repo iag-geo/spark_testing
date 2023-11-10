@@ -33,12 +33,12 @@ def main():
     session = boto3.Session(profile_name=aws_profile)
     credentials = session.get_credentials()
 
-    # Credentials are refreshable, so accessing your access key / secret key
-    # separately can lead to a race condition. Use this to get an actual matched
-    # set.
-    credentials = credentials.get_frozen_credentials()
-    aws_access_key = credentials.access_key
-    aws_secret_key = credentials.secret_key
+    # if using a token
+    # aws_token = credentials.token
+
+    frozen_credentials = credentials.get_frozen_credentials()
+    aws_access_key = frozen_credentials.access_key
+    aws_secret_key = frozen_credentials.secret_key
 
     # create spark session object
     config = (SedonaContext
@@ -52,8 +52,8 @@ def main():
               .config("spark.kryo.registrator", SedonaKryoRegistrator.getName)
               .config("spark.executor.cores", 1)
               .config("spark.cores.max", num_processors)
-              .config("spark.driver.memory", "4g")
-              .config("spark.driver.maxResultSize", "2g")
+              .config("spark.driver.memory", "16g")
+              .config("spark.driver.maxResultSize", "4g")
               .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
               .config("spark.hadoop.fs.s3a.aws.credentials.provider",
                       "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
@@ -61,7 +61,11 @@ def main():
               .config("spark.hadoop.fs.s3a.endpoint", "s3.ap-southeast-2.amazonaws.com")
               .config("spark.hadoop.fs.s3a.access.key", aws_access_key)
               .config("spark.hadoop.fs.s3a.secret.key", aws_secret_key)
-              # .config("spark.hadoop.fs.s3a.session.token", aws_session_token)
+              .config("spark.hadoop.fs.s3a.aws.credentials.provider",
+                      "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")  # use this if NOT using a token
+              # .config("spark.hadoop.fs.s3a.session.token", aws_token)
+              # .config("spark.hadoop.fs.s3a.aws.credentials.provider",
+              #         "org.apache.hadoop.fs.s3a.TemporaryAWSCredentialsProvider")  # use this if using a token
               .getOrCreate()
               )
 
@@ -74,22 +78,24 @@ def main():
     # load boundaries (geometries are Well Known Text strings)
     # bdy_wkt_df = spark.read.parquet(os.path.join(input_path, "boundaries"))
     bdy_df = spark.read.format("geoparquet").load(os.path.join(s3_path, "local_government_areas"))
-    # bdy_df = bdy_df.repartition(96, "state")
+    bdy_df = bdy_df.repartition(512, "state")
     # bdy_df.printSchema()
     # bdy_df.show(5)
     # print(bdy_df.count())
 
     # create view to enable SQL queries
     bdy_df.createOrReplaceTempView("bdy")
+    # # create view to enable SQL queries, filtered by state
+    # bdy_df.filter(bdy_df.state == "VIC").createOrReplaceTempView("bdy")
 
-    logger.info("\t - Loaded and spatially enabled {:,} boundaries: {}"
-                .format(bdy_df.count(), datetime.now() - start_time))
+    logger.info(f"\t - Created boundary dataframe : {bdy_df.count():,} rows: {datetime.now() - start_time}")
+
     start_time = datetime.now()
 
     # load points (spatial data is lat/long fields)
     # point_wkt_df = spark.read.parquet(os.path.join(input_path, "points"))
-    point_df = spark.read.format("geoparquet").load(os.path.join(s3_path, "address_aliases"))
-    # point_df = point_df.repartition(96, "state")
+    point_df = spark.read.format("geoparquet").load(os.path.join(s3_path, "address_principals"))
+    point_df = point_df.repartition(512, "state")
     # point_df.printSchema()
     # point_df.show(5)
     # print(bdy_df.count())
@@ -97,8 +103,7 @@ def main():
     # create view to enable SQL queries
     point_df.createOrReplaceTempView("pnt")
 
-    logger.info("\t - Loaded and spatially enabled {:,} points: {}"
-                .format(point_df.count(), datetime.now() - start_time))
+    logger.info(f"\t - Created point dataframe : {point_df.count():,} rows : {datetime.now() - start_time}")
     start_time = datetime.now()
 
     # run spatial join to boundary tag the points
@@ -106,7 +111,7 @@ def main():
     #   - spatial partitions and indexes for join will be created automatically
     #   - it's an inner join so point records could be lost
     sql = """SELECT pnt.gnaf_pid,
-                    bdy.name,
+                    bdy.name as lga_name,
                     bdy.state,
                     pnt.geom
              FROM pnt
@@ -115,13 +120,13 @@ def main():
     # join_df.explain()
 
     # # output join DataFrame
-    # join_df.write.option("compression", "gzip") \
-    #     .mode("overwrite") \
-    #     .parquet(os.path.join(input_path, "output"))
+    # join_df.write.mode("overwrite") \
+    #        .format("geoparquet") \
+    #        .save(os.path.join(output_path))
 
     num_joined_points = join_df.count()
 
-    join_df.printSchema()
+    # join_df.printSchema()
     join_df.orderBy(f.rand()).show(5, False)
 
     logger.info("\t - {:,} points were boundary tagged: {}"
