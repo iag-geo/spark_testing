@@ -85,11 +85,10 @@ def main():
 
     # create view to enable SQL queries
     bdy_df.createOrReplaceTempView("bdy")
-    # # create view to enable SQL queries, filtered by state
+    # # create view to enable SQL queries, filtered by state (slows query down!)
     # bdy_df.filter(bdy_df.state == "VIC").createOrReplaceTempView("bdy")
 
     logger.info(f"\t - Created boundary dataframe : {bdy_df.count():,} rows: {datetime.now() - start_time}")
-
     start_time = datetime.now()
 
     # load points (spatial data is lat/long fields)
