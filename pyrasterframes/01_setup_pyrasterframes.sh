@@ -116,7 +116,7 @@ conda list pyrasterframes
 #echo "Run test PyRasterFrames script to prove everything is working"
 #echo "-------------------------------------------------------------------------"
 #
-#python ${SCRIPT_DIR}/02_run_spatial_query.py
+#python ${SCRIPT_DIR}/02_run_spatial_query_with_s3.py
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
