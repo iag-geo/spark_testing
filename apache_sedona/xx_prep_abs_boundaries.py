@@ -139,13 +139,13 @@ def get_dataframe_from_postgres(spark, sql):
 
 def export_to_parquet(df, name):
 
-    df.write.mode("overwrite") \
-        .format("geoparquet") \
-        .save(os.path.join(output_path, name))
-
-    # df.write.option("compression", "gzip") \
-    #     .mode("overwrite") \
-    #     .parquet(os.path.join(output_path, name))
+    (df
+     .repartition(1)
+     .write
+     .mode("overwrite")
+     .format("geoparquet")
+     .save(os.path.join(output_path, name))
+     )
 
 
 if __name__ == "__main__":
