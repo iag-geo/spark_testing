@@ -5,9 +5,9 @@ Tested on **macOS Intel & Apple Silicon**. Should work on Linux with some minor 
 
 ## Getting Started
 
-Open Terminal and run *01_setup_sedona.sh* to create a self-contained Python 3.11 Conda environment with PySpark 3.4.x and Apache Sedona installed.
+Open Terminal and run *01_setup_sedona.sh* to create a self-contained Python 3.12 Conda environment with PySpark 3.5.x and Apache Sedona installed.
 
-The script will finish by running *02_run_spatial_query.py* to confirm both Apache Spark & Sedona is working. The test script takes <1 min to run.
+The script will finish by running *02_run_spatial_query.py* to confirm Apache Spark & Sedona is working. The test script takes <1 min to run.
 
 ## Pre-requisites
 
