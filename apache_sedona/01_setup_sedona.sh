@@ -34,7 +34,7 @@ echo "Start time : $(date)"
 
 ENV_NAME=sedona
 
-PYTHON_VERSION="3.13"
+PYTHON_VERSION="3.12"
 SPARK_VERSION="3.5.6"  # uncomment to install specific version of Spark
 SPARK_MINOR_VERSION="3.5"  # required to get the correct Sedona Spark shaded JAR (must match latest version here: https://repo1.maven.org/maven2/org/apache/sedona/)
 SEDONA_VERSION="1.7.2"
