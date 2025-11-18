@@ -71,7 +71,7 @@ conda update -y conda
 conda create -y -n ${ENV_NAME} python=${PYTHON_VERSION}
 
 # add environment variables for Pyspark
-conda env config vars set JAVA_HOME="/opt/homebrew/Cellar/openjdk@17/17.0.16/libexec/openjdk.jdk/Contents/Home"
+conda env config vars set JAVA_HOME="/opt/homebrew/opt/openjdk@17"
 conda env config vars set SPARK_HOME="${SPARK_HOME_DIR}"
 conda env config vars set SPARK_LOCAL_IP="127.0.0.1"
 conda env config vars set SPARK_LOCAL_DIRS="${HOME}/tmp/spark"
