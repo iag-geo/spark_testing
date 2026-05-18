@@ -33,14 +33,14 @@ echo "Start time : $(date)"
 
 ENV_NAME=sedona
 
-PYTHON_VERSION="3.12"
+PYTHON_VERSION="3.13"
 #SPARK_VERSION="4.0.1"  # uncomment to install specific version of Spark
-SPARK_MINOR_VERSION="4.0"  # required to get the correct Sedona Spark shaded JAR (must match latest version here: https://repo1.maven.org/maven2/org/apache/sedona/)
-SEDONA_VERSION="1.8.1"
+SPARK_MINOR_VERSION="4.1"  # required to get the correct Sedona Spark shaded JAR (must match latest version here: https://repo1.maven.org/maven2/org/apache/sedona/)
+SEDONA_VERSION="1.9.0"
 SCALA_VERSION="2.13"  # leave at 2.12 until PySpark in Pypi moves to 2.13
 #TEMP_WRAPPER_VERSION="1.5.0"  # required when GeoTools Wrapper points to an old version of Sedona
-GEOTOOLS_VERSION="33.1"
-POSTGRES_JDBC_VERSION="42.7.7"
+GEOTOOLS_VERSION="33.5"
+POSTGRES_JDBC_VERSION="42.7.11"
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -99,10 +99,12 @@ echo "-------------------------------------------------------------------------"
 if [ -z ${SPARK_VERSION+x} ];
   then
      # includes full Apache Spark install -- latest version of Sedona and latest supported version of Spark
-     pip install apache-sedona[spark] pydeck keplergl;
+     # pip install apache-sedona[spark] pydeck keplergl;
+     pip install apache-sedona[spark];
   else
     # install specific version of Spark with the latest Sedona
-    pip install pyspark==${SPARK_VERSION} apache-sedona pydeck keplergl;
+    # pip install pyspark==${SPARK_VERSION} apache-sedona pydeck keplergl;
+    pip install pyspark==${SPARK_VERSION} apache-sedona;
 fi
 
 # create folder for Spark temp files

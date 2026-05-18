@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 /apache_sedona/spark_3_testing/data/
 /apache_sedona/spark-warehouse/
+.DS_Store
+.idea/
+apache_sedona/testing/data/
