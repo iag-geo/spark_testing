@@ -64,8 +64,8 @@ conda activate base
 conda env remove -y --name ${ENV_NAME}
 #conda clean -y --all
 
-# update Conda base environment
-conda update -y conda
+# update Conda
+yes | conda update --all
 
 # Create Conda environment
 conda create -y -n ${ENV_NAME} python=${PYTHON_VERSION}
